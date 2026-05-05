@@ -4,6 +4,7 @@ import { Eye, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useSearchParams } from 'react-router-dom'
 import api from '../../api/axios'
+import socket from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
 import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
@@ -30,6 +31,28 @@ export default function Companies() {
     }
 
     load()
+  }, [])
+
+  useEffect(() => {
+    const refresh = async () => {
+      try {
+        const [companyRes, baRes] = await Promise.all([api.get('/companies'), api.get('/ba/all')])
+        setCompanies(companyRes.data)
+        setBas(baRes.data)
+      } catch (_error) {
+        // no-op
+      }
+    }
+
+    socket.on('new_company', refresh)
+    socket.on('company_updated', refresh)
+    socket.on('company_deleted', refresh)
+
+    return () => {
+      socket.off('new_company', refresh)
+      socket.off('company_updated', refresh)
+      socket.off('company_deleted', refresh)
+    }
   }, [])
 
   const filtered = useMemo(() => {

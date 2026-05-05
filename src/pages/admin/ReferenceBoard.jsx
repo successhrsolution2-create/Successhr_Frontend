@@ -64,6 +64,7 @@ const selectionStatusByProcessStage = {
 }
 
 const referenceLabel = (reference) => (reference.type === 'student' ? reference.candidateName : reference.companyName)
+const referenceActivityTime = (reference) => reference.updatedAt || reference.createdAt
 
 const parseSalary = (value) => {
   const amount = Number(String(value ?? '').replace(/,/g, '') || 0)
@@ -193,6 +194,7 @@ export default function ReferenceBoard() {
   })
   const [placementSaving, setPlacementSaving] = useState(false)
   const [metaSaving, setMetaSaving] = useState(false)
+  const [referenceSaving, setReferenceSaving] = useState(false)
   const [placementBanner, setPlacementBanner] = useState('')
 
   const loadBoardData = async () => {
@@ -227,6 +229,10 @@ export default function ReferenceBoard() {
 
     socket.on('new_student', handleNewStudent)
     socket.on('new_company', handleNewCompany)
+    socket.on('student_updated', refresh)
+    socket.on('student_deleted', refresh)
+    socket.on('company_updated', refresh)
+    socket.on('company_deleted', refresh)
     socket.on('status_updated', refresh)
     socket.on('reordered', refresh)
     socket.on('placement_created', refresh)
@@ -236,6 +242,10 @@ export default function ReferenceBoard() {
     return () => {
       socket.off('new_student', handleNewStudent)
       socket.off('new_company', handleNewCompany)
+      socket.off('student_updated', refresh)
+      socket.off('student_deleted', refresh)
+      socket.off('company_updated', refresh)
+      socket.off('company_deleted', refresh)
       socket.off('status_updated', refresh)
       socket.off('reordered', refresh)
       socket.off('placement_created', refresh)
@@ -462,6 +472,64 @@ export default function ReferenceBoard() {
     }
   }
 
+  const saveReferenceDetails = async () => {
+    if (!activeRef) return
+    setReferenceSaving(true)
+
+    try {
+      if (activeRef.type === 'student') {
+        const payload = {
+          candidateName: activeRef.candidateName,
+          mobileNumber: activeRef.mobileNumber,
+          aadhaarNo: activeRef.aadhaarNo,
+          whatsappNo: activeRef.whatsappNo,
+          emailId: activeRef.emailId,
+          appliedFor: activeRef.appliedFor,
+          interestedDepartment: activeRef.interestedDepartment,
+          preferredIndustry: activeRef.preferredIndustry,
+          preferredJobLocation: activeRef.preferredJobLocation,
+          education: activeRef.education,
+          totalExperience: activeRef.totalExperience === '' ? undefined : activeRef.totalExperience,
+          careerSummary: activeRef.careerSummary,
+          currentSalary: activeRef.currentSalary,
+          expectedSalary: activeRef.expectedSalary,
+          noticePeriod: activeRef.noticePeriod === '' ? undefined : activeRef.noticePeriod,
+          reasonForJobChange: activeRef.reasonForJobChange,
+          currentJobLocation: activeRef.currentJobLocation,
+          availabilityForInterview: activeRef.availabilityForInterview,
+          marriageStatus: activeRef.marriageStatus || undefined
+        }
+
+        const { data } = await api.put(`/students/${activeRef._id}`, payload)
+        const updated = { ...data, type: 'student' }
+        setActiveRef(updated)
+        setStudents((current) => current.map((item) => (item._id === data._id ? data : item)))
+      } else {
+        const payload = {
+          companyName: activeRef.companyName,
+          companyAddress: activeRef.companyAddress,
+          contactPersonName: activeRef.contactPersonName,
+          contactPersonDesignation: activeRef.contactPersonDesignation,
+          mobileNo: activeRef.mobileNo,
+          emailId: activeRef.emailId,
+          jobRequirements: activeRef.jobRequirements || {},
+          aboutCompany: activeRef.aboutCompany || {}
+        }
+
+        const { data } = await api.put(`/companies/${activeRef._id}`, payload)
+        const updated = { ...data, type: 'company' }
+        setActiveRef(updated)
+        setCompanies((current) => current.map((item) => (item._id === data._id ? data : item)))
+      }
+
+      toast.success('Reference details updated')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not update reference details')
+    } finally {
+      setReferenceSaving(false)
+    }
+  }
+
   const savePlacement = async () => {
     if (!activeRef || activeRef.type !== 'student') return
     if (!placementForm.companyId) {
@@ -670,7 +738,7 @@ export default function ReferenceBoard() {
                                     {reference.submittedBy?.name || 'BA'}
                                   </span>
                                   <span>|</span>
-                                  <span>{formatDistanceToNow(new Date(reference.createdAt), { addSuffix: true })}</span>
+                                  <span>updated {formatDistanceToNow(new Date(referenceActivityTime(reference)), { addSuffix: true })}</span>
                                 </p>
                               </button>
                             </article>
@@ -710,7 +778,9 @@ export default function ReferenceBoard() {
                     {activeRef.submittedBy?.name || 'BA'}
                   </span>
                   <span>|</span>
-                  <span>{format(new Date(activeRef.createdAt), 'dd MMM yyyy, hh:mm a')}</span>
+                  <span>
+                    Updated {format(new Date(referenceActivityTime(activeRef)), 'dd MMM yyyy, hh:mm a')}
+                  </span>
                 </p>
               </div>
               <button
@@ -725,11 +795,184 @@ export default function ReferenceBoard() {
 
             <div className="space-y-5 px-5 py-5">
               <section className="rounded-xl border border-slate-200 p-4">
-                <h3 className="mb-3 text-sm font-bold uppercase text-slate-500">Reference Details</h3>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-bold uppercase text-slate-500">Reference Details</h3>
+                  <button
+                    type="button"
+                    onClick={saveReferenceDetails}
+                    disabled={referenceSaving}
+                    className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-70"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    {referenceSaving ? 'Saving...' : 'Save Details'}
+                  </button>
+                </div>
                 {activeRef.type === 'student' ? (
-                  <StudentDetail student={activeRef} />
+                  <>
+                    <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                      <Field
+                        label="Candidate Name"
+                        value={activeRef.candidateName}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, candidateName: value }))}
+                      />
+                      <Field
+                        label="Mobile Number"
+                        value={activeRef.mobileNumber}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, mobileNumber: value }))}
+                      />
+                      <Field
+                        label="Aadhaar Number"
+                        value={activeRef.aadhaarNo}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, aadhaarNo: value }))}
+                      />
+                      <Field
+                        label="Email"
+                        value={activeRef.emailId}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, emailId: value }))}
+                      />
+                      <Field
+                        label="Applied For"
+                        value={activeRef.appliedFor}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, appliedFor: value }))}
+                      />
+                      <Field
+                        label="Interested Department"
+                        value={activeRef.interestedDepartment}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, interestedDepartment: value }))}
+                      />
+                      <Field
+                        label="Preferred Industry"
+                        value={activeRef.preferredIndustry}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, preferredIndustry: value }))}
+                      />
+                      <Field
+                        label="Preferred Job Location"
+                        value={activeRef.preferredJobLocation}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, preferredJobLocation: value }))}
+                      />
+                      <Field
+                        label="Education"
+                        value={activeRef.education}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, education: value }))}
+                      />
+                      <Field
+                        label="Experience (years)"
+                        value={activeRef.totalExperience}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, totalExperience: value }))}
+                      />
+                      <Field
+                        label="Current Salary"
+                        value={activeRef.currentSalary}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, currentSalary: value }))}
+                      />
+                      <Field
+                        label="Expected Salary"
+                        value={activeRef.expectedSalary}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, expectedSalary: value }))}
+                      />
+                      <Field
+                        label="Notice Period (months)"
+                        value={activeRef.noticePeriod}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, noticePeriod: value }))}
+                      />
+                      <Field
+                        label="Current Job Location"
+                        value={activeRef.currentJobLocation}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, currentJobLocation: value }))}
+                      />
+                      <label className="text-sm font-semibold text-slate-700">
+                        Marriage Status
+                        <select
+                          value={activeRef.marriageStatus || ''}
+                          onChange={(event) => setActiveRef((current) => ({ ...current, marriageStatus: event.target.value }))}
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                        >
+                          <option value="">Select status</option>
+                          <option value="Married">Married</option>
+                          <option value="Unmarried">Unmarried</option>
+                          <option value="Single">Single</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label className="mb-3 block text-sm font-semibold text-slate-700">
+                      Career Summary
+                      <textarea
+                        rows={3}
+                        value={activeRef.careerSummary || ''}
+                        onChange={(event) =>
+                          setActiveRef((current) => ({ ...current, careerSummary: event.target.value }))
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                      />
+                    </label>
+                    <label className="mb-3 block text-sm font-semibold text-slate-700">
+                      Reason for Job Change
+                      <textarea
+                        rows={3}
+                        value={activeRef.reasonForJobChange || ''}
+                        onChange={(event) =>
+                          setActiveRef((current) => ({ ...current, reasonForJobChange: event.target.value }))
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                      />
+                    </label>
+                    <StudentDetail student={activeRef} />
+                  </>
                 ) : (
-                  <CompanyDetail company={activeRef} />
+                  <>
+                    <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                      <Field
+                        label="Company Name"
+                        value={activeRef.companyName}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, companyName: value }))}
+                      />
+                      <Field
+                        label="Contact Person"
+                        value={activeRef.contactPersonName}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, contactPersonName: value }))}
+                      />
+                      <Field
+                        label="Designation"
+                        value={activeRef.contactPersonDesignation}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, contactPersonDesignation: value }))}
+                      />
+                      <Field
+                        label="Mobile"
+                        value={activeRef.mobileNo}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, mobileNo: value }))}
+                      />
+                      <Field
+                        label="Email"
+                        value={activeRef.emailId}
+                        onChange={(value) => setActiveRef((current) => ({ ...current, emailId: value }))}
+                      />
+                      <Field
+                        label="Job Profile"
+                        value={activeRef.jobRequirements?.jobProfile}
+                        onChange={(value) =>
+                          setActiveRef((current) => ({
+                            ...current,
+                            jobRequirements: {
+                              ...(current.jobRequirements || {}),
+                              jobProfile: value
+                            }
+                          }))
+                        }
+                      />
+                    </div>
+                    <label className="mb-3 block text-sm font-semibold text-slate-700">
+                      Company Address
+                      <textarea
+                        rows={3}
+                        value={activeRef.companyAddress || ''}
+                        onChange={(event) =>
+                          setActiveRef((current) => ({ ...current, companyAddress: event.target.value }))
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                      />
+                    </label>
+                    <CompanyDetail company={activeRef} />
+                  </>
                 )}
               </section>
 

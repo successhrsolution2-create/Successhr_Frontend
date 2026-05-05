@@ -79,12 +79,16 @@ export default function Students() {
     socket.on('placement_updated', refresh)
     socket.on('earning_paid', refresh)
     socket.on('commission_paid', refresh)
+    socket.on('student_updated', refresh)
+    socket.on('student_deleted', refresh)
 
     return () => {
       socket.off('my_placement', refresh)
       socket.off('placement_updated', refresh)
       socket.off('earning_paid', refresh)
       socket.off('commission_paid', refresh)
+      socket.off('student_updated', refresh)
+      socket.off('student_deleted', refresh)
       disconnectSocket()
     }
   }, [token])

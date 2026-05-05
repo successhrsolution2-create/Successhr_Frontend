@@ -61,6 +61,10 @@ export default function Dashboard() {
 
     socket.on('new_student', refresh)
     socket.on('new_company', refresh)
+    socket.on('student_updated', refresh)
+    socket.on('student_deleted', refresh)
+    socket.on('company_updated', refresh)
+    socket.on('company_deleted', refresh)
     socket.on('status_updated', refresh)
     socket.on('placement_created', refresh)
     socket.on('placement_updated', refresh)
@@ -69,6 +73,10 @@ export default function Dashboard() {
     return () => {
       socket.off('new_student', refresh)
       socket.off('new_company', refresh)
+      socket.off('student_updated', refresh)
+      socket.off('student_deleted', refresh)
+      socket.off('company_updated', refresh)
+      socket.off('company_deleted', refresh)
       socket.off('status_updated', refresh)
       socket.off('placement_created', refresh)
       socket.off('placement_updated', refresh)

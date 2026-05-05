@@ -79,11 +79,17 @@ export default function Students() {
     socket.on('placement_created', refresh)
     socket.on('placement_updated', refresh)
     socket.on('placement_paid', refresh)
+    socket.on('new_student', refresh)
+    socket.on('student_updated', refresh)
+    socket.on('student_deleted', refresh)
 
     return () => {
       socket.off('placement_created', refresh)
       socket.off('placement_updated', refresh)
       socket.off('placement_paid', refresh)
+      socket.off('new_student', refresh)
+      socket.off('student_updated', refresh)
+      socket.off('student_deleted', refresh)
     }
   }, [])
 

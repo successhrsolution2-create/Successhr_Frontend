@@ -268,24 +268,32 @@ export default function CommissionPanel() {
     }
   }
 
-  const markPaid = async (placement) => {
+  const updatePaymentStatus = async (placement, nextStatus) => {
     const studentName = placement.studentId?.candidateName || 'this student'
     const amount = formatMoney(placement.earningAmount || 0)
+    const actionText = nextStatus === 'paid' ? 'mark advisor payment as paid' : 'move advisor payment back to pending'
     const confirmed = window.confirm(
-      `Are you sure you want to mark advisor payment as paid for ${studentName} (${amount})?\n\nPress OK for Yes or Cancel for No.`
+      `Are you sure you want to ${actionText} for ${studentName} (${amount})?\n\nPress OK for Yes or Cancel for No.`
     )
 
     if (!confirmed) return
 
     try {
-      await api.patch(`/placements/${placement._id}/pay`, {
-        earningStatus: 'paid',
-        earningPaidDate: new Date().toISOString()
-      })
-      toast.success('Earning marked as paid')
+      if (nextStatus === 'paid') {
+        await api.patch(`/placements/${placement._id}/pay`, {
+          earningStatus: 'paid',
+          earningPaidDate: new Date().toISOString()
+        })
+      } else {
+        await api.put(`/placements/${placement._id}`, {
+          earningStatus: 'pending'
+        })
+      }
+
+      toast.success(nextStatus === 'paid' ? 'Earning marked as paid' : 'Payment moved to pending')
       await loadData()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not mark paid')
+      toast.error(error.response?.data?.message || 'Could not update payment status')
     }
   }
 
@@ -559,16 +567,23 @@ export default function CommissionPanel() {
                                           </td>
                                           <td className="px-3 py-2">
                                             <div className="flex flex-wrap items-center gap-2">
-                                              {placement.earningStatus !== 'paid' && (
-                                                <button
-                                                  type="button"
-                                                  onClick={() => markPaid(placement)}
-                                                  className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-emerald-600 px-2 text-xs font-semibold text-white"
-                                                >
-                                                  <Check className="h-3.5 w-3.5" />
-                                                  Mark Paid
-                                                </button>
-                                              )}
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  updatePaymentStatus(
+                                                    placement,
+                                                    placement.earningStatus === 'paid' ? 'pending' : 'paid'
+                                                  )
+                                                }
+                                                className={`inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-white ${
+                                                  placement.earningStatus === 'paid'
+                                                    ? 'bg-amber-600'
+                                                    : 'bg-emerald-600'
+                                                }`}
+                                              >
+                                                <Check className="h-3.5 w-3.5" />
+                                                {placement.earningStatus === 'paid' ? 'Mark Pending' : 'Mark Paid'}
+                                              </button>
                                               <button
                                                 type="button"
                                                 onClick={() => startEdit(placement)}
