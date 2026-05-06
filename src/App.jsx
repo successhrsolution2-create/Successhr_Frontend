@@ -18,6 +18,11 @@ import CompanyForm from './pages/ba/CompanyForm'
 import BAStudents from './pages/ba/Students'
 import BACompanies from './pages/ba/Companies'
 import BAEarnings from './pages/ba/Earnings'
+import CandidatesList from './pages/admin/Candidates/CandidatesList'
+import CandidateForm from './pages/admin/Candidates/CandidateForm'
+import CandidateDetails from './pages/admin/Candidates/CandidateDetails'
+
+import InterviewList from './pages/admin/Interviews/InterviewList'
 
 function HomeRedirect() {
   const { token, user } = useSelector((state) => state.auth)
@@ -76,6 +81,48 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+  path="/admin/candidates"
+  element={
+    <ProtectedRoute roles={['superAdmin']}>
+      <AppShell role="superAdmin">
+        <CandidatesList />
+      </AppShell>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/candidates/new"
+  element={
+    <ProtectedRoute roles={['superAdmin']}>
+      <AppShell role="superAdmin">
+        <CandidateForm />
+      </AppShell>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/candidates/:id"
+  element={
+    <ProtectedRoute roles={['superAdmin']}>
+      <AppShell role="superAdmin">
+        <CandidateDetails />
+      </AppShell>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/interviews"
+  element={
+    <ProtectedRoute roles={['superAdmin']}>
+      <AppShell role="superAdmin">
+        <InterviewList />
+      </AppShell>
+    </ProtectedRoute>
+  }
+/>
       <Route
         path="/admin/commission"
         element={
