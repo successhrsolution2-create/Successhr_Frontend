@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { Eye, KeyRound, Pencil, Plus, Trash2, UploadCloud, X } from 'lucide-react'
 import api, { assetUrl } from '../../api/axios'
 import Skeleton from '../../components/Skeleton'
+import { ConfirmDialog, PromptDialog } from '../../components/ActionDialogs'
 
 const mask = (value) => (value ? `${'*'.repeat(Math.max(value.length - 4, 0))}${value.slice(-4)}` : 'Not provided')
 
@@ -83,6 +84,8 @@ export default function BusinessAdvisors() {
   const [drawer, setDrawer] = useState(null)
   const [form, setForm] = useState(cloneBlankForm())
   const [files, setFiles] = useState(blankFiles)
+  const [passwordPrompt, setPasswordPrompt] = useState({ open: false, userId: '', name: '' })
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, userId: '', profileId: '', name: '' })
 
   const load = async () => {
     const { data } = await api.get('/ba/all')
@@ -218,29 +221,20 @@ export default function BusinessAdvisors() {
     }
   }
 
-  const resetPassword = async (profile) => {
-    const newPassword = window.prompt(`New password for ${profile.userId?.name || profile.fullName}`)
-
+  const resetPassword = async (userId, newPassword) => {
     if (!newPassword) return
-
     try {
-      await api.put(`/users/${profile.userId._id}/reset-password`, { newPassword })
+      await api.put(`/users/${userId}/reset-password`, { newPassword })
       toast.success('Password reset')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not reset password')
     }
   }
 
-  const removeBA = async (profile) => {
-    const name = profile.userId?.name || profile.fullName
-
-    if (!window.confirm(`Remove ${name}? This removes the BA login and profile. Existing submitted references remain for records.`)) {
-      return
-    }
-
+  const removeBA = async (userId, profileId) => {
     try {
-      await api.delete(`/users/${profile.userId._id}`)
-      setProfiles((current) => current.filter((item) => item._id !== profile._id))
+      await api.delete(`/users/${userId}`)
+      setProfiles((current) => current.filter((item) => item._id !== profileId))
       toast.success('Business Advisor removed')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not remove BA')
@@ -308,10 +302,31 @@ export default function BusinessAdvisors() {
                       <IconButton label="Edit profile" onClick={() => openEdit(profile)} color="text-orange-600 hover:bg-orange-50">
                         <Pencil className="h-4 w-4" />
                       </IconButton>
-                      <IconButton label="Reset password" onClick={() => resetPassword(profile)} color="text-slate-600 hover:bg-slate-100">
+                      <IconButton
+                        label="Reset password"
+                        onClick={() =>
+                          setPasswordPrompt({
+                            open: true,
+                            userId: profile.userId._id,
+                            name: profile.userId?.name || profile.fullName
+                          })
+                        }
+                        color="text-slate-600 hover:bg-slate-100"
+                      >
                         <KeyRound className="h-4 w-4" />
                       </IconButton>
-                      <IconButton label="Remove BA" onClick={() => removeBA(profile)} color="text-rose-600 hover:bg-rose-50">
+                      <IconButton
+                        label="Remove BA"
+                        onClick={() =>
+                          setDeleteConfirm({
+                            open: true,
+                            userId: profile.userId._id,
+                            profileId: profile._id,
+                            name: profile.userId?.name || profile.fullName
+                          })
+                        }
+                        color="text-rose-600 hover:bg-rose-50"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </IconButton>
                     </div>
@@ -435,6 +450,34 @@ export default function BusinessAdvisors() {
       )}
 
       <ProfileDrawer profile={drawer} onClose={() => setDrawer(null)} />
+      <PromptDialog
+        open={passwordPrompt.open}
+        title="Reset Password"
+        message={`Set a new password for ${passwordPrompt.name}.`}
+        placeholder="Enter new password"
+        confirmText="Reset Password"
+        onCancel={() => setPasswordPrompt({ open: false, userId: '', name: '' })}
+        onConfirm={async (value) => {
+          if (value.length < 6) {
+            toast.error('New password must be at least 6 characters')
+            return
+          }
+          await resetPassword(passwordPrompt.userId, value)
+          setPasswordPrompt({ open: false, userId: '', name: '' })
+        }}
+      />
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Remove Business Advisor"
+        message={`Remove ${deleteConfirm.name}? This removes BA login and profile. Existing submitted references remain for records.`}
+        confirmText="Remove"
+        danger
+        onCancel={() => setDeleteConfirm({ open: false, userId: '', profileId: '', name: '' })}
+        onConfirm={async () => {
+          await removeBA(deleteConfirm.userId, deleteConfirm.profileId)
+          setDeleteConfirm({ open: false, userId: '', profileId: '', name: '' })
+        }}
+      />
     </div>
   )
 }
