@@ -1,29 +1,28 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Eye, Trash2, Download, Plus } from 'lucide-react'
-import { format } from 'date-fns'
+import { Download, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import api from '../../../api/axios'
-import DetailDrawer from '../../../components/DetailDrawer'
-import StatusBadge from '../../../components/StatusBadge'
 import Skeleton from '../../../components/Skeleton'
-import AddCandidateModal from './AddCandidateModal'
+import { ConfirmDialog } from '../../../components/ActionDialogs'
+
+const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
 
 export default function CandidatesList() {
+  const navigate = useNavigate()
   const [candidates, setCandidates] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({
-    search: '',
-    status: 'all'
-  })
-  const [selected, setSelected] = useState(null)
-  const [openModal, setOpenModal] = useState(false)
+  const [search, setSearch] = useState('')
+  const [deleting, setDeleting] = useState(null)
 
   const load = async () => {
     try {
-      const { data } = await api.get('/candidates')
+      const { data } = await api.get('/cms/candidates', {
+        params: search.trim() ? { search: search.trim() } : undefined
+      })
       setCandidates(data)
-    } catch {
-      toast.error('Failed to load candidates')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to load candidates')
     } finally {
       setLoading(false)
     }
@@ -34,201 +33,163 @@ export default function CandidatesList() {
   }, [])
 
   const filtered = useMemo(() => {
-    const search = filters.search.toLowerCase().trim()
+    const query = search.trim().toLowerCase()
+    if (!query) return candidates
 
-    return candidates
-      .filter((c) =>
-        search
-          ? `${c.name} ${c.mobile}`.toLowerCase().includes(search)
-          : true
-      )
-      .filter((c) =>
-        filters.status === 'all' ? true : c.status === filters.status
-      )
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-  }, [candidates, filters])
+    return candidates.filter((candidate) => {
+      const fields = [candidate.fullName, candidate.mobileNumber, candidate.emailId, ...(candidate.keySkills || [])]
+      return fields.some((value) => String(value || '').toLowerCase().includes(query))
+    })
+  }, [candidates, search])
 
-  const deleteCandidate = async (candidate) => {
-    if (!window.confirm(`Delete ${candidate.name}?`)) return
-
+  const handleDelete = async () => {
+    if (!deleting?._id) return
     try {
-      await api.delete(`/candidates/${candidate._id}`)
-      setCandidates((prev) =>
-        prev.filter((item) => item._id !== candidate._id)
-      )
+      await api.delete(`/cms/candidates/${deleting._id}`)
+      setCandidates((current) => current.filter((item) => item._id !== deleting._id))
       toast.success('Candidate deleted')
-    } catch {
-      toast.error('Delete failed')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not delete candidate')
+    } finally {
+      setDeleting(null)
     }
   }
-
-  // ✅ CSV EXPORT
-  const csvCell = (value) =>
-    `"${String(value ?? '').replace(/"/g, '""')}"`
 
   const exportCsv = () => {
     try {
       const headers = [
-        'Candidate Name',
-        'Mobile',
-        'Applied For',
-        'Submitted By',
-        'Date',
-        'Status',
-        'Next Process'
+        'Full Name',
+        'Mobile Number',
+        'Email',
+        'Education',
+        'Total Experience',
+        'Current Salary',
+        'Expected Salary',
+        'Preferred Location',
+        'Key Skills'
       ]
 
-      const rows = filtered.map((c) => [
-        c.name,
-        c.mobile,
-        c.appliedFor,
-        c.submittedBy?.name || 'Admin',
-        format(new Date(c.createdAt), 'yyyy-MM-dd'),
-        c.status,
-        c.nextProcess || ''
+      const rows = filtered.map((item) => [
+        item.fullName,
+        item.mobileNumber,
+        item.emailId,
+        item.education,
+        item.totalExperience,
+        item.currentSalary,
+        item.expectedSalary,
+        item.preferredLocation,
+        (item.keySkills || []).join(' | ')
       ])
 
-      const csv = [headers, ...rows]
-        .map((row) => row.map(csvCell).join(','))
-        .join('\n')
-
-      const blob = new Blob([`\uFEFF${csv}`], {
-        type: 'text/csv;charset=utf-8;'
-      })
-
+      const csv = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n')
+      const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
-      link.href = URL.createObjectURL(blob)
-      link.download = `candidates-${Date.now()}.csv`
+      link.href = url
+      link.download = `cms-candidates-${Date.now()}.csv`
       link.click()
-
-      toast.success('CSV downloaded')
-    } catch {
-      toast.error('Export failed')
+      URL.revokeObjectURL(url)
+      toast.success('CSV exported')
+    } catch (_error) {
+      toast.error('Could not export CSV')
     }
   }
 
-  if (loading) return <Skeleton rows={8} />
+  if (loading) return <Skeleton rows={10} />
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Candidates</h1>
-          <p className="text-sm text-slate-500">
-            Search, filter, view, and manage candidates.
-          </p>
+          <h1 className="text-2xl font-bold text-slate-950">Candidates</h1>
+          <p className="mt-1 text-sm text-slate-500">Candidate Management System</p>
         </div>
-
-        <button
-          onClick={exportCsv}
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
-        >
-          <Download size={16} />
-          Export CSV
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white hover:bg-orange-600"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/cms/candidates/new')}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
+          >
+            <Plus className="h-4 w-4" />
+            Add Candidate
+          </button>
+        </div>
       </div>
 
-      {/* FILTERS */}
-      <div className="grid gap-3 md:grid-cols-3 bg-white p-4 rounded-xl shadow-sm ring-1 ring-slate-200">
-        
-        {/* Search */}
+      <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
         <input
-          placeholder="Search by name or mobile"
-          value={filters.search}
-          onChange={(e) =>
-            setFilters((f) => ({ ...f, search: e.target.value }))
-          }
-          className="border px-3 py-2 rounded-lg"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search by name, mobile, email, skills"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
         />
-
-        {/* Status */}
-        <select
-          value={filters.status}
-          onChange={(e) =>
-            setFilters((f) => ({ ...f, status: e.target.value }))
-          }
-          className="border px-3 py-2 rounded-lg"
-        >
-          <option value="all">All Status</option>
-          <option value="not_viewed">Not Viewed</option>
-          <option value="in_review">In Review</option>
-          <option value="done">Done</option>
-        </select>
-
-        {/* ✅ Add Candidate Button (Fixed) */}
-        <button
-          type="button"
-          onClick={() => setOpenModal(true)}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
-        >
-          <Plus className="h-4 w-4" />
-          Add Candidate
-        </button>
       </div>
 
-      {/* TABLE */}
       <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Mobile</th>
-                <th className="px-5 py-3">Applied For</th>
-                <th className="px-5 py-3">Submitted By</th>
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Next Process</th>
+                <th className="px-5 py-3">Education</th>
+                <th className="px-5 py-3">Experience</th>
+                <th className="px-5 py-3">Current Salary</th>
+                <th className="px-5 py-3">Skills</th>
                 <th className="px-5 py-3">Actions</th>
               </tr>
             </thead>
-
-            <tbody className="divide-y">
-              {filtered.map((c) => (
-                <tr key={c._id} className="hover:bg-slate-50">
-                  <td className="px-5 py-3 font-semibold">{c.name}</td>
-                  <td className="px-5 py-3">{c.mobile}</td>
-                  <td className="px-5 py-3">{c.appliedFor || '-'}</td>
-                  <td className="px-5 py-3">
-                    {c.submittedBy?.name || 'Admin'}
-                  </td>
-                  <td className="px-5 py-3">
-                    {format(new Date(c.createdAt), 'dd MMM yyyy')}
-                  </td>
-
-                  <td className="px-5 py-3">
-                    <StatusBadge status={c.status} />
-                  </td>
-
-                  <td className="px-5 py-3">
-                    {c.nextProcess || '-'}
-                  </td>
-
+            <tbody className="divide-y divide-slate-100">
+              {filtered.map((candidate) => (
+                <tr key={candidate._id} className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40">
+                  <td className="px-5 py-3 font-semibold text-slate-900">{candidate.fullName}</td>
+                  <td className="px-5 py-3 text-slate-700">{candidate.mobileNumber}</td>
+                  <td className="px-5 py-3 text-slate-700">{candidate.education || '-'}</td>
+                  <td className="px-5 py-3 text-slate-700">{candidate.totalExperience ?? '-'}</td>
+                  <td className="px-5 py-3 text-slate-700">{candidate.currentSalary || '-'}</td>
+                  <td className="px-5 py-3 text-slate-700">{(candidate.keySkills || []).join(', ') || '-'}</td>
                   <td className="px-5 py-3">
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setSelected(c)}
-                        className="text-blue-600"
+                        type="button"
+                        onClick={() => navigate(`/admin/cms/candidates/${candidate._id}`)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sky-600 hover:bg-sky-50"
+                        aria-label="View candidate"
                       >
-                        <Eye size={18} />
+                        <Eye className="h-4 w-4" />
                       </button>
-
                       <button
-                        onClick={() => deleteCandidate(c)}
-                        className="text-red-600"
+                        type="button"
+                        onClick={() => navigate(`/admin/cms/candidates/${candidate._id}/edit`)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-amber-600 hover:bg-amber-50"
+                        aria-label="Edit candidate"
                       >
-                        <Trash2 size={18} />
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleting(candidate)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"
+                        aria-label="Delete candidate"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
-
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="text-center py-6 text-gray-500">
-                    No candidates found
+                  <td colSpan={7} className="px-5 py-10 text-center text-slate-500">
+                    No candidates found.
                   </td>
                 </tr>
               )}
@@ -237,18 +198,14 @@ export default function CandidatesList() {
         </div>
       </div>
 
-      {/* DRAWER */}
-      <DetailDrawer
-        open={!!selected}
-        item={selected}
-        type="candidate"
-        onClose={() => setSelected(null)}
-      />
-
-      {/* ✅ ADD CANDIDATE MODAL */}
-      <AddCandidateModal
-        open={openModal}
-        onClose={() => setOpenModal(false)}
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        title="Delete Candidate"
+        message={`Delete ${deleting?.fullName || 'this candidate'}? Interviews and remarks will also be deleted.`}
+        confirmText="Delete"
+        danger
+        onCancel={() => setDeleting(null)}
+        onConfirm={handleDelete}
       />
     </div>
   )
