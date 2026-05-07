@@ -3,18 +3,15 @@ import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
 import { format, formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
-  // ArrowDown,
-  // ArrowUp,
-  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
   Building2,
   Calendar,
-  // GripVertical,
   Save,
   UserCircle2,
   UsersRound,
   Eye,
-Pencil,
-Trash2,
+  Pencil,
   X
 } from 'lucide-react'
 import api, { assetUrl } from '../../api/axios'
@@ -201,7 +198,6 @@ export default function ReferenceBoard() {
   const [placementSaving, setPlacementSaving] = useState(false)
   const [metaSaving, setMetaSaving] = useState(false)
   const [referenceSaving, setReferenceSaving] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [placementBanner, setPlacementBanner] = useState('')
   const [confirmAction, setConfirmAction] = useState(null)
 
@@ -426,31 +422,32 @@ export default function ReferenceBoard() {
     }
   }
 
-  const deleteReference = (reference) => {
-    setDeleteConfirm(reference)
-  }
+  const moveReference = (reference, direction, currentIndex, statusColumn) => {
+    const itemsInStatus = grouped[statusColumn] || []
+    let newIndex = currentIndex + (direction === 'up' ? -1 : 1)
 
-  const handleDelete = async () => {
-    if (!deleteConfirm) return
+    if (newIndex < 0 || newIndex >= itemsInStatus.length) {
+      toast.error(direction === 'up' ? 'Already at the top' : 'Already at the bottom')
+      return
+    }
+
+    const reorderedItems = [...itemsInStatus]
+    ;[reorderedItems[currentIndex], reorderedItems[newIndex]] = [
+      reorderedItems[newIndex],
+      reorderedItems[currentIndex]
+    ]
+
+    const updates = reorderedItems.map((item, index) => ({
+      id: item._id,
+      type: item.type,
+      priorityOrder: index
+    }))
 
     try {
-      if (deleteConfirm.type === 'student') {
-        await api.delete(`/students/${deleteConfirm._id}`)
-        setStudents((current) => current.filter((item) => item._id !== deleteConfirm._id))
-      } else {
-        await api.delete(`/companies/${deleteConfirm._id}`)
-        setCompanies((current) => current.filter((item) => item._id !== deleteConfirm._id))
-      }
-
-      if (activeRef?.type === deleteConfirm.type && activeRef?._id === deleteConfirm._id) {
-        setActiveRef(null)
-      }
-
-      toast.success('Record deleted successfully')
+      api.post('/references/reorder', { updates }).catch(() => {})
+      toast.success(`Moved ${direction === 'up' ? 'up' : 'down'}`)
     } catch (error) {
-      toast.error('Could not delete record')
-    } finally {
-      setDeleteConfirm(null)
+      toast.error('Could not move reference')
     }
   }
 
@@ -730,55 +727,72 @@ export default function ReferenceBoard() {
                                 >
                                   {reference.type === 'student' ? 'Candidate' : 'Company'}
                                 </button>
-                               <div className="flex items-center gap-1">
-  {/* VIEW */}
-  <button
-    type="button"
-    onClick={() => openReference(reference, 'view')}
-    className="inline-flex h-7 w-7 items-center justify-center rounded text-blue-600 hover:bg-blue-100"
-    title="View"
-  >
-    <Eye className="h-4 w-4" />
-  </button>
+                                <div className="flex items-center gap-1">
+                                  {/* VIEW */}
+                                  <button
+                                    type="button"
+                                    onClick={() => openReference(reference, 'view')}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded text-blue-600 hover:bg-blue-100"
+                                    title="View"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </button>
 
-  {/* EDIT */}
-  <button
-    type="button"
-    onClick={() => openReference(reference, 'edit')}
-    className="inline-flex h-7 w-7 items-center justify-center rounded text-emerald-600 hover:bg-emerald-100"
-    title="Edit"
-  >
-    <Pencil className="h-4 w-4" />
-  </button>
+                                  {/* EDIT */}
+                                  <button
+                                    type="button"
+                                    onClick={() => openReference(reference, 'edit')}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded text-emerald-600 hover:bg-emerald-100"
+                                    title="Edit"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </button>
 
-  {/* DELETE */}
-  <button
-    type="button"
-    onClick={() => deleteReference(reference)}
-    className="inline-flex h-7 w-7 items-center justify-center rounded text-red-600 hover:bg-red-100"
-    title="Delete"
-  >
-    <Trash2 className="h-4 w-4" />
-  </button>
-</div>
+                                  {/* MOVE UP */}
+                                  <button
+                                    type="button"
+                                    onClick={() => moveReference(reference, 'up', index, column.key)}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded text-amber-600 hover:bg-amber-100"
+                                    title="Move Up"
+                                  >
+                                    <ArrowUp className="h-4 w-4" />
+                                  </button>
+
+                                  {/* MOVE DOWN */}
+                                  <button
+                                    type="button"
+                                    onClick={() => moveReference(reference, 'down', index, column.key)}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded text-amber-600 hover:bg-amber-100"
+                                    title="Move Down"
+                                  >
+                                    <ArrowDown className="h-4 w-4" />
+                                  </button>
+                                </div>
                               </div>
 
-                              <button type="button" className="w-full text-left" onClick={() => openReference(reference, 'view')}>
-                                <p className="line-clamp-2 font-semibold text-slate-900">{referenceLabel(reference)}</p>
-                                <p className="mt-1 text-xs text-slate-600">
-                                  {reference.type === 'student'
-                                    ? `Applied for: ${reference.appliedFor || 'Not provided'}`
-                                    : `Role: ${reference.jobRequirements?.jobProfile || 'Not provided'}`}
-                                </p>
-                                <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-                                  <span>By</span>
-                                  <span className="rounded bg-indigo-50 px-1.5 py-0.5 font-semibold text-indigo-700">
-                                    {reference.submittedBy?.name || 'BA'}
-                                  </span>
-                                  <span>|</span>
-                                  <span>updated {formatDistanceToNow(new Date(referenceActivityTime(reference)), { addSuffix: true })}</span>
-                                </p>
-                              </button>
+                             <div className="w-full text-left">
+  <p className="line-clamp-2 font-semibold text-slate-900">{referenceLabel(reference)}</p>
+
+  <p className="mt-1 text-xs text-slate-600">
+    {reference.type === 'student'
+      ? `Applied for: ${reference.appliedFor || 'Not provided'}`
+      : `Role: ${reference.jobRequirements?.jobProfile || 'Not provided'}`}
+  </p>
+
+  <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+    <span>By</span>
+
+    <span className="rounded bg-indigo-50 px-1.5 py-0.5 font-semibold text-indigo-700">
+      {reference.submittedBy?.name || 'BA'}
+    </span>
+
+    <span>|</span>
+
+    <span>
+      updated {formatDistanceToNow(new Date(referenceActivityTime(reference)), { addSuffix: true })}
+    </span>
+  </p>
+</div>
                             </article>
                           )}
                         </Draggable>
@@ -794,23 +808,33 @@ export default function ReferenceBoard() {
       </DragDropContext>
 
       {activeRef && (
-        <div className="fixed inset-0 z-50">
-          <button className="absolute inset-0 bg-slate-950/45" onClick={() => setActiveRef(null)} />
-          <aside className="absolute right-0 top-0 h-full w-full max-w-3xl overflow-y-auto bg-white shadow-2xl">
-            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-5 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setActiveRef(null)} />
+          <div className="relative flex h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl animate-in">
+            <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
               <div className="min-w-0">
-                <div className="mb-2 flex items-center gap-2">
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      activeRef.type === 'student' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'
-                    }`}
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        activeRef.type === 'student' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'
+                      }`}
+                    >
+                      {activeRef.type === 'student' ? 'Student' : 'Company'}
+                    </span>
+                    <StatusBadge status={activeRef.status} />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRef(null)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100"
+                    aria-label="Close modal"
                   >
-                    {activeRef.type === 'student' ? 'Candidate' : 'Company'}
-                  </span>
-                  <StatusBadge status={activeRef.status} />
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
-                <h2 className="truncate text-xl font-bold text-slate-900">{referenceLabel(activeRef)}</h2>
-                <p className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                <h2 className="truncate text-2xl font-bold text-slate-900">{referenceLabel(activeRef)}</h2>
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                   <span>By</span>
                   <span className="rounded bg-indigo-50 px-2 py-0.5 font-semibold text-indigo-700">
                     {activeRef.submittedBy?.name || 'BA'}
@@ -821,17 +845,9 @@ export default function ReferenceBoard() {
                   </span>
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setActiveRef(null)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
-                aria-label="Close drawer"
-              >
-                <X className="h-5 w-5" />
-              </button>
             </div>
 
-            <div className="space-y-5 px-5 py-5">
+            <div className="flex-1 overflow-y-auto px-6 py-5"> 
               <section className="rounded-xl border border-slate-200 p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <h3 className="text-sm font-bold uppercase text-slate-500">Reference Details</h3>
@@ -1306,55 +1322,10 @@ export default function ReferenceBoard() {
                 </section>
               )}
             </div>
-          </aside>
-        </div>
-      )}
-
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl border border-slate-200">
-            <div className="mb-4 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold text-slate-900">Delete Record</h3>
-              <p className="mt-2 text-sm text-slate-600">
-                Are you sure you want to delete this record? This action cannot be undone.
-              </p>
-            </div>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirm(null)}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-              >
-                Yes, Delete
-              </button>
-            </div>
           </div>
         </div>
       )}
 
-      <ConfirmDialog
-        open={Boolean(confirmAction)}
-        title={confirmAction?.title || ''}
-        message={confirmAction?.message || ''}
-        confirmText={confirmAction?.confirmText || 'Confirm'}
-        danger={confirmAction?.danger}
-        onCancel={() => setConfirmAction(null)}
-        onConfirm={async () => {
-          const action = confirmAction?.onConfirm
-          setConfirmAction(null)
-          await action?.()
-        }}
-      />
     </div>
   )
 }

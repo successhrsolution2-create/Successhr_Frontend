@@ -381,7 +381,7 @@ export default function CommissionProcessPanel() {
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
+        <table className="min-w-full table-fixed divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-3 py-3">Candidate</th>
