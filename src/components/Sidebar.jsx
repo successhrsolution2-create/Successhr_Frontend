@@ -17,9 +17,8 @@ import BrandLogo from './BrandLogo'
 import Topbar from './Topbar'
 
 const adminMainLinks = [
-  { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/admin/business-advisors', label: 'Business Advisors', icon: Users },
   { to: '/admin/references', label: 'Reference Board', icon: PanelsTopLeft },
+  { to: '/admin/business-advisors', label: 'Business Advisors', icon: Users },
   { to: '/admin/students', label: 'Students', icon: UserCircle },
   { to: '/admin/companies', label: 'Companies', icon: Building2 },
   { to: '/admin/process-panel', label: 'Process Panel', icon: PanelsTopLeft },

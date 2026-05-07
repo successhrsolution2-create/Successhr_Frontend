@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux'
 import Sidebar from './components/Sidebar'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
-import AdminDashboard from './pages/admin/Dashboard'
 import BusinessAdvisors from './pages/admin/BusinessAdvisors'
 import AdminReferenceBoard from './pages/admin/ReferenceBoard'
 import AdminStudents from './pages/admin/Students'
@@ -28,7 +27,7 @@ function HomeRedirect() {
   const { token, user } = useSelector((state) => state.auth)
 
   if (!token) return <Navigate to="/login" replace />
-  return <Navigate to={user?.role === 'superAdmin' ? '/admin/dashboard' : '/ba/dashboard'} replace />
+  return <Navigate to={user?.role === 'superAdmin' ? '/admin/references' : '/ba/dashboard'} replace />
 }
 
 function AppShell({ role, children }) {
@@ -53,13 +52,7 @@ export default function App() {
       />
       <Route
         path="/admin/dashboard"
-        element={
-          <ProtectedRoute roles={['superAdmin']}>
-            <AppShell role="superAdmin">
-              <AdminDashboard />
-            </AppShell>
-          </ProtectedRoute>
-        }
+        element={<Navigate to="/admin/references" replace />}
       />
       <Route
         path="/admin/business-advisors"
