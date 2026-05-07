@@ -380,105 +380,116 @@ export default function BusinessAdvisors() {
       </div>
 
       {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
-          <form onSubmit={saveBA} className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-xl bg-white p-5 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-slate-950">
-                  {modalMode === 'create' ? 'Register Business Advisor' : 'Edit Business Advisor'}
-                </h2>
-                <p className="text-sm text-slate-500">Fill account, profile, documents, bank details, and upload files.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={closeModal}
+            aria-label="Close modal"
+          />
+          <form onSubmit={saveBA} className="relative flex h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl animate-in">
+            <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-950">
+                    {modalMode === 'create' ? 'Register Business Advisor' : 'Edit Business Advisor'}
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-500">Fill account, profile, documents, bank details, and upload files.</p>
+                </div>
+                <button type="button" onClick={closeModal} className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100" aria-label="Close">
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <button type="button" onClick={closeModal} className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Close">
-                <X className="h-5 w-5" />
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              <div className="space-y-6">
+                <FormSection title="Account Details">
+                  <ModalField label="Name" required value={form.name} onChange={(value) => updateForm('name', value)} />
+                  <ModalField label="Email" required type="email" value={form.email} onChange={(value) => updateForm('email', value)} />
+                  {modalMode === 'create' && (
+                    <ModalField label="Password" required type="password" value={form.password} onChange={(value) => updateForm('password', value)} />
+                  )}
+                  <label className="flex min-h-10 items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={form.isActive}
+                      onChange={(event) => updateForm('isActive', event.target.checked)}
+                      className="h-4 w-4 rounded text-sky-600"
+                    />
+                    Active / approved account
+                  </label>
+                </FormSection>
+
+                <FormSection title="Personal Info">
+                  <ModalField label="Phone" value={form.phone} onChange={(value) => updateForm('phone', value)} />
+                  <ModalField label="City" value={form.city} onChange={(value) => updateForm('city', value)} />
+                  <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
+                    Address
+                    <textarea
+                      value={form.address}
+                      onChange={(event) => updateForm('address', event.target.value)}
+                      rows={3}
+                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </label>
+                </FormSection>
+
+                <FormSection title="Document Numbers">
+                  <ModalField
+                    label="Aadhar Number"
+                    value={form.documents.aadharCard.number || ''}
+                    onChange={(value) => updateDocument('aadharCard', 'number', value.replace(/\D/g, '').slice(0, 12))}
+                  />
+                  <ModalField
+                    label="PAN Number"
+                    value={form.documents.panCard.number || ''}
+                    onChange={(value) => updateDocument('panCard', 'number', value.slice(0, 10))}
+                  />
+                </FormSection>
+
+                <FormSection title="Document Uploads">
+                  {Object.entries(docLabels).map(([docType, label]) => (
+                    <FileField
+                      key={docType}
+                      label={label}
+                      file={files[docType]}
+                      existingUrl={docType === 'profilePhoto' ? form.profilePhoto : form.documents[docType]?.fileUrl}
+                      accept={docType === 'profilePhoto' ? 'image/*' : docType === 'agreementLetter' ? '.pdf,application/pdf' : 'image/*,.pdf'}
+                      onChange={(file) => setFiles((current) => ({ ...current, [docType]: file }))}
+                    />
+                  ))}
+                </FormSection>
+
+                <FormSection title="Bank Details">
+                  <ModalField label="Account Holder Name" value={form.bankDetails.accountHolderName || ''} onChange={(value) => updateBank('accountHolderName', value)} />
+                  <ModalField label="Bank Name" value={form.bankDetails.bankName || ''} onChange={(value) => updateBank('bankName', value)} />
+                  <ModalField label="Account Number" value={form.bankDetails.accountNumber || ''} onChange={(value) => updateBank('accountNumber', value)} />
+                  <ModalField label="IFSC Code" value={form.bankDetails.ifscCode || ''} onChange={(value) => updateBank('ifscCode', value)} />
+                  <ModalField label="Branch Name" value={form.bankDetails.branchName || ''} onChange={(value) => updateBank('branchName', value)} />
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Account Type
+                    <select
+                      value={form.bankDetails.accountType || 'Savings'}
+                      onChange={(event) => updateBank('accountType', event.target.value)}
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+                    >
+                      <option value="Savings">Savings</option>
+                      <option value="Current">Current</option>
+                    </select>
+                  </label>
+                </FormSection>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 bg-slate-50 px-6 py-4">
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
+              >
+                {saving ? 'Saving...' : modalMode === 'create' ? 'Register Business Advisor' : 'Save Business Advisor'}
               </button>
             </div>
-
-            <div className="space-y-6">
-              <FormSection title="Account Details">
-                <ModalField label="Name" required value={form.name} onChange={(value) => updateForm('name', value)} />
-                <ModalField label="Email" required type="email" value={form.email} onChange={(value) => updateForm('email', value)} />
-                {modalMode === 'create' && (
-                  <ModalField label="Password" required type="password" value={form.password} onChange={(value) => updateForm('password', value)} />
-                )}
-                <label className="flex min-h-10 items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={form.isActive}
-                    onChange={(event) => updateForm('isActive', event.target.checked)}
-                    className="h-4 w-4 rounded text-sky-600"
-                  />
-                  Active / approved account
-                </label>
-              </FormSection>
-
-              <FormSection title="Personal Info">
-                <ModalField label="Phone" value={form.phone} onChange={(value) => updateForm('phone', value)} />
-                <ModalField label="City" value={form.city} onChange={(value) => updateForm('city', value)} />
-                <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
-                  Address
-                  <textarea
-                    value={form.address}
-                    onChange={(event) => updateForm('address', event.target.value)}
-                    rows={3}
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
-                  />
-                </label>
-              </FormSection>
-
-              <FormSection title="Document Numbers">
-                <ModalField
-                  label="Aadhar Number"
-                  value={form.documents.aadharCard.number || ''}
-                  onChange={(value) => updateDocument('aadharCard', 'number', value.replace(/\D/g, '').slice(0, 12))}
-                />
-                <ModalField
-                  label="PAN Number"
-                  value={form.documents.panCard.number || ''}
-                  onChange={(value) => updateDocument('panCard', 'number', value.slice(0, 10))}
-                />
-              </FormSection>
-
-              <FormSection title="Document Uploads">
-                {Object.entries(docLabels).map(([docType, label]) => (
-                  <FileField
-                    key={docType}
-                    label={label}
-                    file={files[docType]}
-                    existingUrl={docType === 'profilePhoto' ? form.profilePhoto : form.documents[docType]?.fileUrl}
-                    accept={docType === 'profilePhoto' ? 'image/*' : docType === 'agreementLetter' ? '.pdf,application/pdf' : 'image/*,.pdf'}
-                    onChange={(file) => setFiles((current) => ({ ...current, [docType]: file }))}
-                  />
-                ))}
-              </FormSection>
-
-              <FormSection title="Bank Details">
-                <ModalField label="Account Holder Name" value={form.bankDetails.accountHolderName || ''} onChange={(value) => updateBank('accountHolderName', value)} />
-                <ModalField label="Bank Name" value={form.bankDetails.bankName || ''} onChange={(value) => updateBank('bankName', value)} />
-                <ModalField label="Account Number" value={form.bankDetails.accountNumber || ''} onChange={(value) => updateBank('accountNumber', value)} />
-                <ModalField label="IFSC Code" value={form.bankDetails.ifscCode || ''} onChange={(value) => updateBank('ifscCode', value)} />
-                <ModalField label="Branch Name" value={form.bankDetails.branchName || ''} onChange={(value) => updateBank('branchName', value)} />
-                <label className="block text-sm font-semibold text-slate-700">
-                  Account Type
-                  <select
-                    value={form.bankDetails.accountType || 'Savings'}
-                    onChange={(event) => updateBank('accountType', event.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
-                  >
-                    <option value="Savings">Savings</option>
-                    <option value="Current">Current</option>
-                  </select>
-                </label>
-              </FormSection>
-            </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="mt-6 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
-            >
-              {saving ? 'Saving...' : modalMode === 'create' ? 'Register Business Advisor' : 'Save Business Advisor'}
-            </button>
           </form>
         </div>
       )}
@@ -594,20 +605,27 @@ function ProfileDrawer({ profile, onClose }) {
   const sharePath = advisorCode ? `/apply/${advisorCode}` : '-'
 
   return (
-    <div className="fixed inset-0 z-50">
-      <button className="absolute inset-0 bg-slate-950/40" onClick={onClose} aria-label="Close profile" />
-      <aside className="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4">
-          <div>
-            <h2 className="text-xl font-bold text-slate-950">{profile.userId?.name || profile.fullName}</h2>
-            <p className="text-sm text-slate-500">{profile.userId?.email || profile.email}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+        aria-label="Close profile"
+      />
+      <aside className="relative flex h-[95vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl animate-in">
+        <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-950">{profile.userId?.name || profile.fullName}</h2>
+              <p className="mt-2 text-sm text-slate-500">{profile.userId?.email || profile.email}</p>
+            </div>
+            <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100" aria-label="Close">
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Close">
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
-        <div className="space-y-6 px-5 py-5">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
             <InfoGrid
               items={[

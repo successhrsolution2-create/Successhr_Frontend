@@ -995,7 +995,6 @@ export default function ReferenceBoard() {
                         }`}
                       />
                     </label>
-                    <StudentDetail student={activeRef} />
                   </>
                 ) : (
                   <>
@@ -1059,7 +1058,306 @@ export default function ReferenceBoard() {
                         }`}
                       />
                     </label>
-                    <CompanyDetail company={activeRef} />
+                    {/* <CompanyDetail company={activeRef} /> */}
+                    <div className="space-y-4">
+  {/* Job Requirements */}
+  <div className="grid gap-3 sm:grid-cols-2">
+    <Field
+      label="Education"
+      value={activeRef.jobRequirements?.education}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            education: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Experience"
+      value={activeRef.jobRequirements?.experience}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            experience: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Salary Range"
+      value={activeRef.jobRequirements?.salaryRange}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            salaryRange: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Gender"
+      value={activeRef.jobRequirements?.gender}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            gender: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Vacancies"
+      value={activeRef.jobRequirements?.numberOfVacancy}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            numberOfVacancy: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Job Time"
+      value={activeRef.jobRequirements?.jobTime}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            jobTime: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Shift"
+      value={activeRef.jobRequirements?.shift}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            shift: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Job Location"
+      value={activeRef.jobRequirements?.jobLocation}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            jobLocation: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Age Criteria"
+      value={activeRef.jobRequirements?.ageCriteria}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            ageCriteria: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Caste Criteria"
+      value={activeRef.jobRequirements?.castCriteria}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            castCriteria: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Marriage Criteria"
+      value={activeRef.jobRequirements?.marriageCriteria}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            marriageCriteria: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Facilities"
+      value={activeRef.jobRequirements?.facilities?.join(', ')}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          jobRequirements: {
+            ...(current.jobRequirements || {}),
+            facilities: value.split(',').map((item) => item.trim())
+          }
+        }))
+      }
+    />
+  </div>
+
+  {/* About Company */}
+  <div className="grid gap-3 sm:grid-cols-2">
+    <Field
+      label="Manpower"
+      value={activeRef.aboutCompany?.manpower}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          aboutCompany: {
+            ...(current.aboutCompany || {}),
+            manpower: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Turnover"
+      value={activeRef.aboutCompany?.turnover}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          aboutCompany: {
+            ...(current.aboutCompany || {}),
+            turnover: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Plant"
+      value={activeRef.aboutCompany?.plant}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          aboutCompany: {
+            ...(current.aboutCompany || {}),
+            plant: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Interview Mode"
+      value={activeRef.aboutCompany?.interviewMode}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          aboutCompany: {
+            ...(current.aboutCompany || {}),
+            interviewMode: value
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Weekly Off"
+      value={activeRef.aboutCompany?.weeklyOff?.join(', ')}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          aboutCompany: {
+            ...(current.aboutCompany || {}),
+            weeklyOff: value.split(',').map((item) => item.trim())
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Availability Date"
+      type="date"
+      value={activeRef.aboutCompany?.availabilityForInterview?.date?.slice(0, 10)}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          aboutCompany: {
+            ...(current.aboutCompany || {}),
+            availabilityForInterview: {
+              ...(current.aboutCompany?.availabilityForInterview || {}),
+              date: value
+            }
+          }
+        }))
+      }
+    />
+
+    <Field
+      label="Availability Time"
+      value={activeRef.aboutCompany?.availabilityForInterview?.time}
+      readOnly={isViewMode}
+      onChange={(value) =>
+        setActiveRef((current) => ({
+          ...current,
+          aboutCompany: {
+            ...(current.aboutCompany || {}),
+            availabilityForInterview: {
+              ...(current.aboutCompany?.availabilityForInterview || {}),
+              time: value
+            }
+          }
+        }))
+      }
+    />
+  </div>
+</div>
                   </>
                 )}
               </section>
