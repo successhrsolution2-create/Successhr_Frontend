@@ -62,7 +62,7 @@ export default function Earnings() {
     connectSocket(token)
 
     const handlePlacement = async (payload) => {
-      toast.success(`New earning - ${formatMoney(payload.earningAmount || payload.commissionAmount)} for ${payload.studentName || 'student'}!`)
+      toast.success(`New earning - ${formatMoney(payload.earningAmount || payload.commissionAmount)} for ${payload.studentName || 'candidate'}!`)
       await loadPlacements()
     }
 
@@ -72,19 +72,21 @@ export default function Earnings() {
 
     const handlePaid = async (payload) => {
       toast.success(
-        `${formatMoney(payload.earningAmount || payload.commissionAmount)} for ${payload.studentName || 'student'} has been paid!`
+        `${formatMoney(payload.earningAmount || payload.commissionAmount)} for ${payload.studentName || 'candidate'} has been paid!`
       )
       await loadPlacements()
     }
 
     socket.on('my_placement', handlePlacement)
     socket.on('placement_updated', handlePlacementUpdated)
+    socket.on('placement_deleted', handlePlacementUpdated)
     socket.on('earning_paid', handlePaid)
     socket.on('commission_paid', handlePaid)
 
     return () => {
       socket.off('my_placement', handlePlacement)
       socket.off('placement_updated', handlePlacementUpdated)
+      socket.off('placement_deleted', handlePlacementUpdated)
       socket.off('earning_paid', handlePaid)
       socket.off('commission_paid', handlePaid)
       disconnectSocket()
@@ -114,7 +116,7 @@ export default function Earnings() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Students Placed" value={summary.studentsPlaced} />
+        <SummaryCard label="Candidates Placed" value={summary.studentsPlaced} />
         <SummaryCard label="Total I Earn" value={formatMoney(summary.totalIEarn)} />
         <SummaryCard label="Received" value={formatMoney(summary.received)} />
         <SummaryCard label="Pending Payment" value={formatMoney(summary.pending)} />
@@ -125,7 +127,7 @@ export default function Earnings() {
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-5 py-3">Student</th>
+                <th className="px-5 py-3">Candidate</th>
                 <th className="px-5 py-3">Company</th>
                 <th className="px-5 py-3">Offered Salary</th>
                 <th className="px-5 py-3">My %</th>
@@ -148,7 +150,7 @@ export default function Earnings() {
                     className="cursor-pointer odd:bg-white even:bg-slate-50 hover:bg-indigo-50"
                   >
                     <td className="px-5 py-3 font-semibold text-slate-900">
-                      {placement.studentName || placement.student?.candidateName || 'Student'}
+                      {placement.studentName || placement.student?.candidateName || 'Candidate'}
                     </td>
                     <td className="px-5 py-3 text-slate-700">
                       {placement.companyName || placement.company?.companyName || 'Company'}

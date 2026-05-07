@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Eye, KeyRound, Pencil, Plus, Trash2, UploadCloud, X } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import api, { assetUrl } from '../../api/axios'
 import Skeleton from '../../components/Skeleton'
 import { ConfirmDialog, PromptDialog } from '../../components/ActionDialogs'
@@ -77,6 +78,7 @@ const profileToForm = (profile) => ({
 })
 
 export default function BusinessAdvisors() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -97,10 +99,18 @@ export default function BusinessAdvisors() {
     load()
   }, [])
 
+  useEffect(() => {
+    if (searchParams.get('action') !== 'create') return
+    setForm(cloneBlankForm())
+    setFiles(blankFiles)
+    setModalMode('create')
+  }, [searchParams])
+
   const openCreate = () => {
     setForm(cloneBlankForm())
     setFiles(blankFiles)
     setModalMode('create')
+    setSearchParams({ action: 'create' })
   }
 
   const openEdit = (profile) => {
@@ -112,6 +122,9 @@ export default function BusinessAdvisors() {
   const closeModal = () => {
     setModalMode(null)
     setFiles(blankFiles)
+    if (searchParams.get('action') === 'create') {
+      setSearchParams({}, { replace: true })
+    }
   }
 
   const updateForm = (field, value) => {

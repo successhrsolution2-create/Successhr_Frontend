@@ -51,29 +51,31 @@ export default function MyCommission() {
     connectSocket(token)
 
     const handlePlacement = async (payload) => {
-      toast.success(`New placement recorded for ${payload.studentName || 'your student'}!`)
+      toast.success(`New placement recorded for ${payload.studentName || 'your candidate'}!`)
       await loadPlacements()
     }
 
     const handlePlacementUpdated = async (payload) => {
-      toast.success(`Placement updated for ${payload.studentName || 'your student'}`)
+      toast.success(`Placement updated for ${payload.studentName || 'your candidate'}`)
       await loadPlacements()
     }
 
     const handlePaid = async (payload) => {
       toast.success(
-        `Commission of ${formatMoney(payload.commissionAmount)} for ${payload.studentName || 'student'} has been marked as paid!`
+        `Commission of ${formatMoney(payload.commissionAmount)} for ${payload.studentName || 'candidate'} has been marked as paid!`
       )
       await loadPlacements()
     }
 
     socket.on('my_placement', handlePlacement)
     socket.on('placement_updated', handlePlacementUpdated)
+    socket.on('placement_deleted', handlePlacementUpdated)
     socket.on('commission_paid', handlePaid)
 
     return () => {
       socket.off('my_placement', handlePlacement)
       socket.off('placement_updated', handlePlacementUpdated)
+      socket.off('placement_deleted', handlePlacementUpdated)
       socket.off('commission_paid', handlePaid)
       disconnectSocket()
     }
@@ -98,11 +100,11 @@ export default function MyCommission() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">My Commission</h1>
-        <p className="mt-1 text-sm text-slate-500">Live view of placed students and your commission payouts.</p>
+        <p className="mt-1 text-sm text-slate-500">Live view of placed candidates and your commission payouts.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Total Students Placed" value={summary.totalStudentsPlaced} />
+        <SummaryCard label="Total Candidates Placed" value={summary.totalStudentsPlaced} />
         <SummaryCard label="Total Commission Earned" value={formatMoney(summary.totalCommissionEarned)} />
         <SummaryCard label="Paid To Me" value={formatMoney(summary.paidToMe)} />
         <SummaryCard label="Pending Payment" value={formatMoney(summary.pendingPayment)} />
@@ -113,7 +115,7 @@ export default function MyCommission() {
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-5 py-3">Student Name</th>
+                <th className="px-5 py-3">Candidate Name</th>
                 <th className="px-5 py-3">Company</th>
                 <th className="px-5 py-3">Job Profile</th>
                 <th className="px-5 py-3">Offered Salary</th>
@@ -129,7 +131,7 @@ export default function MyCommission() {
                   onClick={() => setActivePlacement(placement)}
                   className="cursor-pointer odd:bg-white even:bg-slate-50 hover:bg-indigo-50"
                 >
-                  <td className="px-5 py-3 font-semibold text-slate-900">{placement.student?.candidateName || 'Student'}</td>
+                  <td className="px-5 py-3 font-semibold text-slate-900">{placement.student?.candidateName || 'Candidate'}</td>
                   <td className="px-5 py-3 text-slate-700">{placement.company?.companyName || 'Company'}</td>
                   <td className="px-5 py-3 text-slate-700">{placement.jobProfile || 'Not provided'}</td>
                   <td className="px-5 py-3 text-slate-700">{placement.offeredSalary || 'Not provided'}</td>

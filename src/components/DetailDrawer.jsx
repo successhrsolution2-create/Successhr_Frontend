@@ -150,7 +150,7 @@ export default function DetailDrawer({
                   type === 'student' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
                 }`}
               >
-                {type === 'student' ? 'Student' : 'Company'}
+                {type === 'student' ? 'Candidate' : 'Company'}
               </span>
               <StatusBadge status={item.status} />
             </div>
@@ -172,7 +172,7 @@ export default function DetailDrawer({
             fullEdit ? (
               <>
                 <section>
-                  <h3 className="mb-3 text-sm font-bold uppercase text-slate-500">Edit Student Data</h3>
+                  <h3 className="mb-3 text-sm font-bold uppercase text-slate-500">Edit Candidate Data</h3>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <InputField label="Candidate Name" value={item.candidateName || ''} onChange={(value) => updateField('candidateName', value)} />
                     <InputField label="Mobile Number" value={item.mobileNumber || ''} onChange={(value) => updateField('mobileNumber', value)} />

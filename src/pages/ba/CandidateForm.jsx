@@ -6,13 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
 import api from '../../api/axios'
 import FileUpload from '../../components/FileUpload'
-import { ConfirmDialog } from '../../components/ActionDialogs'
 
 const schema = z.object({
   candidateName: z.string().min(1, 'Candidate name is required'),
-  mobileNumber: z.string().regex(/^\d{10}$/, 'Mobile number must be 10 digits'),
-  aadhaarNo: z.string().regex(/^\d{12}$/, 'Aadhaar number must be 12 digits').or(z.literal('')).optional(),
-  whatsappNo: z.string().regex(/^\d{10}$/, 'WhatsApp number must be 10 digits').or(z.literal('')).optional(),
+  mobileNumber: z.string().regex(/^.{10}$/, 'Mobile number must be 10 digits'),
+  aadhaarNo: z.string().regex(/^.{12}$/, 'Aadhaar number must be 12 digits').or(z.literal('')).optional(),
+  whatsappNo: z.string().regex(/^.{10}$/, 'WhatsApp number must be 10 digits').or(z.literal('')).optional(),
   emailId: z.string().email('Enter a valid email').or(z.literal('')).optional(),
   appliedFor: z.string().optional(),
   interestedDepartment: z.string().optional(),
@@ -42,11 +41,10 @@ const candidateFields = [
   ['preferredJobLocation', 'Preferred Job Location']
 ]
 
-export default function StudentForm() {
+export default function CandidateForm() {
   const navigate = useNavigate()
   const [files, setFiles] = useState([])
   const [submitting, setSubmitting] = useState(false)
-  const [pendingValues, setPendingValues] = useState(null)
   const {
     register,
     handleSubmit,
@@ -68,16 +66,16 @@ export default function StudentForm() {
         noticePeriod: values.noticePeriod === '' ? undefined : Number(values.noticePeriod)
       }
 
-      const { data } = await api.post('/students', payload)
+      const { data } = await api.post('/candidates', payload)
 
       if (files.length) {
         const formData = new FormData()
         files.forEach((file) => formData.append('documents', file))
-        await api.post(`/students/${data._id}/docs`, formData)
+        await api.post(`/candidates/${data._id}/docs`, formData)
       }
 
       toast.success('Reference submitted successfully!')
-      navigate('/ba/students')
+      navigate('/ba/candidates')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not submit reference')
     } finally {
@@ -85,14 +83,10 @@ export default function StudentForm() {
     }
   }
 
-  const requestSubmit = (values) => {
-    setPendingValues(values)
-  }
-
   return (
-    <form onSubmit={handleSubmit(requestSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(submit)} className="space-y-6">
       <div>
-        <Link to="/ba/students" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+        <Link to="/ba/candidates" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
           ← My Candidates
         </Link>
         <h1 className="text-2xl font-bold text-slate-950">Add Candidate Reference</h1>
@@ -154,20 +148,6 @@ export default function StudentForm() {
       >
         {submitting ? 'Submitting...' : 'Submit Reference'}
       </button>
-      <ConfirmDialog
-        open={Boolean(pendingValues)}
-        title="Submit Candidate Reference"
-        message={`Create candidate reference for ${pendingValues?.candidateName || 'this candidate'}?`}
-        confirmText="Submit Reference"
-        onCancel={() => setPendingValues(null)}
-        onConfirm={async () => {
-          const values = pendingValues
-          setPendingValues(null)
-          if (values) {
-            await submit(values)
-          }
-        }}
-      />
     </form>
   )
 }
@@ -197,3 +177,4 @@ const Textarea = forwardRef(function Textarea({ label, className = '', ...props 
     </label>
   )
 })
+

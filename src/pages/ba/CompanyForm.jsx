@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
 import { X } from 'lucide-react'
 import api from '../../api/axios'
+import { ConfirmDialog } from '../../components/ActionDialogs'
 
 const facilities = ['Bus', 'Canteen', 'Room', 'PF', 'ESIC', 'Offer Letter', 'Appointment Letter', 'Experience Letter']
 const weeklyOffs = ['Saturday', 'Sunday']
@@ -45,6 +46,7 @@ export default function CompanyForm() {
   const [selectedFacilities, setSelectedFacilities] = useState([])
   const [selectedWeeklyOffs, setSelectedWeeklyOffs] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  const [pendingValues, setPendingValues] = useState(null)
   const {
     register,
     handleSubmit,
@@ -121,8 +123,12 @@ export default function CompanyForm() {
     }
   }
 
+  const requestSubmit = (values) => {
+    setPendingValues(values)
+  }
+
   return (
-    <form onSubmit={handleSubmit(submit)} className="space-y-6">
+    <form onSubmit={handleSubmit(requestSubmit)} className="space-y-6">
       <div>
         <Link to="/ba/companies" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
           ← My Companies
@@ -224,6 +230,20 @@ export default function CompanyForm() {
       >
         {submitting ? 'Submitting...' : 'Submit Reference'}
       </button>
+      <ConfirmDialog
+        open={Boolean(pendingValues)}
+        title="Submit Company Reference"
+        message={`Create company reference for ${pendingValues?.companyName || 'this company'}?`}
+        confirmText="Submit Reference"
+        onCancel={() => setPendingValues(null)}
+        onConfirm={async () => {
+          const values = pendingValues
+          setPendingValues(null)
+          if (values) {
+            await submit(values)
+          }
+        }}
+      />
     </form>
   )
 }

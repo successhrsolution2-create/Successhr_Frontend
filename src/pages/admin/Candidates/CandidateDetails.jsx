@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Pencil, Trash2 } from 'lucide-react'
 import api from '../../../api/axios'
+import { ConfirmDialog } from '../../../components/ActionDialogs'
 
 const successRemarkKeys = [
   ['resumeReady', 'Resume Ready'],
@@ -83,6 +84,7 @@ export default function CandidateDetails() {
   const [interviewForm, setInterviewForm] = useState(emptyInterviewForm)
   const [editingInterviewId, setEditingInterviewId] = useState(null)
   const [savingInterview, setSavingInterview] = useState(false)
+  const [deletingInterviewId, setDeletingInterviewId] = useState(null)
 
   const load = async () => {
     try {
@@ -164,9 +166,6 @@ export default function CandidateDetails() {
   }
 
   const removeInterview = async (interviewId) => {
-    const confirmed = window.confirm('Delete this interview record?')
-    if (!confirmed) return
-
     try {
       await api.delete(`/cms/interviews/${interviewId}`)
       setInterviews((current) => current.filter((item) => item._id !== interviewId))
@@ -353,7 +352,7 @@ export default function CandidateDetails() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => removeInterview(item._id)}
+                          onClick={() => setDeletingInterviewId(item._id)}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md text-rose-600 hover:bg-rose-50"
                           aria-label="Delete interview"
                         >
@@ -414,6 +413,22 @@ export default function CandidateDetails() {
           ))}
         </section>
       ) : null}
+
+      <ConfirmDialog
+        open={Boolean(deletingInterviewId)}
+        title="Delete Interview"
+        message="Delete this interview record? This action cannot be undone."
+        confirmText="Delete"
+        danger
+        onCancel={() => setDeletingInterviewId(null)}
+        onConfirm={async () => {
+          const interviewId = deletingInterviewId
+          setDeletingInterviewId(null)
+          if (interviewId) {
+            await removeInterview(interviewId)
+          }
+        }}
+      />
     </div>
   )
 }

@@ -77,16 +77,16 @@ const buildCandidateSearchText = (candidate) => {
     .toLowerCase()
 }
 
-export default function Students() {
+export default function Candidates() {
   const [searchParams] = useSearchParams()
-  const [students, setStudents] = useState([])
+  const [Candidates, setCandidates] = useState([])
   const [placements, setPlacements] = useState([])
   const [bas, setBas] = useState([])
   const [loading, setLoading] = useState(true)
   const [savingFull, setSavingFull] = useState(false)
   const [uploadingDocuments, setUploadingDocuments] = useState(false)
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
-  const [deletePrompt, setDeletePrompt] = useState({ open: false, student: null })
+  const [deletePrompt, setDeletePrompt] = useState({ open: false, candidate: null })
   const [filters, setFilters] = useState(() => ({
     search: searchParams.get('search') || '',
     status: searchParams.get('status') || 'all',
@@ -95,8 +95,8 @@ export default function Students() {
   const [selected, setSelected] = useState(null)
 
   const load = async () => {
-    const [studentRes, baRes, placementRes] = await Promise.all([api.get('/students'), api.get('/ba/all'), api.get('/placements')])
-    setStudents(studentRes.data)
+    const [CandidateRes, baRes, placementRes] = await Promise.all([api.get('/candidates'), api.get('/ba/all'), api.get('/placements')])
+    setCandidates(CandidateRes.data)
     setPlacements(placementRes.data)
     setBas(baRes.data)
     setLoading(false)
@@ -115,87 +115,83 @@ export default function Students() {
     socket.on('placement_updated', refresh)
     socket.on('placement_paid', refresh)
     socket.on('placement_deleted', refresh)
-    socket.on('new_student', refresh)
-    socket.on('student_updated', refresh)
-    socket.on('student_deleted', refresh)
+    socket.on('new_candidate', refresh)
+    socket.on('candidate_updated', refresh)
+    socket.on('candidate_deleted', refresh)
 
     return () => {
       socket.off('placement_created', refresh)
       socket.off('placement_updated', refresh)
       socket.off('placement_paid', refresh)
       socket.off('placement_deleted', refresh)
-      socket.off('new_student', refresh)
-      socket.off('student_updated', refresh)
-      socket.off('student_deleted', refresh)
+      socket.off('new_candidate', refresh)
+      socket.off('candidate_updated', refresh)
+      socket.off('candidate_deleted', refresh)
     }
   }, [])
 
-  const placementCandidateId = (placement) =>
-    placement.studentId?._id || placement.studentId || placement.candidateId?._id || placement.candidateId
-
-  const placementByStudentId = useMemo(
+  const placementBycandidateId = useMemo(
     () =>
       new Map(
-        placements.map((placement) => [placement.studentId?._id || placement.studentId, placement])
+        placements.map((placement) => [placement.candidateId?._id || placement.candidateId, placement])
       ),
     [placements]
   )
 
   const filtered = useMemo(() => {
     const search = filters.search.toLowerCase().trim()
-    return students
-      .map((student) => {
-        const placement = placementByStudentId.get(student._id)
+    return Candidates
+      .map((Candidate) => {
+        const placement = placementBycandidateId.get(Candidate._id)
         return {
-          ...student,
+          ...Candidate,
           placement,
-          effectiveStatus: placement?.selectionStatus || student.status
+          effectiveStatus: placement?.selectionStatus || Candidate.status
         }
       })
-      .filter((student) => (search ? buildCandidateSearchText(student).includes(search) : true))
-      .filter((student) => (filters.status === 'all' ? true : student.effectiveStatus === filters.status))
-      .filter((student) => (filters.ba === 'all' ? true : student.submittedBy?._id === filters.ba))
+      .filter((Candidate) => (search ? buildCandidateSearchText(Candidate).includes(search) : true))
+      .filter((Candidate) => (filters.status === 'all' ? true : Candidate.effectiveStatus === filters.status))
+      .filter((Candidate) => (filters.ba === 'all' ? true : Candidate.submittedBy?._id === filters.ba))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-  }, [students, filters, placementByStudentId])
+  }, [Candidates, filters, placementBycandidateId])
 
-  const deleteStudent = async (student) => {
+  const removeCandidate = async (Candidate) => {
     try {
-      await api.delete(`/students/${student._id}`)
-      setStudents((current) => current.filter((item) => item._id !== student._id))
-      setPlacements((current) => current.filter((placement) => placementCandidateId(placement) !== student._id))
-      if (selected?._id === student._id) {
+      await api.delete(`/candidates/${Candidate._id}`)
+      setCandidates((current) => current.filter((item) => item._id !== Candidate._id))
+      if (selected?._id === Candidate._id) {
         setSelected(null)
       }
       toast.success('Candidate deleted')
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not delete candidate')
+      toast.error(error.response?.data?.message || 'Could not delete Candidate')
     }
   }
 
-  const buildStudentPayload = (student) => ({
-    candidateName: student.candidateName,
-    mobileNumber: student.mobileNumber,
-    aadhaarNo: student.aadhaarNo,
-    whatsappNo: student.whatsappNo,
-    emailId: student.emailId,
-    appliedFor: student.appliedFor,
-    interestedDepartment: student.interestedDepartment,
-    preferredIndustry: student.preferredIndustry,
-    preferredJobLocation: student.preferredJobLocation,
-    education: student.education,
-    totalExperience: student.totalExperience === '' ? undefined : student.totalExperience,
-    careerSummary: student.careerSummary,
-    currentSalary: student.currentSalary,
-    expectedSalary: student.expectedSalary,
-    noticePeriod: student.noticePeriod === '' ? undefined : student.noticePeriod,
-    reasonForJobChange: student.reasonForJobChange,
-    currentJobLocation: student.currentJobLocation,
-    availabilityForInterview: student.availabilityForInterview,
-    marriageStatus: student.marriageStatus || undefined,
-    documents: student.documents || [],
-    status: student.status,
-    adminNotes: student.adminNotes,
-    selectionStatus: student.selectionStatus
+  const buildCandidatePayload = (Candidate) => ({
+    candidateName: Candidate.candidateName,
+    mobileNumber: Candidate.mobileNumber,
+    aadhaarNo: Candidate.aadhaarNo,
+    whatsappNo: Candidate.whatsappNo,
+    emailId: Candidate.emailId,
+    appliedFor: Candidate.appliedFor,
+    interestedDepartment: Candidate.interestedDepartment,
+    preferredIndustry: Candidate.preferredIndustry,
+    preferredJobLocation: Candidate.preferredJobLocation,
+    education: Candidate.education,
+    totalExperience: Candidate.totalExperience === '' ? undefined : Candidate.totalExperience,
+    careerSummary: Candidate.careerSummary,
+    currentSalary: Candidate.currentSalary,
+    expectedSalary: Candidate.expectedSalary,
+    noticePeriod: Candidate.noticePeriod === '' ? undefined : Candidate.noticePeriod,
+    reasonForJobChange: Candidate.reasonForJobChange,
+    currentJobLocation: Candidate.currentJobLocation,
+    availabilityForInterview: Candidate.availabilityForInterview,
+    marriageStatus: Candidate.marriageStatus || undefined,
+    documents: Candidate.documents || [],
+    status: Candidate.status,
+    adminNotes: Candidate.adminNotes,
+    selectionStatus: Candidate.selectionStatus
   })
 
   const saveSelected = async () => {
@@ -203,12 +199,12 @@ export default function Students() {
 
     setSavingFull(true)
     try {
-      const { data } = await api.put(`/students/${selected._id}`, buildStudentPayload(selected))
-      setStudents((current) => current.map((item) => (item._id === data._id ? data : item)))
+      const { data } = await api.put(`/candidates/${selected._id}`, buildCandidatePayload(selected))
+      setCandidates((current) => current.map((item) => (item._id === data._id ? data : item)))
       setSelected(data)
       toast.success('Candidate updated')
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not update candidate')
+      toast.error(error.response?.data?.message || 'Could not update Candidate')
     } finally {
       setSavingFull(false)
     }
@@ -226,8 +222,8 @@ export default function Students() {
     try {
       const formData = new FormData()
       files.forEach((file) => formData.append('documents', file))
-      const { data } = await api.post(`/students/${selected._id}/docs`, formData)
-      setStudents((current) => current.map((item) => (item._id === data._id ? data : item)))
+      const { data } = await api.post(`/candidates/${selected._id}/docs`, formData)
+      setCandidates((current) => current.map((item) => (item._id === data._id ? data : item)))
       setSelected(data)
       toast.success('Documents uploaded')
     } catch (error) {
@@ -273,28 +269,28 @@ export default function Students() {
         'Admin Notes'
       ]
 
-      const rows = filtered.map((student) => {
-        const placement = student.placement || {}
+      const rows = filtered.map((Candidate) => {
+        const placement = Candidate.placement || {}
         return [
-          student.candidateName,
-          student.mobileNumber,
-          student.whatsappNo,
-          student.emailId,
-          student.aadhaarNo,
-          student.appliedFor,
-          student.interestedDepartment,
-          student.preferredIndustry,
-          student.preferredJobLocation,
-          student.education,
-          student.totalExperience,
-          student.currentSalary,
-          student.expectedSalary,
-          student.noticePeriod,
-          student.currentJobLocation,
-          student.marriageStatus,
-          student.submittedBy?.name || 'BA',
-          safeDate(student.createdAt),
-          statusLabel(student.status),
+          Candidate.candidateName,
+          Candidate.mobileNumber,
+          Candidate.whatsappNo,
+          Candidate.emailId,
+          Candidate.aadhaarNo,
+          Candidate.appliedFor,
+          Candidate.interestedDepartment,
+          Candidate.preferredIndustry,
+          Candidate.preferredJobLocation,
+          Candidate.education,
+          Candidate.totalExperience,
+          Candidate.currentSalary,
+          Candidate.expectedSalary,
+          Candidate.noticePeriod,
+          Candidate.currentJobLocation,
+          Candidate.marriageStatus,
+          Candidate.submittedBy?.name || 'BA',
+          safeDate(Candidate.createdAt),
+          statusLabel(Candidate.status),
           placement.selectionStatus
             ? selectionStatusLabel[placement.selectionStatus] || placement.selectionStatus
             : '',
@@ -310,7 +306,7 @@ export default function Students() {
           safeDate(placement.joiningDate),
           safeDate(placement.interviewDate),
           placement.interviewMode || '',
-          student.adminNotes || ''
+          Candidate.adminNotes || ''
         ]
       })
 
@@ -318,12 +314,12 @@ export default function Students() {
       const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
       const link = document.createElement('a')
       link.href = URL.createObjectURL(blob)
-      link.download = `candidate-references-${safeDate(new Date()) || 'export'}.csv`
+      link.download = `Candidate-references-${safeDate(new Date()) || 'export'}.csv`
       link.click()
       URL.revokeObjectURL(link.href)
       toast.success('Candidate export downloaded')
     } catch (_error) {
-      toast.error('Could not export candidate data')
+      toast.error('Could not export Candidate data')
     }
   }
 
@@ -331,7 +327,7 @@ export default function Students() {
 
   return (
     <div className="space-y-6">
-      <Header title="Candidates" subtitle="Search, filter, view, export, and delete candidate references." onExport={exportCsv} />
+      <Header title="Candidates" subtitle="Search, filter, view, export, and delete Candidate references." onExport={exportCsv} />
       <Filters filters={filters} setFilters={setFilters} bas={bas} searchPlaceholder="Search candidate, mobile, BA name, email, job..." />
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
@@ -350,41 +346,41 @@ export default function Students() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((student) => (
-                <tr key={student._id} className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40">
-                  <td className="px-5 py-3 font-semibold text-slate-900">{student.candidateName}</td>
-                  <td className="px-5 py-3 text-slate-600">{student.mobileNumber}</td>
-                  <td className="px-5 py-3 text-slate-600">{student.appliedFor || 'Not provided'}</td>
-                  <td className="px-5 py-3 text-slate-600">{student.submittedBy?.name || 'BA'}</td>
-                  <td className="px-5 py-3 text-slate-600">{format(new Date(student.createdAt), 'dd MMM yyyy')}</td>
+              {filtered.map((Candidate) => (
+                <tr key={Candidate._id} className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40">
+                  <td className="px-5 py-3 font-semibold text-slate-900">{Candidate.candidateName}</td>
+                  <td className="px-5 py-3 text-slate-600">{Candidate.mobileNumber}</td>
+                  <td className="px-5 py-3 text-slate-600">{Candidate.appliedFor || 'Not provided'}</td>
+                  <td className="px-5 py-3 text-slate-600">{Candidate.submittedBy?.name || 'BA'}</td>
+                  <td className="px-5 py-3 text-slate-600">{format(new Date(Candidate.createdAt), 'dd MMM yyyy')}</td>
                   <td className="px-5 py-3">
-                    {student.placement?.selectionStatus ? (
+                    {Candidate.placement?.selectionStatus ? (
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          selectionStatusColors[student.placement.selectionStatus] || selectionStatusColors.shortlisted
+                          selectionStatusColors[Candidate.placement.selectionStatus] || selectionStatusColors.shortlisted
                         }`}
                       >
-                        {selectionStatusLabel[student.placement.selectionStatus] || student.placement.selectionStatus}
+                        {selectionStatusLabel[Candidate.placement.selectionStatus] || Candidate.placement.selectionStatus}
                       </span>
                     ) : (
-                      <StatusBadge status={student.status} />
+                      <StatusBadge status={Candidate.status} />
                     )}
                   </td>
                   <td className="px-5 py-3 text-slate-600">
-                    {student.placement?.processStage
-                      ? processStageLabel[student.placement.processStage] || student.placement.processStage
+                    {Candidate.placement?.processStage
+                      ? processStageLabel[Candidate.placement.processStage] || Candidate.placement.processStage
                       : '-'}
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => setSelected(student)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sky-600 hover:bg-sky-50" aria-label="View candidate">
+                      <button type="button" onClick={() => setSelected(Candidate)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sky-600 hover:bg-sky-50" aria-label="View Candidate">
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDeletePrompt({ open: true, student })}
+                        onClick={() => setDeletePrompt({ open: true, candidate: Candidate })}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"
-                        aria-label="Delete candidate"
+                        aria-label="Delete Candidate"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -395,7 +391,7 @@ export default function Students() {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan="8" className="px-5 py-10 text-center text-slate-500">
-                    No matching candidate references.
+                    No matching Candidate references.
                   </td>
                 </tr>
               )}
@@ -422,7 +418,7 @@ export default function Students() {
       <ConfirmDialog
         open={saveConfirmOpen}
         title="Save Candidate Changes"
-        message={`Save updates for ${selected?.candidateName || 'this candidate'}?`}
+        message={`Save updates for ${selected?.candidateName || 'this Candidate'}?`}
         confirmText="Save Changes"
         onCancel={() => setSaveConfirmOpen(false)}
         onConfirm={async () => {
@@ -433,20 +429,20 @@ export default function Students() {
       <PromptDialog
         open={deletePrompt.open}
         title="Delete Candidate"
-        message={`Type DELETE to confirm deleting ${deletePrompt.student?.candidateName || 'this candidate'}. Linked process-panel data will also be removed.`}
+        message={`Type DELETE to confirm deleting ${deletePrompt.candidate?.candidateName || 'this Candidate'}.`}
         placeholder="Type DELETE"
         confirmText="Delete"
         inputType="text"
-        onCancel={() => setDeletePrompt({ open: false, student: null })}
+        onCancel={() => setDeletePrompt({ open: false, candidate: null })}
         onConfirm={async (value) => {
           if (String(value || '').trim().toUpperCase() !== 'DELETE') {
             toast.error('Please type DELETE to confirm')
             return
           }
-          const student = deletePrompt.student
-          setDeletePrompt({ open: false, student: null })
-          if (student) {
-            await deleteStudent(student)
+          const Candidate = deletePrompt.candidate
+          setDeletePrompt({ open: false, candidate: null })
+          if (Candidate) {
+            await removeCandidate(Candidate)
           }
         }}
       />
@@ -501,3 +497,5 @@ function Filters({ filters, setFilters, bas, searchPlaceholder }) {
     </div>
   )
 }
+
+

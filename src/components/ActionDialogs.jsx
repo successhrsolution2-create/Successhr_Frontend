@@ -25,7 +25,18 @@ export function ConfirmDialog({ open, title, message, confirmText = 'Confirm', c
   )
 }
 
-export function PromptDialog({ open, title, message, value = '', placeholder = '', confirmText = 'Save', cancelText = 'Cancel', onConfirm, onCancel }) {
+export function PromptDialog({
+  open,
+  title,
+  message,
+  value = '',
+  placeholder = '',
+  confirmText = 'Save',
+  cancelText = 'Cancel',
+  inputType = 'password',
+  onConfirm,
+  onCancel
+}) {
   const [input, setInput] = useState(value)
 
   useEffect(() => {
@@ -41,7 +52,7 @@ export function PromptDialog({ open, title, message, value = '', placeholder = '
         <p className="mt-2 text-sm text-slate-600">{message}</p>
         <input
           autoFocus
-          type="password"
+          type={inputType}
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder={placeholder}

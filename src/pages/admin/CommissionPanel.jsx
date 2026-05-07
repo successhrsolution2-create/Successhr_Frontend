@@ -7,6 +7,7 @@ import api from '../../api/axios'
 import socket from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
 import Skeleton from '../../components/Skeleton'
+import { ConfirmDialog } from '../../components/ActionDialogs'
 
 const selectionStatusLabel = {
   shortlisted: 'Shortlisted',
@@ -63,6 +64,7 @@ export default function CommissionPanel() {
     search: searchParams.get('search') || ''
   }))
   const [detail, setDetail] = useState(null)
+  const [confirmAction, setConfirmAction] = useState(null)
 
   const loadData = async () => {
     const [summaryRes, placementRes, baRes] = await Promise.all([
@@ -92,11 +94,13 @@ export default function CommissionPanel() {
     socket.on('placement_created', refresh)
     socket.on('placement_updated', refresh)
     socket.on('placement_paid', refresh)
+    socket.on('placement_deleted', refresh)
 
     return () => {
       socket.off('placement_created', refresh)
       socket.off('placement_updated', refresh)
       socket.off('placement_paid', refresh)
+      socket.off('placement_deleted', refresh)
     }
   }, [])
 
@@ -249,6 +253,15 @@ export default function CommissionPanel() {
     setEditingPlacementId('')
   }
 
+  const requestSaveEdit = (placement) => {
+    setConfirmAction({
+      title: 'Save Placement Changes',
+      message: `Save earning updates for ${placement.studentId?.candidateName || 'this candidate'}?`,
+      confirmText: 'Save Changes',
+      onConfirm: () => saveEdit(placement._id)
+    })
+  }
+
   const saveEdit = async (placementId) => {
     try {
       await api.put(`/placements/${placementId}`, {
@@ -268,16 +281,20 @@ export default function CommissionPanel() {
     }
   }
 
-  const updatePaymentStatus = async (placement, nextStatus) => {
-    const studentName = placement.studentId?.candidateName || 'this student'
+  const requestPaymentStatusUpdate = (placement, nextStatus) => {
+    const studentName = placement.studentId?.candidateName || 'this candidate'
     const amount = formatMoney(placement.earningAmount || 0)
     const actionText = nextStatus === 'paid' ? 'mark advisor payment as paid' : 'move advisor payment back to pending'
-    const confirmed = window.confirm(
-      `Are you sure you want to ${actionText} for ${studentName} (${amount})?\n\nPress OK for Yes or Cancel for No.`
-    )
 
-    if (!confirmed) return
+    setConfirmAction({
+      title: nextStatus === 'paid' ? 'Mark Payment Paid' : 'Mark Payment Pending',
+      message: `Are you sure you want to ${actionText} for ${studentName} (${amount})?`,
+      confirmText: nextStatus === 'paid' ? 'Mark Paid' : 'Mark Pending',
+      onConfirm: () => updatePaymentStatus(placement, nextStatus)
+    })
+  }
 
+  const updatePaymentStatus = async (placement, nextStatus) => {
     try {
       if (nextStatus === 'paid') {
         await api.patch(`/placements/${placement._id}/pay`, {
@@ -322,7 +339,7 @@ export default function CommissionPanel() {
         <StatCard label="Total Earnings Generated" value={formatMoney(topStats.totalEarnings)} />
         <StatCard label="Total Paid Out" value={formatMoney(topStats.totalPaid)} />
         <StatCard label="Total Pending" value={formatMoney(topStats.totalPending)} />
-        <StatCard label="Total Students Placed" value={topStats.totalPlacements} />
+        <StatCard label="Total Candidates Placed" value={topStats.totalPlacements} />
       </div>
 
       <div className="grid gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 md:grid-cols-6">
@@ -391,7 +408,7 @@ export default function CommissionPanel() {
           type="text"
           value={filters.search}
           onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-          placeholder="Search BA / student / company / salary / earning"
+          placeholder="Search BA / candidate / company / salary / earning"
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm md:col-span-2"
         />
       </div>
@@ -438,7 +455,7 @@ export default function CommissionPanel() {
                             <table className="min-w-full divide-y divide-slate-200 text-sm">
                               <thead className="bg-slate-100 text-left text-xs uppercase text-slate-500">
                                 <tr>
-                                  <th className="px-3 py-2">Student</th>
+                                  <th className="px-3 py-2">Candidate</th>
                                   <th className="px-3 py-2">Company</th>
                                   <th className="px-3 py-2">Salary/PM</th>
                                   <th className="px-3 py-2">Basis</th>
@@ -466,7 +483,7 @@ export default function CommissionPanel() {
                                           onClick={() => openDetail('student', placement.studentId?._id)}
                                           className="font-semibold text-indigo-600 hover:text-indigo-700"
                                         >
-                                          {placement.studentId?.candidateName || 'Student'}
+                                          {placement.studentId?.candidateName || 'Candidate'}
                                         </button>
                                       </td>
                                       <td className="px-3 py-2">
@@ -534,7 +551,7 @@ export default function CommissionPanel() {
                                             <div className="flex items-center gap-2">
                                               <button
                                                 type="button"
-                                                onClick={() => saveEdit(placement._id)}
+                                                onClick={() => requestSaveEdit(placement)}
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white"
                                                 title="Save"
                                               >
@@ -570,7 +587,7 @@ export default function CommissionPanel() {
                                               <button
                                                 type="button"
                                                 onClick={() =>
-                                                  updatePaymentStatus(
+                                                  requestPaymentStatusUpdate(
                                                     placement,
                                                     placement.earningStatus === 'paid' ? 'pending' : 'paid'
                                                   )
@@ -621,6 +638,19 @@ export default function CommissionPanel() {
       </div>
 
       <DetailDrawer open={Boolean(detail)} type={detail?.type} item={detail?.item} onClose={() => setDetail(null)} />
+      <ConfirmDialog
+        open={Boolean(confirmAction)}
+        title={confirmAction?.title || ''}
+        message={confirmAction?.message || ''}
+        confirmText={confirmAction?.confirmText || 'Confirm'}
+        danger={confirmAction?.danger}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          const action = confirmAction?.onConfirm
+          setConfirmAction(null)
+          await action?.()
+        }}
+      />
     </div>
   )
 }

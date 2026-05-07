@@ -42,9 +42,9 @@ const processStageLabel = {
   on_hold: 'On Hold'
 }
 
-export default function Students() {
+export default function Candidates() {
   const token = useSelector((state) => state.auth.token)
-  const [students, setStudents] = useState([])
+  const [Candidates, setCandidates] = useState([])
   const [placements, setPlacements] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
@@ -55,8 +55,8 @@ export default function Students() {
   })
 
   const loadData = async () => {
-    const [studentRes, placementRes] = await Promise.all([api.get('/students'), api.get('/placements/my')])
-    setStudents(studentRes.data)
+    const [CandidateRes, placementRes] = await Promise.all([api.get('/candidates'), api.get('/placements/my')])
+    setCandidates(CandidateRes.data)
     setPlacements(placementRes.data)
     setLoading(false)
   }
@@ -80,8 +80,8 @@ export default function Students() {
     socket.on('placement_deleted', refresh)
     socket.on('earning_paid', refresh)
     socket.on('commission_paid', refresh)
-    socket.on('student_updated', refresh)
-    socket.on('student_deleted', refresh)
+    socket.on('candidate_updated', refresh)
+    socket.on('candidate_deleted', refresh)
 
     return () => {
       socket.off('my_placement', refresh)
@@ -89,50 +89,50 @@ export default function Students() {
       socket.off('placement_deleted', refresh)
       socket.off('earning_paid', refresh)
       socket.off('commission_paid', refresh)
-      socket.off('student_updated', refresh)
-      socket.off('student_deleted', refresh)
+      socket.off('candidate_updated', refresh)
+      socket.off('candidate_deleted', refresh)
       disconnectSocket()
     }
   }, [token])
 
-  const placementByStudentId = useMemo(
+  const placementBycandidateId = useMemo(
     () =>
       new Map(
-        placements.map((placement) => [placement.student?._id || placement.studentId?._id || placement.studentId, placement])
+        placements.map((placement) => [placement.candidate?._id || placement.candidateId?._id || placement.candidateId, placement])
       ),
     [placements]
   )
 
   const enriched = useMemo(
     () =>
-      students.map((student) => {
-        const placement = placementByStudentId.get(student._id)
+      Candidates.map((Candidate) => {
+        const placement = placementBycandidateId.get(Candidate._id)
         return {
-          ...student,
+          ...candidate,
           placement,
-          effectiveStatus: placement?.selectionStatus || student.status
+          effectiveStatus: placement?.selectionStatus || Candidate.status
         }
       }),
-    [students, placementByStudentId]
+    [Candidates, placementBycandidateId]
   )
 
   const filtered = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
     return enriched
-      .filter((student) => {
+      .filter((Candidate) => {
         if (!search) return true
-        const placement = student.placement || {}
+        const placement = Candidate.placement || {}
         const text = [
-          student.candidateName,
-          student.mobileNumber,
-          student.aadhaarNo,
-          student.whatsappNo,
-          student.emailId,
-          student.appliedFor,
-          student.interestedDepartment,
-          student.preferredIndustry,
-          student.preferredJobLocation,
-          student.currentJobLocation,
+          Candidate.candidateName,
+          Candidate.mobileNumber,
+          Candidate.aadhaarNo,
+          Candidate.whatsappNo,
+          Candidate.emailId,
+          Candidate.appliedFor,
+          Candidate.interestedDepartment,
+          Candidate.preferredIndustry,
+          Candidate.preferredJobLocation,
+          Candidate.currentJobLocation,
           placement.companyName,
           placement.jobProfile
         ]
@@ -141,19 +141,19 @@ export default function Students() {
           .toLowerCase()
         return text.includes(search)
       })
-      .filter((student) => (filters.status === 'all' ? true : student.effectiveStatus === filters.status))
-      .filter((student) => {
+      .filter((Candidate) => (filters.status === 'all' ? true : Candidate.effectiveStatus === filters.status))
+      .filter((Candidate) => {
         if (filters.earning === 'all') return true
-        if (filters.earning === 'recorded') return Boolean(student.placement)
-        if (filters.earning === 'paid') return student.placement?.earningStatus === 'paid'
-        if (filters.earning === 'pending') return student.placement?.earningStatus === 'pending'
+        if (filters.earning === 'recorded') return Boolean(Candidate.placement)
+        if (filters.earning === 'paid') return Candidate.placement?.earningStatus === 'paid'
+        if (filters.earning === 'pending') return Candidate.placement?.earningStatus === 'pending'
         return true
       })
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   }, [enriched, filters])
 
   const stats = useMemo(() => {
-    const totalSubmitted = students.length
+    const totalSubmitted = Candidates.length
     const selectedJoined = placements.filter(
       (placement) => placement.selectionStatus === 'selected' || placement.selectionStatus === 'joined'
     ).length
@@ -162,7 +162,7 @@ export default function Students() {
       .filter((placement) => placement.earningStatus === 'pending')
       .reduce((sum, placement) => sum + Number(placement.earningAmount || 0), 0)
     return { totalSubmitted, selectedJoined, totalEarned, pending }
-  }, [students.length, placements])
+  }, [Candidates.length, placements])
 
   if (loading) return <Skeleton rows={10} />
 
@@ -172,11 +172,11 @@ export default function Students() {
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold text-slate-900">My Candidates</h1>
           <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
-            {students.length}
+            {Candidates.length}
           </span>
         </div>
         <Link
-          to="/ba/students/new"
+          to="/ba/candidates/new"
           className="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
         >
           Add Candidate
@@ -238,40 +238,40 @@ export default function Students() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((student) => (
+              {filtered.map((Candidate) => (
                 <tr
-                  key={student._id}
-                  onClick={() => setSelected(student)}
+                  key={Candidate._id}
+                  onClick={() => setSelected(Candidate)}
                   className="cursor-pointer odd:bg-white even:bg-slate-50 hover:bg-indigo-50/50"
                 >
                   <td className="px-5 py-3">
-                    <p className="font-semibold text-slate-900">{student.candidateName}</p>
-                    <p className="text-xs text-slate-500">{student.mobileNumber}</p>
+                    <p className="font-semibold text-slate-900">{Candidate.candidateName}</p>
+                    <p className="text-xs text-slate-500">{Candidate.mobileNumber}</p>
                   </td>
-                  <td className="px-5 py-3 text-slate-700">{student.appliedFor || 'Not provided'}</td>
-                  <td className="px-5 py-3 text-slate-600">{format(new Date(student.createdAt), 'dd MMM yyyy')}</td>
+                  <td className="px-5 py-3 text-slate-700">{Candidate.appliedFor || 'Not provided'}</td>
+                  <td className="px-5 py-3 text-slate-600">{format(new Date(Candidate.createdAt), 'dd MMM yyyy')}</td>
                   <td className="px-5 py-3">
-                    {student.placement?.selectionStatus ? (
+                    {Candidate.placement?.selectionStatus ? (
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          selectionStatusColors[student.placement.selectionStatus] || selectionStatusColors.shortlisted
+                          selectionStatusColors[Candidate.placement.selectionStatus] || selectionStatusColors.shortlisted
                         }`}
                       >
-                        {selectionStatusLabel[student.placement.selectionStatus] || student.placement.selectionStatus}
+                        {selectionStatusLabel[Candidate.placement.selectionStatus] || Candidate.placement.selectionStatus}
                       </span>
                     ) : (
-                      <StatusBadge status={student.status} />
+                      <StatusBadge status={Candidate.status} />
                     )}
                   </td>
                   <td className="px-5 py-3 text-slate-700">
-                    {student.placement?.processStage ? processStageLabel[student.placement.processStage] || student.placement.processStage : '-'}
+                    {Candidate.placement?.processStage ? processStageLabel[Candidate.placement.processStage] || Candidate.placement.processStage : '-'}
                   </td>
                   <td className="px-5 py-3">
-                    <EarningCell placement={student.placement} />
+                    <EarningCell placement={Candidate.placement} />
                   </td>
                   <td className="px-5 py-3 text-slate-700">
-                    {student.documents?.length ? (
-                      <span className="font-semibold text-indigo-600">{student.documents.length} files</span>
+                    {Candidate.documents?.length ? (
+                      <span className="font-semibold text-indigo-600">{Candidate.documents.length} files</span>
                     ) : (
                       <span className="text-slate-500">No files</span>
                     )}
@@ -281,7 +281,7 @@ export default function Students() {
               {!filtered.length && (
                 <tr>
                   <td colSpan="7" className="px-5 py-12 text-center text-slate-500">
-                    No candidates found for current filters.
+                    No Candidates found for current filters.
                   </td>
                 </tr>
               )}
@@ -293,7 +293,7 @@ export default function Students() {
       <DetailDrawer
         open={Boolean(selected)}
         item={selected}
-        type="student"
+        type="Candidate"
         onClose={() => setSelected(null)}
       />
     </div>
@@ -337,3 +337,5 @@ function EarningCell({ placement }) {
     </div>
   )
 }
+
+

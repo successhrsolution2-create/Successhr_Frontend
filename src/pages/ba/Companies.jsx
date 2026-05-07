@@ -8,6 +8,70 @@ import DetailDrawer from '../../components/DetailDrawer'
 import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
 
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '')
+
+const buildCompanySearchText = (company) => {
+  const job = company.jobRequirements || {}
+  const about = company.aboutCompany || {}
+
+  return [
+    company.companyName,
+    company.companyAddress,
+    company.contactPersonName,
+    company.contactPersonDesignation,
+    company.mobileNo,
+    company.emailId,
+    company.status,
+    company.adminNotes,
+    job.jobProfile,
+    job.education,
+    job.experience,
+    ...(job.requiredKeySkills || []),
+    job.rolesAndResponsibility,
+    job.salaryRange,
+    job.gender,
+    job.numberOfVacancy,
+    job.jobTime,
+    job.shift,
+    job.jobLocation,
+    job.ageCriteria,
+    job.castCriteria,
+    job.marriageCriteria,
+    ...(job.facilities || []),
+    about.manpower,
+    about.turnover,
+    about.plant,
+    about.interviewMode,
+    about.availabilityForInterview?.date,
+    about.availabilityForInterview?.time,
+    ...(about.weeklyOff || []),
+    company.createdAt ? format(new Date(company.createdAt), 'dd MMM yyyy') : ''
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
+const buildCompanySearchDigits = (company) => {
+  const job = company.jobRequirements || {}
+  const about = company.aboutCompany || {}
+
+  return [
+    company.mobileNo,
+    job.numberOfVacancy,
+    job.salaryRange,
+    job.experience,
+    about.manpower,
+    about.turnover,
+    about.availabilityForInterview?.date,
+    about.availabilityForInterview?.time,
+    company.createdAt
+  ]
+    .map((value) => digitsOnly(value))
+    .filter(Boolean)
+    .join(' ')
+}
+
 export default function Companies() {
   const token = useSelector((state) => state.auth.token)
   const [companies, setCompanies] = useState([])
@@ -60,27 +124,14 @@ export default function Companies() {
 
   const filtered = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
+    const searchDigits = digitsOnly(search)
+
     return companies
       .filter((company) => {
         if (!search) return true
-        const job = company.jobRequirements || {}
-        const text = [
-          company.companyName,
-          company.companyAddress,
-          company.contactPersonName,
-          company.contactPersonDesignation,
-          company.mobileNo,
-          company.emailId,
-          job.jobProfile,
-          job.jobLocation,
-          job.education,
-          job.experience,
-          ...(job.requiredKeySkills || [])
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-        return text.includes(search)
+        if (buildCompanySearchText(company).includes(search)) return true
+        if (searchDigits.length < 3) return false
+        return buildCompanySearchDigits(company).includes(searchDigits)
       })
       .filter((company) => (filters.status === 'all' ? true : company.status === filters.status))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -120,14 +171,14 @@ export default function Companies() {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Total Submitted" value={stats.totalSubmitted} />
         <StatCard label="In Review / Active" value={stats.inReviewActive} />
-        <StatCard label="Students Placed Via My Companies" value={stats.studentsPlacedViaMyCompanies} />
+        <StatCard label="Candidates Placed Via My Companies" value={stats.studentsPlacedViaMyCompanies} />
       </div>
 
       <div className="grid gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 md:grid-cols-2">
         <input
           value={filters.search}
           onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-          placeholder="Search by company, contact, phone, email, job..."
+          placeholder="Search company, phone, email, contact, job, location, salary..."
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
         <select

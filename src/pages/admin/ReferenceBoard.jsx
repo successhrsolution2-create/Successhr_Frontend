@@ -21,6 +21,7 @@ import api, { assetUrl } from '../../api/axios'
 import socket from '../../socket'
 import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
+import { ConfirmDialog } from '../../components/ActionDialogs'
 
 const STATUS_COLUMNS = [
   { key: 'not_viewed', label: 'Not Viewed', headerClass: 'bg-slate-200 text-slate-700' },
@@ -202,6 +203,7 @@ export default function ReferenceBoard() {
   const [referenceSaving, setReferenceSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [placementBanner, setPlacementBanner] = useState('')
+  const [confirmAction, setConfirmAction] = useState(null)
 
   const loadBoardData = async () => {
     const [studentRes, companyRes, baRes] = await Promise.all([api.get('/students'), api.get('/companies'), api.get('/ba/all')])
@@ -244,6 +246,7 @@ export default function ReferenceBoard() {
     socket.on('placement_created', refresh)
     socket.on('placement_updated', refresh)
     socket.on('placement_paid', refresh)
+    socket.on('placement_deleted', refresh)
 
     return () => {
       socket.off('new_student', handleNewStudent)
@@ -257,6 +260,7 @@ export default function ReferenceBoard() {
       socket.off('placement_created', refresh)
       socket.off('placement_updated', refresh)
       socket.off('placement_paid', refresh)
+      socket.off('placement_deleted', refresh)
     }
   }, [])
 
@@ -464,6 +468,16 @@ export default function ReferenceBoard() {
     }
   }
 
+  const requestSaveMeta = () => {
+    if (!activeRef) return
+    setConfirmAction({
+      title: 'Save Reference Status',
+      message: `Save status and admin notes for ${referenceLabel(activeRef)}?`,
+      confirmText: 'Save',
+      onConfirm: saveMeta
+    })
+  }
+
   const saveReferenceDetails = async () => {
     if (!activeRef) return
     setReferenceSaving(true)
@@ -520,6 +534,16 @@ export default function ReferenceBoard() {
     } finally {
       setReferenceSaving(false)
     }
+  }
+
+  const requestSaveReferenceDetails = () => {
+    if (!activeRef) return
+    setConfirmAction({
+      title: 'Save Reference Details',
+      message: `Save detail changes for ${referenceLabel(activeRef)}?`,
+      confirmText: 'Save Details',
+      onConfirm: saveReferenceDetails
+    })
   }
 
   const savePlacement = async () => {
@@ -585,6 +609,16 @@ export default function ReferenceBoard() {
     }
   }
 
+  const requestSavePlacement = () => {
+    if (!activeRef || activeRef.type !== 'student') return
+    setConfirmAction({
+      title: placementForm.id ? 'Save Placement' : 'Create Placement',
+      message: `${placementForm.id ? 'Save placement updates' : 'Create placement'} for ${referenceLabel(activeRef)}?`,
+      confirmText: placementForm.id ? 'Save Placement' : 'Create Placement',
+      onConfirm: savePlacement
+    })
+  }
+
   const earningPreview = useMemo(
     () => calcEarning(placementForm.offeredSalaryPM, placementForm.earningPercent, placementForm.salaryBasis),
     [placementForm.offeredSalaryPM, placementForm.earningPercent, placementForm.salaryBasis]
@@ -601,7 +635,7 @@ export default function ReferenceBoard() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Reference Board</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Track all student and company references in real-time, then create placements directly from student cards.
+          Track all candidate and company references in real-time, then create placements directly from candidate cards.
         </p>
       </div>
 
@@ -612,7 +646,7 @@ export default function ReferenceBoard() {
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
         >
           <option value="all">All Types</option>
-          <option value="student">Students</option>
+          <option value="student">Candidates</option>
           <option value="company">Companies</option>
         </select>
         <select
@@ -651,7 +685,7 @@ export default function ReferenceBoard() {
             type="text"
             value={filters.search}
             onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-            placeholder="Search by name, mobile, aadhaar, email, applied/job profile, company, contact person..."
+            placeholder="Search by name, mobile, BA, email, applied/job profile, company, contact person..."
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm normal-case"
           />
         </label>
@@ -694,7 +728,7 @@ export default function ReferenceBoard() {
                                   }`}
                                   onClick={() => openReference(reference, 'view')}
                                 >
-                                  {reference.type === 'student' ? 'Student' : 'Company'}
+                                  {reference.type === 'student' ? 'Candidate' : 'Company'}
                                 </button>
                                <div className="flex items-center gap-1">
   {/* VIEW */}
@@ -771,7 +805,7 @@ export default function ReferenceBoard() {
                       activeRef.type === 'student' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'
                     }`}
                   >
-                    {activeRef.type === 'student' ? 'Student' : 'Company'}
+                    {activeRef.type === 'student' ? 'Candidate' : 'Company'}
                   </span>
                   <StatusBadge status={activeRef.status} />
                 </div>
@@ -804,7 +838,7 @@ export default function ReferenceBoard() {
                   { !isViewMode && (
                     <button
                       type="button"
-                      onClick={saveReferenceDetails}
+                      onClick={requestSaveReferenceDetails}
                       disabled={referenceSaving}
                       className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-70"
                     >
@@ -1039,7 +1073,6 @@ export default function ReferenceBoard() {
                       rows={3}
                       value={activeRef.adminNotes || ''}
                       onChange={(event) => setActiveRef((current) => ({ ...current, adminNotes: event.target.value }))}
-                      onBlur={isViewMode ? undefined : saveMeta}
                       disabled={isViewMode}
                       className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
                         isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
@@ -1050,7 +1083,7 @@ export default function ReferenceBoard() {
                 { !isViewMode && (
                   <button
                     type="button"
-                    onClick={saveMeta}
+                    onClick={requestSaveMeta}
                     disabled={metaSaving}
                     className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-70"
                   >
@@ -1262,7 +1295,7 @@ export default function ReferenceBoard() {
                   { !isViewMode && (
                     <button
                       type="button"
-                      onClick={savePlacement}
+                      onClick={requestSavePlacement}
                       disabled={placementSaving}
                       className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-70"
                     >
@@ -1308,6 +1341,20 @@ export default function ReferenceBoard() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(confirmAction)}
+        title={confirmAction?.title || ''}
+        message={confirmAction?.message || ''}
+        confirmText={confirmAction?.confirmText || 'Confirm'}
+        danger={confirmAction?.danger}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          const action = confirmAction?.onConfirm
+          setConfirmAction(null)
+          await action?.()
+        }}
+      />
     </div>
   )
 }

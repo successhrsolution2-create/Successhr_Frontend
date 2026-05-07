@@ -29,12 +29,12 @@ export default function MyReferences() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-950">My References</h1>
-        <p className="mt-1 text-sm text-slate-500">Track submitted students and companies.</p>
+        <p className="mt-1 text-sm text-slate-500">Track submitted candidates and companies.</p>
       </div>
 
       <div className="inline-flex rounded-lg bg-slate-200 p-1">
         {[
-          ['students', 'Students'],
+          ['students', 'Candidates'],
           ['companies', 'Companies']
         ].map(([key, label]) => (
           <button
@@ -68,7 +68,7 @@ function StudentTable({ students, onSelect }) {
   return (
     <Table
       headers={['Name', 'Mobile', 'Applied For', 'Submitted Date', 'Status']}
-      empty="No student references submitted."
+      empty="No candidate references submitted."
       rows={students.map((student) => ({
         id: student._id,
         onClick: () => onSelect(student),

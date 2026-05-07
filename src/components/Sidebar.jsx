@@ -9,7 +9,6 @@ import {
   UserCheck,
   Users,
   // X,
-  Settings,
   Wallet
 } from 'lucide-react'
 import { connectSocket, disconnectSocket } from '../socket'
@@ -18,23 +17,22 @@ import Topbar from './Topbar'
 
 const adminMainLinks = [
   { to: '/admin/references', label: 'Reference Board', icon: PanelsTopLeft },
-  { to: '/admin/business-advisors', label: 'Business Advisors', icon: Users },
-  { to: '/admin/students', label: 'Students', icon: UserCircle },
+  { to: '/admin/students', label: 'Candidates', icon: UserCircle },
   { to: '/admin/companies', label: 'Companies', icon: Building2 },
-  { to: '/admin/process-panel', label: 'Process Panel', icon: PanelsTopLeft },
-  { to: '/admin/settings', label: 'Admin Settings', icon: Settings }
+  { to: '/admin/process-panel', label: 'Process Panel', icon: PanelsTopLeft }
 ]
 
 const baLinks = [
   { to: '/ba/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/ba/profile', label: 'My Profile', icon: UserCircle },
-  { to: '/ba/students', label: 'My Students', icon: UserCheck },
+  { to: '/ba/students', label: 'My Candidates', icon: UserCheck },
   { to: '/ba/companies', label: 'My Companies', icon: Building2 },
   { to: '/ba/earnings', label: 'My Earnings', icon: Wallet }
 ]
 
 export default function Sidebar({ role, children }) {
   const [open, setOpen] = useState(false)
+  const [showBusinessAdvisors, setShowBusinessAdvisors] = useState(false)
   const [showCandidates, setShowCandidates] = useState(false)
   const { token } = useSelector((state) => state.auth)
   const location = useLocation()
@@ -50,6 +48,9 @@ export default function Sidebar({ role, children }) {
 
   useEffect(() => {
     if (!isSuperAdmin) return
+    if (location.pathname.startsWith('/admin/business-advisors')) {
+      setShowBusinessAdvisors(true)
+    }
     if (location.pathname.startsWith('/admin/cms/')) {
       setShowCandidates(true)
     }
@@ -87,6 +88,42 @@ export default function Sidebar({ role, children }) {
 
           {isSuperAdmin ? (
             <>
+              <div className="my-3 border-t border-slate-700" />
+              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-300">Business Advisor Management</p>
+              <button
+                type="button"
+                onClick={() => setShowBusinessAdvisors((v) => !v)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-700"
+              >
+                <Users size={16} />
+                Business Advisors
+              </button>
+              {showBusinessAdvisors ? (
+                <div className="ml-6 mt-1 space-y-1">
+                  <NavLink
+                    to="/admin/business-advisors"
+                    end
+                    className={`block rounded-lg px-3 py-2 text-sm ${
+                      location.pathname === '/admin/business-advisors' && location.search !== '?action=create'
+                        ? 'bg-indigo-600'
+                        : 'hover:bg-slate-700'
+                    }`}
+                  >
+                    Advisor List
+                  </NavLink>
+                  <NavLink
+                    to="/admin/business-advisors?action=create"
+                    className={`block rounded-lg px-3 py-2 text-sm ${
+                      location.pathname === '/admin/business-advisors' && location.search === '?action=create'
+                        ? 'bg-indigo-600'
+                        : 'hover:bg-slate-700'
+                    }`}
+                  >
+                    Add Advisor
+                  </NavLink>
+                </div>
+              ) : null}
+
               <div className="my-3 border-t border-slate-700" />
               <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-300">Candidate Management</p>
               <button

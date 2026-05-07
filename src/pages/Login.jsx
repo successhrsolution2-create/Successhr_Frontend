@@ -54,7 +54,7 @@ export default function Login() {
               <p className="text-sm font-bold uppercase text-sky-700">HR consultancy workspace</p>
               <h1 className="mt-3 text-3xl font-bold text-slate-950 sm:text-4xl">Welcome back</h1>
               <p className="mt-3 text-base text-slate-600">
-                Manage Business Advisors, student references, and company requirements from one clean Success HR dashboard.
+                Manage Business Advisors, candidate references, and company requirements from one clean Success HR dashboard.
               </p>
             </div>
           </div>

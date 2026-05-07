@@ -8,6 +8,73 @@ import socket from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
 import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
+import { ConfirmDialog, PromptDialog } from '../../components/ActionDialogs'
+
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '')
+
+const buildCompanySearchText = (company) => {
+  const job = company.jobRequirements || {}
+  const about = company.aboutCompany || {}
+
+  return [
+    company.companyName,
+    company.companyAddress,
+    company.contactPersonName,
+    company.contactPersonDesignation,
+    company.mobileNo,
+    company.emailId,
+    company.status,
+    company.adminNotes,
+    company.submittedBy?.name,
+    company.submittedBy?.email,
+    job.jobProfile,
+    job.education,
+    job.experience,
+    ...(job.requiredKeySkills || []),
+    job.rolesAndResponsibility,
+    job.salaryRange,
+    job.gender,
+    job.numberOfVacancy,
+    job.jobTime,
+    job.shift,
+    job.jobLocation,
+    job.ageCriteria,
+    job.castCriteria,
+    job.marriageCriteria,
+    ...(job.facilities || []),
+    about.manpower,
+    about.turnover,
+    about.plant,
+    about.interviewMode,
+    about.availabilityForInterview?.date,
+    about.availabilityForInterview?.time,
+    ...(about.weeklyOff || []),
+    company.createdAt ? format(new Date(company.createdAt), 'dd MMM yyyy') : ''
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
+const buildCompanySearchDigits = (company) => {
+  const job = company.jobRequirements || {}
+  const about = company.aboutCompany || {}
+
+  return [
+    company.mobileNo,
+    job.numberOfVacancy,
+    job.salaryRange,
+    job.experience,
+    about.manpower,
+    about.turnover,
+    about.availabilityForInterview?.date,
+    about.availabilityForInterview?.time,
+    company.createdAt
+  ]
+    .map((value) => digitsOnly(value))
+    .filter(Boolean)
+    .join(' ')
+}
 
 export default function Companies() {
   const [searchParams] = useSearchParams()
@@ -15,6 +82,8 @@ export default function Companies() {
   const [bas, setBas] = useState([])
   const [loading, setLoading] = useState(true)
   const [savingFull, setSavingFull] = useState(false)
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
+  const [deletePrompt, setDeletePrompt] = useState({ open: false, company: null })
   const [filters, setFilters] = useState(() => ({
     search: searchParams.get('search') || '',
     status: searchParams.get('status') || 'all',
@@ -47,29 +116,39 @@ export default function Companies() {
     socket.on('new_company', refresh)
     socket.on('company_updated', refresh)
     socket.on('company_deleted', refresh)
+    socket.on('placement_deleted', refresh)
 
     return () => {
       socket.off('new_company', refresh)
       socket.off('company_updated', refresh)
       socket.off('company_deleted', refresh)
+      socket.off('placement_deleted', refresh)
     }
   }, [])
 
   const filtered = useMemo(() => {
     const search = filters.search.toLowerCase().trim()
+    const searchDigits = digitsOnly(search)
+
     return companies
-      .filter((company) => (search ? company.companyName?.toLowerCase().includes(search) : true))
+      .filter((company) => {
+        if (!search) return true
+        if (buildCompanySearchText(company).includes(search)) return true
+        if (searchDigits.length < 3) return false
+        return buildCompanySearchDigits(company).includes(searchDigits)
+      })
       .filter((company) => (filters.status === 'all' ? true : company.status === filters.status))
       .filter((company) => (filters.ba === 'all' ? true : company.submittedBy?._id === filters.ba))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   }, [companies, filters])
 
   const deleteCompany = async (company) => {
-    if (!window.confirm(`Delete ${company.companyName}?`)) return
-
     try {
       await api.delete(`/companies/${company._id}`)
       setCompanies((current) => current.filter((item) => item._id !== company._id))
+      if (selected?._id === company._id) {
+        setSelected(null)
+      }
       toast.success('Company deleted')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not delete company')
@@ -105,6 +184,11 @@ export default function Companies() {
     }
   }
 
+  const requestSaveSelected = () => {
+    if (!selected) return
+    setSaveConfirmOpen(true)
+  }
+
   if (loading) return <Skeleton rows={9} />
 
   return (
@@ -118,7 +202,7 @@ export default function Companies() {
         <input
           value={filters.search}
           onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-          placeholder="Search by company name"
+          placeholder="Search company, phone, email, contact, job, location, BA..."
           className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
         />
         <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2">
@@ -170,7 +254,12 @@ export default function Companies() {
                       <button type="button" onClick={() => setSelected(company)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sky-600 hover:bg-sky-50" aria-label="View company">
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button type="button" onClick={() => deleteCompany(company)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50" aria-label="Delete company">
+                      <button
+                        type="button"
+                        onClick={() => setDeletePrompt({ open: true, company })}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"
+                        aria-label="Delete company"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -199,8 +288,39 @@ export default function Companies() {
         onItemChange={setSelected}
         onStatusChange={(status) => setSelected((current) => ({ ...current, status }))}
         onNotesChange={(adminNotes) => setSelected((current) => ({ ...current, adminNotes }))}
-        onSaveFull={saveSelected}
+        onSaveFull={requestSaveSelected}
         savingFull={savingFull}
+      />
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        title="Save Company Changes"
+        message={`Save updates for ${selected?.companyName || 'this company'}?`}
+        confirmText="Save Changes"
+        onCancel={() => setSaveConfirmOpen(false)}
+        onConfirm={async () => {
+          setSaveConfirmOpen(false)
+          await saveSelected()
+        }}
+      />
+      <PromptDialog
+        open={deletePrompt.open}
+        title="Delete Company"
+        message={`Type DELETE to confirm deleting ${deletePrompt.company?.companyName || 'this company'}. Linked process-panel data will also be removed.`}
+        placeholder="Type DELETE"
+        confirmText="Delete"
+        inputType="text"
+        onCancel={() => setDeletePrompt({ open: false, company: null })}
+        onConfirm={async (value) => {
+          if (String(value || '').trim().toUpperCase() !== 'DELETE') {
+            toast.error('Please type DELETE to confirm')
+            return
+          }
+          const company = deletePrompt.company
+          setDeletePrompt({ open: false, company: null })
+          if (company) {
+            await deleteCompany(company)
+          }
+        }}
       />
     </div>
   )

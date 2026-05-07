@@ -87,7 +87,7 @@ export default function Dashboard() {
   const recent = useMemo(
     () =>
       [
-        ...students.map((item) => ({ ...item, type: 'Student' })),
+        ...students.map((item) => ({ ...item, type: 'Candidate' })),
         ...companies.map((item) => ({ ...item, type: 'Company' }))
       ]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -114,7 +114,7 @@ export default function Dashboard() {
   }
 
   const openRecent = (item) => {
-    if (item.type === 'Student') {
+    if (item.type === 'Candidate') {
       goTo('/admin/students', { search: item.candidateName, status: item.status })
       return
     }
@@ -131,7 +131,7 @@ export default function Dashboard() {
       onClick: () => goTo('/admin/business-advisors')
     },
     {
-      label: 'Student References',
+      label: 'Candidate References',
       value: students.length,
       icon: BriefcaseBusiness,
       color: 'text-blue-600',
@@ -216,7 +216,7 @@ export default function Dashboard() {
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      item.type === 'Student' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                      item.type === 'Candidate' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
                     }`}
                   >
                     {item.type}

@@ -104,16 +104,16 @@ export default function Dashboard() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Students Submitted" value={stats.totalStudentsSubmitted} icon={Users} />
+        <StatCard label="Total Candidates Submitted" value={stats.totalStudentsSubmitted} icon={Users} />
         <StatCard label="Total Companies Submitted" value={stats.totalCompaniesSubmitted} icon={Building2} />
-        <StatCard label="Students Placed" value={stats.studentsPlaced} icon={BriefcaseBusiness} />
+        <StatCard label="Candidates Placed" value={stats.studentsPlaced} icon={BriefcaseBusiness} />
         <StatCard label="Total Earned" value={formatMoney(stats.totalEarned)} icon={IndianRupee} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
           <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="font-bold text-slate-900">Recent Students</h2>
+            <h2 className="font-bold text-slate-900">Recent Candidates</h2>
           </div>
           <Table
             headers={['Name', 'Applied For', 'Status']}
@@ -128,7 +128,7 @@ export default function Dashboard() {
               student.appliedFor || 'Not provided',
               <StatusBadge status={student.status} />
             ])}
-            empty="No student submissions yet."
+            empty="No candidate submissions yet."
           />
         </section>
 
