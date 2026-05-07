@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { CheckCircle2, Eye, EyeOff, UploadCloud } from 'lucide-react'
 import api, { assetUrl } from '../../api/axios'
 import Skeleton from '../../components/Skeleton'
+import { copyToClipboard } from '../../utils/copyToClipboard'
 
 const emptyProfile = {
   fullName: '',
@@ -58,11 +59,13 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState('')
+  const [advisorCode, setAdvisorCode] = useState('')
 
   useEffect(() => {
     const load = async () => {
       const { data } = await api.get('/ba/profile')
       setProfile(mergeProfile(data))
+      setAdvisorCode(data.advisorCode || '')
       setConfirmAccount(data.bankDetails?.accountNumber || '')
       setLoading(false)
     }
@@ -194,8 +197,32 @@ export default function Profile() {
 
   if (loading) return <Skeleton rows={10} />
 
+  const publicApplyBase = (import.meta.env.VITE_PUBLIC_APPLY_URL || `${window.location.origin}/apply`).replace(/\/$/, '')
+  const shareLink = `${publicApplyBase}/${advisorCode}`
+  const copyText = async (value, successMessage) => {
+    try {
+      const copied = await copyToClipboard(value)
+      toast[copied ? 'success' : 'error'](copied ? successMessage : 'Copy is not supported in this browser')
+    } catch (_error) {
+      toast.error('Could not copy')
+    }
+  }
+
   return (
     <form onSubmit={saveProfile} className="space-y-6">
+      <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-5">
+        <h2 className="text-lg font-bold text-slate-950">Your Advisor Code</h2>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 ring-1 ring-cyan-200">
+          <p className="font-mono text-lg font-bold text-slate-900">{advisorCode || 'Not assigned yet'}</p>
+          <button type="button" onClick={() => copyText(advisorCode, 'Code copied!')} className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white">Copy code</button>
+        </div>
+        <p className="mt-3 text-sm font-medium text-slate-700">Public candidate website link:</p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 ring-1 ring-cyan-200">
+          <p className="break-all text-sm text-slate-700">{shareLink}</p>
+          <button type="button" onClick={() => copyText(shareLink, 'Link copied!')} className="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white">Copy link</button>
+        </div>
+      </section>
+
       <div>
         <h1 className="text-2xl font-bold text-slate-950">My Profile</h1>
         <p className="mt-1 text-sm text-slate-500">Complete your profile, documents, and payout bank details.</p>

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { useSelector } from 'react-redux'
+import toast from 'react-hot-toast'
+import { Pencil } from 'lucide-react'
 import api from '../../api/axios'
 import socket, { connectSocket, disconnectSocket } from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
@@ -78,6 +80,7 @@ export default function Companies() {
   const [placements, setPlacements] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
+  const [savingFull, setSavingFull] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     status: 'all'
@@ -149,6 +152,60 @@ export default function Companies() {
     return { totalSubmitted, inReviewActive, studentsPlacedViaMyCompanies }
   }, [companies, placements])
 
+  const buildCompanyPayload = (company) => ({
+    companyName: company.companyName,
+    companyAddress: company.companyAddress,
+    contactPersonName: company.contactPersonName,
+    contactPersonDesignation: company.contactPersonDesignation,
+    mobileNo: company.mobileNo,
+    emailId: company.emailId,
+    jobRequirements: {
+      jobProfile: company.jobRequirements?.jobProfile,
+      education: company.jobRequirements?.education,
+      experience: company.jobRequirements?.experience,
+      requiredKeySkills: company.jobRequirements?.requiredKeySkills || [],
+      rolesAndResponsibility: company.jobRequirements?.rolesAndResponsibility,
+      salaryRange: company.jobRequirements?.salaryRange,
+      gender: company.jobRequirements?.gender || undefined,
+      numberOfVacancy:
+        company.jobRequirements?.numberOfVacancy === '' ? undefined : company.jobRequirements?.numberOfVacancy,
+      jobTime: company.jobRequirements?.jobTime,
+      shift: company.jobRequirements?.shift,
+      jobLocation: company.jobRequirements?.jobLocation,
+      ageCriteria: company.jobRequirements?.ageCriteria,
+      castCriteria: company.jobRequirements?.castCriteria,
+      marriageCriteria: company.jobRequirements?.marriageCriteria || undefined,
+      facilities: company.jobRequirements?.facilities || []
+    },
+    aboutCompany: {
+      manpower: company.aboutCompany?.manpower,
+      turnover: company.aboutCompany?.turnover,
+      plant: company.aboutCompany?.plant,
+      availabilityForInterview: {
+        date: company.aboutCompany?.availabilityForInterview?.date || undefined,
+        time: company.aboutCompany?.availabilityForInterview?.time
+      },
+      interviewMode: company.aboutCompany?.interviewMode || undefined,
+      weeklyOff: company.aboutCompany?.weeklyOff || []
+    }
+  })
+
+  const saveSelected = async () => {
+    if (!selected) return
+
+    setSavingFull(true)
+    try {
+      const { data } = await api.put(`/companies/${selected._id}`, buildCompanyPayload(selected))
+      setCompanies((current) => current.map((item) => (item._id === data._id ? data : item)))
+      setSelected(data)
+      toast.success('Company details updated')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not update company')
+    } finally {
+      setSavingFull(false)
+    }
+  }
+
   if (loading) return <Skeleton rows={10} />
 
   return (
@@ -205,6 +262,7 @@ export default function Companies() {
                 <th className="px-5 py-3">Vacancies</th>
                 <th className="px-5 py-3">Submitted</th>
                 <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -225,11 +283,24 @@ export default function Companies() {
                   <td className="px-5 py-3">
                     <StatusBadge status={company.status} />
                   </td>
+                  <td className="px-5 py-3">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setSelected(company)
+                      }}
+                      className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-700"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Update
+                    </button>
+                  </td>
                 </tr>
               ))}
               {!filtered.length && (
                 <tr>
-                  <td colSpan="6" className="px-5 py-12 text-center text-slate-500">
+                  <td colSpan="7" className="px-5 py-12 text-center text-slate-500">
                     No companies found for current filters.
                   </td>
                 </tr>
@@ -244,6 +315,11 @@ export default function Companies() {
         item={selected}
         type="company"
         onClose={() => setSelected(null)}
+        fullEdit
+        onItemChange={setSelected}
+        onSaveFull={saveSelected}
+        saveFullLabel="Update Company Data"
+        savingFull={savingFull}
       />
     </div>
   )

@@ -20,6 +20,7 @@ const schema = z.object({
   preferredJobLocation: z.string().optional(),
   education: z.string().optional(),
   totalExperience: z.union([z.literal(''), z.coerce.number()]).optional(),
+  currentCompany: z.string().optional(),
   careerSummary: z.string().optional(),
   currentSalary: z.string().optional(),
   expectedSalary: z.string().optional(),
@@ -113,6 +114,7 @@ export default function StudentForm() {
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Input label="Education" {...register('education')} />
           <Input label="Total Experience" type="number" suffix="Years" {...register('totalExperience')} />
+          <Input label="Current Company" {...register('currentCompany')} />
           <Textarea label="Career Summary" className="sm:col-span-2" rows={3} {...register('careerSummary')} />
           <Input label="Current Salary" suffix="PM CTC" {...register('currentSalary')} />
           <Input label="Expected Salary" suffix="PM CTC" {...register('expectedSalary')} />

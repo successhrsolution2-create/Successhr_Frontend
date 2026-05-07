@@ -14,6 +14,7 @@ const labels = {
   preferredIndustry: 'Preferred Industry',
   preferredJobLocation: 'Preferred Job Location',
   education: 'Education',
+  currentCompany: 'Current Company',
   totalExperience: 'Total Experience',
   careerSummary: 'Career Summary',
   currentSalary: 'Current Salary',
@@ -93,6 +94,7 @@ export default function DetailDrawer({
   fullEdit = false,
   onItemChange,
   onSaveFull,
+  saveFullLabel = 'Save All Changes',
   savingFull = false,
   onUploadDocuments,
   uploadingDocuments = false
@@ -172,6 +174,12 @@ export default function DetailDrawer({
             fullEdit ? (
               <>
                 <section>
+                  <h3 className="mb-3 text-sm font-bold uppercase text-slate-500">Submission Info</h3>
+                  <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-800">
+                    Submitted via: {item.source === 'public_form' ? 'Public Form' : 'BA Admin Panel'}
+                  </div>
+                </section>
+                <section>
                   <h3 className="mb-3 text-sm font-bold uppercase text-slate-500">Edit Candidate Data</h3>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <InputField label="Candidate Name" value={item.candidateName || ''} onChange={(value) => updateField('candidateName', value)} />
@@ -184,6 +192,7 @@ export default function DetailDrawer({
                     <InputField label="Preferred Industry" value={item.preferredIndustry || ''} onChange={(value) => updateField('preferredIndustry', value)} />
                     <InputField label="Preferred Job Location" value={item.preferredJobLocation || ''} onChange={(value) => updateField('preferredJobLocation', value)} />
                     <InputField label="Education" value={item.education || ''} onChange={(value) => updateField('education', value)} />
+                    <InputField label="Current Company" value={item.currentCompany || ''} onChange={(value) => updateField('currentCompany', value)} />
                     <InputField label="Total Experience" type="number" value={item.totalExperience ?? ''} onChange={(value) => updateField('totalExperience', value === '' ? undefined : Number(value))} />
                     <InputField label="Current Salary" value={item.currentSalary || ''} onChange={(value) => updateField('currentSalary', value)} />
                     <InputField label="Expected Salary" value={item.expectedSalary || ''} onChange={(value) => updateField('expectedSalary', value)} />
@@ -250,6 +259,12 @@ export default function DetailDrawer({
             ) : (
               <>
                 <section>
+                  <h3 className="mb-3 text-sm font-bold uppercase text-slate-500">Submission Info</h3>
+                  <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-800">
+                    Submitted via: {item.source === 'public_form' ? 'Public Form' : 'BA Admin Panel'}
+                  </div>
+                </section>
+                <section>
                   <h3 className="mb-3 text-sm font-bold uppercase text-slate-500">Candidate Details</h3>
                   <FieldGrid
                     data={item}
@@ -264,6 +279,7 @@ export default function DetailDrawer({
                       'preferredIndustry',
                       'preferredJobLocation',
                       'education',
+                      'currentCompany',
                       'totalExperience',
                       'careerSummary',
                       'currentSalary',
@@ -403,48 +419,50 @@ export default function DetailDrawer({
           )}
         </div>
 
-        {adminControls && (
+        {(adminControls || fullEdit) && (
           <div className="border-t border-slate-200 bg-slate-50 px-5 py-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-sm font-semibold text-slate-700">
-                Status
-                <select
-                  value={item.status}
-                  onChange={(event) => {
-                    onStatusChange?.(event.target.value)
-                    if (fullEdit) updateField('status', event.target.value)
-                  }}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
-                >
-                  <option value="not_viewed">Not Viewed</option>
-                  <option value="in_review">In Review</option>
-                  <option value="priority">Priority</option>
-                  <option value="done">Done</option>
-                </select>
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Admin Notes
-                <textarea
-                  value={item.adminNotes || ''}
-                  onChange={(event) => {
-                    onNotesChange?.(event.target.value)
-                    if (fullEdit) updateField('adminNotes', event.target.value)
-                  }}
-                  onBlur={fullEdit ? undefined : onSave}
-                  rows={2}
-                  className="mt-1 w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
-                />
-              </label>
-            </div>
+            {adminControls && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-sm font-semibold text-slate-700">
+                  Status
+                  <select
+                    value={item.status}
+                    onChange={(event) => {
+                      onStatusChange?.(event.target.value)
+                      if (fullEdit) updateField('status', event.target.value)
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                  >
+                    <option value="not_viewed">Not Viewed</option>
+                    <option value="in_review">In Review</option>
+                    <option value="priority">Priority</option>
+                    <option value="done">Done</option>
+                  </select>
+                </label>
+                <label className="text-sm font-semibold text-slate-700">
+                  Admin Notes
+                  <textarea
+                    value={item.adminNotes || ''}
+                    onChange={(event) => {
+                      onNotesChange?.(event.target.value)
+                      if (fullEdit) updateField('adminNotes', event.target.value)
+                    }}
+                    onBlur={fullEdit ? undefined : onSave}
+                    rows={2}
+                    className="mt-1 w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                  />
+                </label>
+              </div>
+            )}
 
             {fullEdit ? (
               <button
                 type="button"
                 onClick={onSaveFull}
                 disabled={savingFull}
-                className="mt-3 inline-flex min-h-10 items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
+                className={`${adminControls ? 'mt-3' : ''} inline-flex min-h-10 items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70`}
               >
-                {savingFull ? 'Saving...' : 'Save All Changes'}
+                {savingFull ? 'Saving...' : saveFullLabel}
               </button>
             ) : (
               <button

@@ -6,7 +6,8 @@ import {
   LogOut,
   Menu,
   Settings,
-  ChevronDown
+  ChevronDown,
+  BadgeCheck
 } from 'lucide-react'
 import { logout } from '../store/authSlice'
 
@@ -32,6 +33,8 @@ export default function Topbar({ onMenuClick }) {
     dispatch(logout())
     navigate('/login')
   }
+
+  const settingsPath = user?.role === 'businessAdvisor' ? '/ba/settings' : '/admin/settings'
 
   return (
     <div className="h-14 bg-white border-b flex items-center px-4 shadow-sm">
@@ -77,12 +80,28 @@ export default function Topbar({ onMenuClick }) {
             {/* MENU */}
             <div className="py-1">
 
+              {user?.role === 'businessAdvisor' ? (
+                <button
+                  onClick={() => {
+                    setOpen(false)
+                    navigate('/ba/profile')
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition"
+                >
+                  <BadgeCheck size={16} />
+                  BA Profile
+                </button>
+              ) : null}
+
               <button
-                onClick={() => navigate('/admin/settings')}
+                onClick={() => {
+                  setOpen(false)
+                  navigate(settingsPath)
+                }}
                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition"
               >
                 <Settings size={16} />
-                Profile Settings
+                Account Settings
               </button>
 
               <div className="my-1 border-t" />

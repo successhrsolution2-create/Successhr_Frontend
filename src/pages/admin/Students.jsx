@@ -59,6 +59,7 @@ const buildCandidateSearchText = (candidate) => {
     candidate.preferredIndustry,
     candidate.preferredJobLocation,
     candidate.education,
+    candidate.currentCompany,
     candidate.currentJobLocation,
     candidate.careerSummary,
     candidate.reasonForJobChange,
@@ -183,6 +184,7 @@ export default function Students() {
     preferredIndustry: student.preferredIndustry,
     preferredJobLocation: student.preferredJobLocation,
     education: student.education,
+    currentCompany: student.currentCompany,
     totalExperience: student.totalExperience === '' ? undefined : student.totalExperience,
     careerSummary: student.careerSummary,
     currentSalary: student.currentSalary,
@@ -250,6 +252,7 @@ export default function Students() {
         'Preferred Industry',
         'Preferred Job Location',
         'Education',
+        'Current Company',
         'Total Experience',
         'Current Salary',
         'Expected Salary',
@@ -286,6 +289,7 @@ export default function Students() {
           student.preferredIndustry,
           student.preferredJobLocation,
           student.education,
+          student.currentCompany,
           student.totalExperience,
           student.currentSalary,
           student.expectedSalary,
@@ -352,7 +356,12 @@ export default function Students() {
             <tbody className="divide-y divide-slate-100">
               {filtered.map((student) => (
                 <tr key={student._id} className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40">
-                  <td className="px-5 py-3 font-semibold text-slate-900">{student.candidateName}</td>
+                  <td className="px-5 py-3 font-semibold text-slate-900">
+                    <div className="flex items-center gap-2">
+                      <span>{student.candidateName}</span>
+                      {student.source === 'public_form' ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">Via form</span> : null}
+                    </div>
+                  </td>
                   <td className="px-5 py-3 text-slate-600">{student.mobileNumber}</td>
                   <td className="px-5 py-3 text-slate-600">{student.appliedFor || 'Not provided'}</td>
                   <td className="px-5 py-3 text-slate-600">{student.submittedBy?.name || 'BA'}</td>

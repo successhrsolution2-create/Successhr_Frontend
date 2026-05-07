@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { useSelector } from 'react-redux'
+import toast from 'react-hot-toast'
+import { Pencil } from 'lucide-react'
 import api from '../../api/axios'
 import socket, { connectSocket, disconnectSocket } from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
@@ -48,6 +50,8 @@ export default function Students() {
   const [placements, setPlacements] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
+  const [savingFull, setSavingFull] = useState(false)
+  const [uploadingDocuments, setUploadingDocuments] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
@@ -82,6 +86,10 @@ export default function Students() {
     socket.on('commission_paid', refresh)
     socket.on('student_updated', refresh)
     socket.on('student_deleted', refresh)
+    socket.on('new_student_received', (payload) => {
+      toast.success(`New application received from ${payload?.candidateName || 'a candidate'} via your public form!`)
+      refresh()
+    })
 
     return () => {
       socket.off('my_placement', refresh)
@@ -91,6 +99,7 @@ export default function Students() {
       socket.off('commission_paid', refresh)
       socket.off('student_updated', refresh)
       socket.off('student_deleted', refresh)
+      socket.off('new_student_received')
       disconnectSocket()
     }
   }, [token])
@@ -164,6 +173,70 @@ export default function Students() {
     return { totalSubmitted, selectedJoined, totalEarned, pending }
   }, [students.length, placements])
 
+  const buildStudentPayload = (student) => ({
+    candidateName: student.candidateName,
+    mobileNumber: student.mobileNumber,
+    aadhaarNo: student.aadhaarNo,
+    whatsappNo: student.whatsappNo,
+    emailId: student.emailId,
+    appliedFor: student.appliedFor,
+    interestedDepartment: student.interestedDepartment,
+    preferredIndustry: student.preferredIndustry,
+    preferredJobLocation: student.preferredJobLocation,
+    education: student.education,
+    currentCompany: student.currentCompany,
+    totalExperience: student.totalExperience === '' ? undefined : student.totalExperience,
+    careerSummary: student.careerSummary,
+    currentSalary: student.currentSalary,
+    expectedSalary: student.expectedSalary,
+    noticePeriod: student.noticePeriod === '' ? undefined : student.noticePeriod,
+    reasonForJobChange: student.reasonForJobChange,
+    currentJobLocation: student.currentJobLocation,
+    availabilityForInterview: student.availabilityForInterview,
+    marriageStatus: student.marriageStatus || undefined,
+    documents: student.documents || []
+  })
+
+  const saveSelected = async () => {
+    if (!selected) return
+
+    setSavingFull(true)
+    try {
+      const { data } = await api.put(`/students/${selected._id}`, buildStudentPayload(selected))
+      setStudents((current) => current.map((item) => (item._id === data._id ? data : item)))
+      setSelected((current) => ({
+        ...data,
+        placement: current?.placement
+      }))
+      toast.success('Candidate details updated')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not update candidate')
+    } finally {
+      setSavingFull(false)
+    }
+  }
+
+  const uploadDocuments = async (files) => {
+    if (!selected || !files?.length) return
+
+    setUploadingDocuments(true)
+    try {
+      const formData = new FormData()
+      files.forEach((file) => formData.append('documents', file))
+      const { data } = await api.post(`/students/${selected._id}/docs`, formData)
+      setStudents((current) => current.map((item) => (item._id === data._id ? data : item)))
+      setSelected((current) => ({
+        ...data,
+        placement: current?.placement
+      }))
+      toast.success('Documents uploaded')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not upload documents')
+    } finally {
+      setUploadingDocuments(false)
+    }
+  }
+
   if (loading) return <Skeleton rows={10} />
 
   return (
@@ -235,6 +308,7 @@ export default function Students() {
                 <th className="px-5 py-3">Next Process</th>
                 <th className="px-5 py-3">My Earning</th>
                 <th className="px-5 py-3">Documents</th>
+                <th className="px-5 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -245,7 +319,10 @@ export default function Students() {
                   className="cursor-pointer odd:bg-white even:bg-slate-50 hover:bg-indigo-50/50"
                 >
                   <td className="px-5 py-3">
-                    <p className="font-semibold text-slate-900">{student.candidateName}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-slate-900">{student.candidateName}</p>
+                      {student.source === 'public_form' ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">Via form</span> : null}
+                    </div>
                     <p className="text-xs text-slate-500">{student.mobileNumber}</p>
                   </td>
                   <td className="px-5 py-3 text-slate-700">{student.appliedFor || 'Not provided'}</td>
@@ -276,11 +353,24 @@ export default function Students() {
                       <span className="text-slate-500">No files</span>
                     )}
                   </td>
+                  <td className="px-5 py-3">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setSelected(student)
+                      }}
+                      className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-700"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Update
+                    </button>
+                  </td>
                 </tr>
               ))}
               {!filtered.length && (
                 <tr>
-                  <td colSpan="7" className="px-5 py-12 text-center text-slate-500">
+                  <td colSpan="8" className="px-5 py-12 text-center text-slate-500">
                     No candidates found for current filters.
                   </td>
                 </tr>
@@ -295,6 +385,13 @@ export default function Students() {
         item={selected}
         type="student"
         onClose={() => setSelected(null)}
+        fullEdit
+        onItemChange={setSelected}
+        onSaveFull={saveSelected}
+        saveFullLabel="Update Student Data"
+        savingFull={savingFull}
+        onUploadDocuments={uploadDocuments}
+        uploadingDocuments={uploadingDocuments}
       />
     </div>
   )

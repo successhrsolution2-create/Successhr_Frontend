@@ -114,7 +114,7 @@ export default function AdminSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Admin Settings</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{authUser?.role === 'businessAdvisor' ? 'BA Settings' : 'Admin Settings'}</h1>
         <p className="mt-1 text-sm text-slate-500">Manage your account details, login email, and password.</p>
       </div>
 
@@ -134,7 +134,7 @@ export default function AdminSettings() {
             value={profileForm.email}
             onChange={(value) => setProfileForm((current) => ({ ...current, email: value }))}
           />
-          <Field label="Role" value={authUser?.role || 'superAdmin'} readOnly />
+          <Field label="Role" value={authUser?.role === 'businessAdvisor' ? 'Business Advisor' : 'Super Admin'} readOnly />
           <Field label="Status" value={authUser?.isActive ? 'Active' : 'Inactive'} readOnly />
           <div className="sm:col-span-2">
             <button

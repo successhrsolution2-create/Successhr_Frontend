@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "dev:apply": "vite --host 0.0.0.0 --mode apply",
     "build": "vite build",
+    "build:apply": "vite build --mode apply",
     "preview": "vite preview"
   },
   "devDependencies": {

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Eye, KeyRound, Pencil, Plus, Trash2, UploadCloud, X } from 'lucide-react'
+import { Copy, Eye, KeyRound, Pencil, Plus, Trash2, UploadCloud, X } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import api, { assetUrl } from '../../api/axios'
 import Skeleton from '../../components/Skeleton'
 import { ConfirmDialog, PromptDialog } from '../../components/ActionDialogs'
+import { copyToClipboard } from '../../utils/copyToClipboard'
 
 const mask = (value) => (value ? `${'*'.repeat(Math.max(value.length - 4, 0))}${value.slice(-4)}` : 'Not provided')
 
@@ -254,6 +255,15 @@ export default function BusinessAdvisors() {
     }
   }
 
+  const copyCode = async (code) => {
+    try {
+      const copied = await copyToClipboard(code)
+      toast[copied ? 'success' : 'error'](copied ? 'Code copied!' : 'Copy is not supported in this browser')
+    } catch (_error) {
+      toast.error('Could not copy code')
+    }
+  }
+
   if (loading) return <Skeleton rows={9} />
 
   return (
@@ -282,6 +292,7 @@ export default function BusinessAdvisors() {
                 <th className="px-5 py-3">Email</th>
                 <th className="px-5 py-3">Phone</th>
                 <th className="px-5 py-3">City</th>
+                <th className="px-5 py-3">Code</th>
                 <th className="px-5 py-3">Profile Status</th>
                 <th className="px-5 py-3">Active</th>
                 <th className="px-5 py-3">Actions</th>
@@ -294,6 +305,16 @@ export default function BusinessAdvisors() {
                   <td className="px-5 py-3 text-slate-600">{profile.userId?.email || profile.email}</td>
                   <td className="px-5 py-3 text-slate-600">{profile.phone || 'Not provided'}</td>
                   <td className="px-5 py-3 text-slate-600">{profile.city || 'Not provided'}</td>
+                  <td className="px-5 py-3 text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">{profile.userId?.advisorCode || '-'}</span>
+                      {profile.userId?.advisorCode ? (
+                        <button type="button" onClick={() => copyCode(profile.userId.advisorCode)} className="rounded p-1 text-slate-500 hover:bg-slate-100">
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                    </div>
+                  </td>
                   <td className="px-5 py-3">
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${profile.isProfileComplete ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
                       {profile.isProfileComplete ? 'Complete' : 'Incomplete'}
@@ -348,7 +369,7 @@ export default function BusinessAdvisors() {
               ))}
               {profiles.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="px-5 py-10 text-center text-slate-500">
+                  <td colSpan="8" className="px-5 py-10 text-center text-slate-500">
                     No Business Advisors created yet.
                   </td>
                 </tr>
@@ -554,10 +575,23 @@ function FileField({ label, file, existingUrl, accept, onChange }) {
 }
 
 function ProfileDrawer({ profile, onClose }) {
+  const [publicCount, setPublicCount] = useState(0)
+
+  useEffect(() => {
+    const loadCount = async () => {
+      if (!profile?.userId?._id) return
+      const { data } = await api.get(`/ba/${profile.userId._id}/public-form-count`)
+      setPublicCount(data.count || 0)
+    }
+    loadCount().catch(() => setPublicCount(0))
+  }, [profile])
+
   if (!profile) return null
 
   const docs = profile.documents || {}
   const bank = profile.bankDetails || {}
+  const advisorCode = profile.userId?.advisorCode || ''
+  const sharePath = advisorCode ? `/apply/${advisorCode}` : '-'
 
   return (
     <div className="fixed inset-0 z-50">
@@ -574,6 +608,16 @@ function ProfileDrawer({ profile, onClose }) {
         </div>
 
         <div className="space-y-6 px-5 py-5">
+          <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+            <InfoGrid
+              items={[
+                ['Advisor Code', advisorCode || 'Not assigned'],
+                ['Share Link', sharePath],
+                ['Via Public Form', `${publicCount} applications`]
+              ]}
+            />
+          </section>
+
           <section>
             <div className="mb-4 h-28 w-28 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
               {profile.profilePhoto ? <img src={assetUrl(profile.profilePhoto)} alt="" className="h-full w-full object-cover" /> : null}

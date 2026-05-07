@@ -15,12 +15,8 @@ import { connectSocket, disconnectSocket } from '../socket'
 import BrandLogo from './BrandLogo'
 import Topbar from './Topbar'
 
-const adminMainLinks = [
-  { to: '/admin/references', label: 'Reference Board', icon: PanelsTopLeft },
-  { to: '/admin/students', label: 'Candidates', icon: UserCircle },
-  { to: '/admin/companies', label: 'Companies', icon: Building2 },
-  { to: '/admin/process-panel', label: 'Process Panel', icon: PanelsTopLeft }
-]
+// Remove top four options from main links for super admin
+const adminMainLinks = []
 
 const baLinks = [
   { to: '/ba/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -73,7 +69,8 @@ export default function Sidebar({ role, children }) {
         </div>
 
         <nav className="space-y-1 p-3">
-          {links.map((item) => (
+          {/* Only show main links for non-superAdmin */}
+          {!isSuperAdmin && links.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -90,36 +87,38 @@ export default function Sidebar({ role, children }) {
             <>
               <div className="my-3 border-t border-slate-700" />
               <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-300">Business Advisor Management</p>
+
+              {/* Collapsible Business Advisor Management section */}
               <button
                 type="button"
                 onClick={() => setShowBusinessAdvisors((v) => !v)}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-700"
               >
-                <Users size={16} />
-                Business Advisors
+                <Users size={16} /> Business Advisor Management
               </button>
               {showBusinessAdvisors ? (
                 <div className="ml-6 mt-1 space-y-1">
+                  <NavLink to="/admin/references" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
+                    <PanelsTopLeft size={16} /> Dashboard
+                  </NavLink>
+                  <NavLink to="/admin/students" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
+                    <UserCircle size={16} /> Candidates
+                  </NavLink>
+                  <NavLink to="/admin/companies" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
+                    <Building2 size={16} /> Companies
+                  </NavLink>
+                  <NavLink to="/admin/process-panel" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
+                    <PanelsTopLeft size={16} /> Process Panel
+                  </NavLink>
+                  {/* Removed divider to group Advisor List with other options */}
                   <NavLink
                     to="/admin/business-advisors"
                     end
-                    className={`block rounded-lg px-3 py-2 text-sm ${
-                      location.pathname === '/admin/business-advisors' && location.search !== '?action=create'
-                        ? 'bg-indigo-600'
-                        : 'hover:bg-slate-700'
-                    }`}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ml-4 ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`
+                    }
                   >
-                    Advisor List
-                  </NavLink>
-                  <NavLink
-                    to="/admin/business-advisors?action=create"
-                    className={`block rounded-lg px-3 py-2 text-sm ${
-                      location.pathname === '/admin/business-advisors' && location.search === '?action=create'
-                        ? 'bg-indigo-600'
-                        : 'hover:bg-slate-700'
-                    }`}
-                  >
-                    Add Advisor
+                    <Users size={16} /> Advisor
                   </NavLink>
                 </div>
               ) : null}
@@ -131,8 +130,7 @@ export default function Sidebar({ role, children }) {
                 onClick={() => setShowCandidates((v) => !v)}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-700"
               >
-                <UserCheck size={16} />
-                Candidates
+                <UserCheck size={16} /> Candidates
               </button>
               {showCandidates ? (
                 <div className="ml-6 mt-1 space-y-1">

@@ -22,6 +22,7 @@ import CandidateForm from './pages/admin/Candidates/CandidateForm'
 import CandidateDetails from './pages/admin/Candidates/CandidateDetails'
 
 import InterviewList from './pages/admin/Interviews/InterviewList'
+import ApplyPage from './pages/public/ApplyPage'
 
 function HomeRedirect() {
   const { token, user } = useSelector((state) => state.auth)
@@ -35,10 +36,24 @@ function AppShell({ role, children }) {
 }
 
 export default function App() {
+  if (import.meta.env.VITE_PUBLIC_APPLY_ONLY === 'true') {
+    return (
+      <Routes>
+        <Route path="/" element={<ApplyPage />} />
+        <Route path="/:code" element={<ApplyPage />} />
+        <Route path="/apply" element={<ApplyPage />} />
+        <Route path="/apply/:code" element={<ApplyPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    )
+  }
+
   return (
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/apply" element={<ApplyPage />} />
+      <Route path="/apply/:code" element={<ApplyPage />} />
 
       <Route
         path="/admin/references"
@@ -231,6 +246,16 @@ export default function App() {
           <ProtectedRoute roles={['businessAdvisor']}>
             <AppShell role="businessAdvisor">
               <BAEarnings />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ba/settings"
+        element={
+          <ProtectedRoute roles={['businessAdvisor']}>
+            <AppShell role="businessAdvisor">
+              <AdminSettings />
             </AppShell>
           </ProtectedRoute>
         }
