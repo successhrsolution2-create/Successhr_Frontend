@@ -529,14 +529,19 @@ function ProcessEditModal({ open, placement, form, companies, onChange, onClose,
   )
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 px-4 py-6">
-      <button type="button" className="absolute inset-0" onClick={onClose} aria-label="Close process form" />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+        aria-label="Close process form"
+      />
       <form
         onSubmit={(event) => {
           event.preventDefault()
           onSave()
         }}
-        className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200"
+        className="relative flex h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200 animate-in"
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
           <div>

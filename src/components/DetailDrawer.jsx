@@ -103,6 +103,7 @@ export default function DetailDrawer({
 
   const title = type === 'student' ? item.candidateName : item.companyName
   const subtitle = item.submittedBy?.name ? `Submitted by ${item.submittedBy.name}` : 'Submitted reference'
+  const updatedAt = item.updatedAt || item.createdAt
 
   const updateField = (field, value) => {
     onItemChange?.((current) => ({ ...current, [field]: value }))
@@ -141,35 +142,49 @@ export default function DetailDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-50">
-      <button className="absolute inset-0 bg-slate-950/40" onClick={onClose} aria-label="Close details" />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-3xl flex-col bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4">
-          <div className="min-w-0">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                  type === 'student' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
-                }`}
-              >
-                {type === 'student' ? 'Candidate' : 'Company'}
-              </span>
-              <StatusBadge status={item.status} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+        aria-label="Close details"
+      />
+      <aside className="relative flex h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl animate-in">
+        <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    type === 'student' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                  }`}
+                >
+                  {type === 'student' ? 'Candidate' : 'Company'}
+                </span>
+                <StatusBadge status={item.status} />
+              </div>
+              <h2 className="truncate text-2xl font-bold text-slate-950">{title}</h2>
+              <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                <span>{subtitle}</span>
+                {updatedAt ? (
+                  <>
+                    <span className="text-slate-300">|</span>
+                    <span>Updated {format(new Date(updatedAt), 'dd MMM yyyy, hh:mm a')}</span>
+                  </>
+                ) : null}
+              </p>
             </div>
-            <h2 className="truncate text-xl font-bold text-slate-950">{title}</h2>
-            <p className="text-sm text-slate-500">{subtitle}</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
-        <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {type === 'student' ? (
             fullEdit ? (
               <>
