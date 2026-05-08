@@ -1,7 +1,11 @@
 import { Navigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 
-const defaultPath = (role) => (role === 'superAdmin' ? '/admin/dashboard' : '/ba/dashboard')
+const defaultPath = (role) => {
+  if (role === 'superAdmin') return '/admin/dashboard'
+  if (role === 'candidateAdmin') return '/admin/cms/candidates'
+  return '/ba/dashboard'
+}
 
 export default function ProtectedRoute({ roles, children, loginPath = '/login' }) {
   const { token, user } = useSelector((state) => state.auth)

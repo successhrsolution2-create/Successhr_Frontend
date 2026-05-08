@@ -32,7 +32,8 @@ export default function Sidebar({ role, children }) {
   const location = useLocation()
 
   const isSuperAdmin = role === 'superAdmin'
-  const links = useMemo(() => (isSuperAdmin ? adminMainLinks : baLinks), [isSuperAdmin])
+  const isCandidateAdmin = role === 'candidateAdmin'
+  const links = useMemo(() => (isSuperAdmin || isCandidateAdmin ? adminMainLinks : baLinks), [isSuperAdmin, isCandidateAdmin])
 
   useEffect(() => {
     if (!token) return undefined
@@ -97,6 +98,24 @@ export default function Sidebar({ role, children }) {
                 </NavLink>
               </div>
 
+            </>
+          ) : null}
+
+          {isCandidateAdmin ? (
+            <>
+              <div className="my-3 border-t border-slate-700" />
+              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-300 whitespace-nowrap">Candidate Management</p>
+              <div className="ml-6 mt-1 space-y-1">
+                <NavLink to="/admin/cms/candidates" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
+                  <UserCheck size={16} /> <span className="whitespace-nowrap">Candidates</span>
+                </NavLink>
+                <NavLink to="/admin/cms/companies" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
+                  <Building2 size={16} /> <span className="whitespace-nowrap">Companies</span>
+                </NavLink>
+                <NavLink to="/admin/process-panel" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
+                  <PanelsTopLeft size={16} /> <span className="whitespace-nowrap">Process Panel</span>
+                </NavLink>
+              </div>
             </>
           ) : null}
         </nav>

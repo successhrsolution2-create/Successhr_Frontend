@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux'
 import Sidebar from './components/Sidebar'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
-import CandidateLogin from './pages/CandidateLogin'
 import BusinessAdvisors from './pages/admin/BusinessAdvisors'
 import AdminReferenceBoard from './pages/admin/ReferenceBoard'
 import AdminStudents from './pages/admin/Students'
@@ -31,7 +30,9 @@ function HomeRedirect() {
   const { token, user } = useSelector((state) => state.auth)
 
   if (!token) return <Navigate to="/login" replace />
-  return <Navigate to={user?.role === 'superAdmin' ? '/admin/references' : '/ba/dashboard'} replace />
+  if (user?.role === 'superAdmin') return <Navigate to="/admin/references" replace />
+  if (user?.role === 'candidateAdmin') return <Navigate to="/admin/cms/candidates" replace />
+  return <Navigate to="/ba/dashboard" replace />
 }
 
 function AppShell({ role, children }) {
@@ -55,10 +56,8 @@ export default function App() {
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/candidate/login" element={<CandidateLogin />} />
       <Route path="/apply" element={<ApplyPage />} />
       <Route path="/apply/:code" element={<ApplyPage />} />
-      <Route path="/candidate" element={<Navigate to="/candidate/login" replace />} />
 
       <Route
         path="/admin/references"
@@ -95,8 +94,84 @@ export default function App() {
         }
       />
       <Route
-        path="/admin/cms/*"
-        element={<Navigate to="/admin/references" replace />}
+        path="/admin/cms/candidates"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsCandidatesList />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cms/companies"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsCompaniesList />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cms/candidates/new"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsCandidateForm />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cms/candidates/:id"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsCandidateDetails />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cms/candidates/:id/edit"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsCandidateForm />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/process-panel"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsProcessPanel />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cms/companies/new"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsCompanyForm />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cms/companies/:id/edit"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsCompanyForm />
+            </AppShell>
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/admin/interviews"
@@ -181,86 +256,6 @@ export default function App() {
         }
       />
 
-      <Route
-        path="/candidate/admin/cms/candidates"
-        element={
-          <ProtectedRoute roles={['superAdmin']} loginPath="/candidate/login">
-            <AppShell role="superAdmin">
-              <CmsCandidatesList />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/candidate/admin/cms/companies"
-        element={
-          <ProtectedRoute roles={['superAdmin']} loginPath="/candidate/login">
-            <AppShell role="superAdmin">
-              <CmsCompaniesList />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/candidate/admin/cms/candidates/new"
-        element={
-          <ProtectedRoute roles={['superAdmin']} loginPath="/candidate/login">
-            <AppShell role="superAdmin">
-              <CmsCandidateForm />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/candidate/admin/cms/candidates/:id"
-        element={
-          <ProtectedRoute roles={['superAdmin']} loginPath="/candidate/login">
-            <AppShell role="superAdmin">
-              <CmsCandidateDetails />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/candidate/admin/cms/candidates/:id/edit"
-        element={
-          <ProtectedRoute roles={['superAdmin']} loginPath="/candidate/login">
-            <AppShell role="superAdmin">
-              <CmsCandidateForm />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/candidate/admin/process-panel"
-        element={
-          <ProtectedRoute roles={['superAdmin']} loginPath="/candidate/login">
-            <AppShell role="superAdmin">
-              <CmsProcessPanel />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/candidate/admin/cms/companies/new"
-        element={
-          <ProtectedRoute roles={['superAdmin']} loginPath="/candidate/login">
-            <AppShell role="superAdmin">
-              <CmsCompanyForm />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/candidate/admin/cms/companies/:id/edit"
-        element={
-          <ProtectedRoute roles={['superAdmin']} loginPath="/candidate/login">
-            <AppShell role="superAdmin">
-              <CmsCompanyForm />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
       <Route path="/admin/cms/companies/new" element={<Navigate to="/admin/references" replace />} />
       <Route path="/admin/cms/companies/:id/edit" element={<Navigate to="/admin/references" replace />} />
       <Route
@@ -308,18 +303,19 @@ export default function App() {
       <Route path="/ba/company/new" element={<Navigate to="/ba/companies/new" replace />} />
       <Route path="/ba/my-references" element={<Navigate to="/ba/students" replace />} />
       <Route path="/ba/my-commission" element={<Navigate to="/ba/earnings" replace />} />
-      <Route path="/admin/process" element={<Navigate to="/admin/references" replace />} />
-      <Route path="/admin/commission-process" element={<Navigate to="/admin/references" replace />} />
+      <Route path="/admin/process" element={<Navigate to="/admin/process-panel" replace />} />
+      <Route path="/admin/commission-process" element={<Navigate to="/admin/process-panel" replace />} />
       <Route path="/admin/candidates" element={<Navigate to="/admin/references" replace />} />
       <Route path="/admin/candidates/new" element={<Navigate to="/admin/references" replace />} />
       <Route path="/admin/candidates/:id" element={<Navigate to="/admin/references" replace />} />
-      <Route path="/admin/companies/new" element={<Navigate to="/admin/references" replace />} />
-      <Route path="/candidate/admin/process" element={<Navigate to="/candidate/admin/process-panel" replace />} />
-      <Route path="/candidate/admin/commission-process" element={<Navigate to="/candidate/admin/process-panel" replace />} />
-      <Route path="/candidate/admin/candidates" element={<Navigate to="/candidate/admin/cms/candidates" replace />} />
-      <Route path="/candidate/admin/candidates/new" element={<Navigate to="/candidate/admin/cms/candidates/new" replace />} />
-      <Route path="/candidate/admin/candidates/:id" element={<Navigate to="/candidate/admin/cms/candidates" replace />} />
-      <Route path="/candidate/admin/companies/new" element={<Navigate to="/candidate/admin/cms/companies/new" replace />} />
+      <Route path="/admin/companies/new" element={<Navigate to="/admin/cms/companies/new" replace />} />
+      <Route path="/candidate" element={<Navigate to="/admin/cms/candidates" replace />} />
+      <Route path="/candidate/admin/process" element={<Navigate to="/admin/process-panel" replace />} />
+      <Route path="/candidate/admin/commission-process" element={<Navigate to="/admin/process-panel" replace />} />
+      <Route path="/candidate/admin/candidates" element={<Navigate to="/admin/cms/candidates" replace />} />
+      <Route path="/candidate/admin/candidates/new" element={<Navigate to="/admin/cms/candidates/new" replace />} />
+      <Route path="/candidate/admin/candidates/:id" element={<Navigate to="/admin/cms/candidates" replace />} />
+      <Route path="/candidate/admin/companies/new" element={<Navigate to="/admin/cms/companies/new" replace />} />
 
       <Route path="*" element={<HomeRedirect />} />
     </Routes>

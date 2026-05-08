@@ -12,7 +12,11 @@ const schema = z.object({
   password: z.string().min(1, 'Password is required')
 })
 
-const routeFor = (role) => (role === 'superAdmin' ? '/admin/references' : '/ba/dashboard')
+const routeFor = (role) => {
+  if (role === 'superAdmin') return '/admin/references'
+  if (role === 'candidateAdmin') return '/admin/cms/candidates'
+  return '/ba/dashboard'
+}
 
 export default function Login() {
   const dispatch = useDispatch()
