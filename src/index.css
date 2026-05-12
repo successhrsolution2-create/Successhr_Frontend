@@ -78,3 +78,15 @@ select {
     transform: scale(1);
   }
 }
+
+/* Hide browser default password reveal icon */
+
+.hide-password-toggle::-ms-reveal,
+.hide-password-toggle::-ms-clear {
+  display: none;
+}
+
+.hide-password-toggle::-webkit-credentials-auto-fill-button,
+.hide-password-toggle::-webkit-password-toggle-button {
+  display: none !important;
+}

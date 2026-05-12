@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { loginUser } from '../store/authSlice'
 import BrandLogo from '../components/BrandLogo'
 
@@ -28,6 +29,9 @@ export default function Login() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { token, user, loading, error } = useSelector((state) => state.auth)
+
+  const [showPassword, setShowPassword] = useState(false)
+
   const {
     register,
     handleSubmit,
@@ -65,11 +69,19 @@ export default function Login() {
         <div className="flex flex-col justify-between border-b border-slate-200/70 bg-white/70 px-6 py-8 sm:px-10 lg:border-b-0 lg:border-r">
           <div>
             <BrandLogo className="max-w-xl" />
+
             <div className="mt-8 max-w-lg">
-              <p className="text-sm font-bold uppercase text-sky-700">HR consultancy workspace</p>
-              <h1 className="mt-3 text-3xl font-bold text-slate-950 sm:text-4xl">Welcome back</h1>
+              <p className="text-sm font-bold uppercase text-sky-700">
+                HR consultancy workspace
+              </p>
+
+              <h1 className="mt-3 text-3xl font-bold text-slate-950 sm:text-4xl">
+                Welcome back
+              </h1>
+
               <p className="mt-3 text-base text-slate-600">
-                Manage Business Advisors, candidate references, and company requirements from one clean Success HR dashboard.
+                Manage Business Advisors, candidate references, and company
+                requirements from one clean Success HR dashboard.
               </p>
             </div>
           </div>
@@ -79,17 +91,30 @@ export default function Login() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 px-6 py-8 sm:px-10 lg:py-12">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-5 px-6 py-8 sm:px-10 lg:py-12"
+        >
           <div>
             <div className="mb-4 flex items-center gap-3 lg:hidden">
               <BrandLogo compact />
+
               <div>
-                <p className="text-base font-bold text-slate-950">Success HR Solutions</p>
-                <p className="text-xs font-semibold text-sky-700">Secure login</p>
+                <p className="text-base font-bold text-slate-950">
+                  Success HR Solutions
+                </p>
+
+                <p className="text-xs font-semibold text-sky-700">
+                  Secure login
+                </p>
               </div>
             </div>
+
             <h2 className="text-2xl font-bold text-slate-950">Login</h2>
-            <p className="mt-1 text-sm text-slate-500">Enter your account details to continue.</p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Enter your account details to continue.
+            </p>
           </div>
 
           <label className="block text-sm font-semibold text-slate-700">
@@ -144,7 +169,11 @@ export default function Login() {
             {errors.password && <span className="mt-1 block text-xs text-rose-600">{errors.password.message}</span>}
           </label>
 
-          {error && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p>}
+          {error && (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
