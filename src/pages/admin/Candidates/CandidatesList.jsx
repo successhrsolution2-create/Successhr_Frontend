@@ -152,29 +152,17 @@ export default function CandidatesList() {
   if (loading) return <Skeleton rows={10} />
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
-            Candidate Management
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">
-            Candidates
-          </h1>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Manage candidate profiles, skills,
-            interviews and hiring workflow.
-          </p>
+          <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Candidates</h1>
+          <p className="mt-1 text-sm text-slate-500">Candidate Management System</p>
         </div>
-
-        <div className="flex flex-wrap gap-3">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <button
             type="button"
             onClick={exportCsv}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white hover:bg-orange-600 sm:w-auto"
           >
             <Download className="h-4 w-4" />
             Export CSV
@@ -182,12 +170,8 @@ export default function CandidatesList() {
 
           <button
             type="button"
-            onClick={() =>
-              navigate(
-                '/admin/cms/candidates/new'
-              )
-            }
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700"
+            onClick={() => navigate('/admin/cms/candidates/new')}
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Add Candidate
