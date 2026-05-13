@@ -27,7 +27,7 @@ const routeFor = (role) => {
 export default function Login() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { token, user, loading, error } = useSelector((state) => state.auth)
+  const { token, user, checking, loading, error } = useSelector((state) => state.auth)
   const {
     register,
     handleSubmit,
@@ -41,10 +41,10 @@ export default function Login() {
   })
 
   useEffect(() => {
-    if (token && user) {
+    if (!checking && token && user) {
       navigate(routeFor(user.role), { replace: true })
     }
-  }, [token, user, navigate])
+  }, [checking, token, user, navigate])
 
   const onSubmit = async (values) => {
     const result = await dispatch(loginUser(values))

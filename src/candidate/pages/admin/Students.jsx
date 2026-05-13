@@ -9,6 +9,7 @@ import DetailDrawer from '../../components/DetailDrawer'
 import StatusBadge, { statusLabel } from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
 import { ConfirmDialog, PromptDialog } from '../../components/ActionDialogs'
+import Pagination from '../../components/Pagination'
 
 const selectionStatusColors = {
   shortlisted: 'bg-slate-100 text-slate-700',
@@ -104,6 +105,8 @@ export default function Students() {
   // NEW STATE
   const [drawerMode, setDrawerMode] = useState('view')
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
 const [deletePrompt, setDeletePrompt] = useState({
   open: false,
@@ -201,6 +204,15 @@ const [deletePrompt, setDeletePrompt] = useState({
           new Date(b.createdAt) - new Date(a.createdAt)
       )
   }, [students, filters, placementByStudentId])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filters, pageSize])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize])
 
   const deleteStudent = async (student) => {
     if (!window.confirm(`Delete ${student.candidateName}?`))
@@ -470,7 +482,7 @@ const [deletePrompt, setDeletePrompt] = useState({
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((student) => (
+              {paginated.map((student) => (
                 <tr
                   key={student._id}
                   className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40"
@@ -589,6 +601,7 @@ const [deletePrompt, setDeletePrompt] = useState({
             </tbody>
           </table>
         </div>
+        <Pagination page={page} pageSize={pageSize} total={filtered.length} itemLabel="candidates" onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
      <DetailDrawer

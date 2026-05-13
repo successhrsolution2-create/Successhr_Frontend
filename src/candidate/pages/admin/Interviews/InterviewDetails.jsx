@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Pencil } from 'lucide-react'
+import { Eye, Pencil, X } from 'lucide-react'
 import api from '../../../api/axios'
+import Pagination from '../../../components/Pagination'
 
 const cardClass = 'bg-white rounded-xl shadow-sm border border-gray-100'
 
@@ -14,6 +15,7 @@ const visibleInterviews = (rows) =>
   (Array.isArray(rows) ? rows : []).filter((row) => {
     const hasContent = Boolean(
       String(row?.companyName || '').trim() ||
+        String(row?.jobRole || '').trim() ||
         String(rowReference(row)).trim() ||
         String(row?.remark || '').trim() ||
         String(rowDate(row)).trim()
@@ -28,11 +30,76 @@ const statusBadge = (status) => {
   return 'bg-amber-100 text-amber-700 ring-1 ring-amber-200'
 }
 
+const interviewDetailFields = [
+  ['companyName', 'Company Name'],
+  ['jobRole', 'Job Role'],
+  ['referencePerson', 'Reference Person'],
+  ['remark', 'Remark'],
+  ['date', 'Date'],
+  ['status', 'Status'],
+  ['attendInterview', 'Attend Interview'],
+  ['selectionChances', 'Selection Chances'],
+  ['ratingForCompany', 'Rating For Company'],
+  ['questionsAsked', 'Questions Asked'],
+  ['answerGivenByCandidate', 'Answer Given By Candidate'],
+  ['replyFromCompany', 'Reply From Company'],
+  ['positiveFeedback', 'Positive Feedback'],
+  ['negativeFeedback', 'Negative Feedback'],
+  ['overallDiscussion', 'Overall Discussion'],
+  ['note', 'Note'],
+  ['updatedBy', 'Update By']
+]
+
+function InterviewDetailsPanel({ row, onClose }) {
+  if (!row) return null
+
+  const fieldValue = (key) => {
+    if (key === 'referencePerson') return rowReference(row)
+    if (key === 'date') return rowDate(row)
+    if (key === 'status') return rowStatus(row)
+    if (key === 'ratingForCompany' && row[key] !== '' && row[key] !== undefined && row[key] !== null) return `${row[key]}/5`
+    return row[key]
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-base font-bold text-slate-950">Interview Details</h3>
+          <p className="mt-1 text-sm text-slate-500">{row.companyName || 'Company'} interview update</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50"
+          aria-label="Close interview details"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {interviewDetailFields.map(([key, label]) => {
+          const value = fieldValue(key)
+          return (
+            <div key={key} className="rounded-lg bg-white p-3 ring-1 ring-slate-200">
+              <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold text-slate-900">{value || '-'}</p>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function InterviewDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
   const [candidate, setCandidate] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [selectedInterview, setSelectedInterview] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -59,6 +126,15 @@ export default function InterviewDetails() {
   }, [id])
 
   const interviews = useMemo(() => visibleInterviews(candidate?.interviews), [candidate])
+
+  useEffect(() => {
+    setPage(1)
+  }, [candidate?._id, pageSize])
+
+  const paginatedInterviews = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return interviews.slice(start, start + pageSize)
+  }, [interviews, page, pageSize])
 
   if (loading) {
     return <p className="text-sm text-slate-500">Loading interviews...</p>
@@ -93,18 +169,20 @@ export default function InterviewDetails() {
               <tr>
                 <th className="px-4 py-3">#</th>
                 <th className="px-4 py-3">Company Name</th>
+                <th className="px-4 py-3">Job Role</th>
                 <th className="px-4 py-3">Reference Person</th>
                 <th className="px-4 py-3">Remark</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Update</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {interviews.map((row, idx) => (
+              {paginatedInterviews.map((row, idx) => (
                 <tr key={row._id || row.id || idx}>
-                  <td className="px-4 py-3 text-slate-500">{idx + 1}</td>
+                  <td className="px-4 py-3 text-slate-500">{(page - 1) * pageSize + idx + 1}</td>
                   <td className="px-4 py-3">{row.companyName || '-'}</td>
+                  <td className="px-4 py-3">{row.jobRole || '-'}</td>
                   <td className="px-4 py-3">{rowReference(row) || '-'}</td>
                   <td className="px-4 py-3">{row.remark || '-'}</td>
                   <td className="px-4 py-3">{rowDate(row) || '-'}</td>
@@ -112,7 +190,16 @@ export default function InterviewDetails() {
                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${statusBadge(rowStatus(row))}`}>{rowStatus(row)}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedInterview(row)}
+                        className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        aria-label="View interview"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View
+                      </button>
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/cms/candidates/${id}/edit?panel=interviews`)}
@@ -127,7 +214,7 @@ export default function InterviewDetails() {
               ))}
               {interviews.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                     No interviews.
                   </td>
                 </tr>
@@ -135,6 +222,15 @@ export default function InterviewDetails() {
             </tbody>
           </table>
         </div>
+        <InterviewDetailsPanel row={selectedInterview} onClose={() => setSelectedInterview(null)} />
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={interviews.length}
+          itemLabel="interviews"
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
     </div>
   )

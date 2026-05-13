@@ -2,7 +2,8 @@ import axios from 'axios'
 import { store } from '../store'
 import { logout } from '../store/authSlice'
 
-export const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const defaultHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+export const API_ROOT = import.meta.env.VITE_API_URL || `http://${defaultHost}:5000`
 
 const api = axios.create({
   baseURL: `${API_ROOT}/api`

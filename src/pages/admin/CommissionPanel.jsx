@@ -8,6 +8,7 @@ import socket from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
 import Skeleton from '../../components/Skeleton'
 import { ConfirmDialog } from '../../components/ActionDialogs'
+import Pagination from '../../components/Pagination'
 
 const selectionStatusLabel = {
   shortlisted: 'Shortlisted',
@@ -65,6 +66,8 @@ export default function CommissionPanel() {
   }))
   const [detail, setDetail] = useState(null)
   const [confirmAction, setConfirmAction] = useState(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const loadData = async () => {
     const [summaryRes, placementRes, baRes] = await Promise.all([
@@ -225,6 +228,15 @@ export default function CommissionPanel() {
 
     return [...grouped.values()].sort((a, b) => b.totalEarnings - a.totalEarnings)
   }, [filteredPlacements, summaryRows, filters])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filters, pageSize])
+
+  const paginatedBaWise = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return baWise.slice(start, start + pageSize)
+  }, [baWise, page, pageSize])
 
   const placementsByBa = useMemo(() => {
     return filteredPlacements.reduce((acc, placement) => {
@@ -427,7 +439,7 @@ export default function CommissionPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {baWise.map((row) => (
+              {paginatedBaWise.map((row) => (
                 <Fragment key={row.baId}>
                   <tr className="odd:bg-white even:bg-slate-50">
                     <td className="px-5 py-3 font-semibold text-slate-900">{row.baName}</td>
@@ -635,6 +647,14 @@ export default function CommissionPanel() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={baWise.length}
+          itemLabel="advisor rows"
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
       <DetailDrawer open={Boolean(detail)} type={detail?.type} item={detail?.item} onClose={() => setDetail(null)} />

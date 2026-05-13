@@ -1,10 +1,11 @@
-﻿import { useEffect, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Copy, Eye, KeyRound, Pencil, Plus, Trash2, UploadCloud, X } from 'lucide-react'
+import { Copy, Eye, Pencil, Plus, Trash2, UploadCloud, X } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import api, { assetUrl } from '../../api/axios'
 import Skeleton from '../../components/Skeleton'
-import { ConfirmDialog, PromptDialog } from '../../components/ActionDialogs'
+import Pagination from '../../components/Pagination'
+import { ConfirmDialog } from '../../components/ActionDialogs'
 import { copyToClipboard } from '../../utils/copyToClipboard'
 
 const mask = (value) => (value ? `${'*'.repeat(Math.max(value.length - 4, 0))}${value.slice(-4)}` : 'Not provided')
@@ -81,13 +82,13 @@ const profileToForm = (profile) => ({
 export default function BusinessAdvisors() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [profiles, setProfiles] = useState([])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [modalMode, setModalMode] = useState(null)
-  const [drawer, setDrawer] = useState(null)
   const [form, setForm] = useState(cloneBlankForm())
   const [files, setFiles] = useState(blankFiles)
-  const [passwordPrompt, setPasswordPrompt] = useState({ open: false, userId: '', name: '' })
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, userId: '', profileId: '', name: '' })
 
   const load = async () => {
@@ -97,8 +98,22 @@ export default function BusinessAdvisors() {
   }
 
   useEffect(() => {
-    load()
+    load().catch((error) => {
+      toast.error(
+        error.response?.data?.message || 'Could not load Business Advisors'
+      )
+      setLoading(false)
+    })
   }, [])
+
+  useEffect(() => {
+    setPage(1)
+  }, [profiles.length, pageSize])
+
+  const paginatedProfiles = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return profiles.slice(start, start + pageSize)
+  }, [profiles, page, pageSize])
 
   useEffect(() => {
     if (searchParams.get('action') !== 'create') return
@@ -118,6 +133,12 @@ export default function BusinessAdvisors() {
     setForm(profileToForm(profile))
     setFiles(blankFiles)
     setModalMode('edit')
+  }
+
+  const openView = (profile) => {
+    setForm(profileToForm(profile))
+    setFiles(blankFiles)
+    setModalMode('view')
   }
 
   const closeModal = () => {
@@ -157,17 +178,37 @@ export default function BusinessAdvisors() {
 
   const uploadSelectedFiles = async (userId) => {
     const selectedFiles = Object.entries(files).filter(([, file]) => Boolean(file))
+    const uploadedFiles = []
 
     for (const [docType, file] of selectedFiles) {
       const formData = new FormData()
       formData.append('docType', docType)
       formData.append('file', file)
-      await api.post(`/ba/profile/${userId}/upload`, formData)
+
+      try {
+        const { data } = await api.post(`/ba/profile/${userId}/upload`, formData)
+        uploadedFiles.push({ docType, fileUrl: data?.fileUrl || '' })
+      } catch (error) {
+        const message = error.response?.data?.message || `Could not upload ${docLabels[docType] || 'document'}`
+        const uploadError = new Error(message)
+        uploadError.response = error.response
+        throw uploadError
+      }
     }
+
+    return uploadedFiles
   }
 
   const saveBA = async (event) => {
     event.preventDefault()
+
+    if (modalMode === 'view') return
+
+    if (modalMode === 'edit' && form.password && form.password.length < 6) {
+      toast.error('New password must be at least 6 characters')
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -202,14 +243,22 @@ export default function BusinessAdvisors() {
           isActive: form.isActive
         })
         await api.put(`/ba/profile/${userId}`, profilePayload)
+        if (form.password) {
+          await api.put(`/users/${userId}/reset-password`, {
+            newPassword: form.password
+          })
+        }
       }
 
-      await uploadSelectedFiles(userId)
+      const uploadedFiles = await uploadSelectedFiles(userId)
       await load()
       closeModal()
-      toast.success(modalMode === 'create' ? 'Business Advisor registered' : 'Business Advisor updated')
+      const uploadMessage = uploadedFiles.length
+        ? ` and ${uploadedFiles.length} document${uploadedFiles.length === 1 ? '' : 's'} uploaded`
+        : ''
+      toast.success(modalMode === 'create' ? `Business Advisor registered${uploadMessage}` : `Business Advisor updated${uploadMessage}`)
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not save Business Advisor')
+      toast.error(error.response?.data?.message || error.message || 'Could not save Business Advisor')
     } finally {
       setSaving(false)
     }
@@ -235,16 +284,6 @@ export default function BusinessAdvisors() {
     }
   }
 
-  const resetPassword = async (userId, newPassword) => {
-    if (!newPassword) return
-    try {
-      await api.put(`/users/${userId}/reset-password`, { newPassword })
-      toast.success('Password reset')
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not reset password')
-    }
-  }
-
   const removeBA = async (userId, profileId) => {
     try {
       await api.delete(`/users/${userId}`)
@@ -265,6 +304,28 @@ export default function BusinessAdvisors() {
   }
 
   if (loading) return <Skeleton rows={9} />
+
+  const isViewMode = modalMode === 'view'
+  const modalTitle =
+    modalMode === 'create'
+      ? 'Register Business Advisor'
+      : isViewMode
+        ? 'View Business Advisor'
+        : 'Edit Business Advisor'
+  const modalDescription = isViewMode
+    ? 'Review account, profile, document, and bank details.'
+    : 'Fill account, profile, documents, bank details, and upload files.'
+  const selectedFileCount = Object.values(files).filter(Boolean).length
+  const submitLabel =
+    saving
+      ? 'Saving...'
+      : modalMode === 'create'
+        ? selectedFileCount
+          ? `Register & Upload ${selectedFileCount} File${selectedFileCount === 1 ? '' : 's'}`
+          : 'Register Business Advisor'
+        : selectedFileCount
+          ? `Save & Upload ${selectedFileCount} File${selectedFileCount === 1 ? '' : 's'}`
+          : 'Save Business Advisor'
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -299,7 +360,7 @@ export default function BusinessAdvisors() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {profiles.map((profile) => (
+              {paginatedProfiles.map((profile) => (
                 <tr key={profile._id} className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40">
                   <td className="px-5 py-3 font-semibold text-slate-900">{profile.userId?.name || profile.fullName}</td>
                   <td className="px-5 py-3 text-slate-600">{profile.userId?.email || profile.email}</td>
@@ -330,27 +391,14 @@ export default function BusinessAdvisors() {
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-2">
-                      <IconButton label="View profile" onClick={() => setDrawer(profile)} color="text-sky-600 hover:bg-sky-50">
+                      <ActionButton label="View" onClick={() => openView(profile)} color="border-sky-200 text-sky-700 hover:bg-sky-50">
                         <Eye className="h-4 w-4" />
-                      </IconButton>
-                      <IconButton label="Edit profile" onClick={() => openEdit(profile)} color="text-orange-600 hover:bg-orange-50">
+                      </ActionButton>
+                      <ActionButton label="Update" onClick={() => openEdit(profile)} color="border-orange-200 text-orange-700 hover:bg-orange-50">
                         <Pencil className="h-4 w-4" />
-                      </IconButton>
-                      <IconButton
-                        label="Reset password"
-                        onClick={() =>
-                          setPasswordPrompt({
-                            open: true,
-                            userId: profile.userId._id,
-                            name: profile.userId?.name || profile.fullName
-                          })
-                        }
-                        color="text-slate-600 hover:bg-slate-100"
-                      >
-                        <KeyRound className="h-4 w-4" />
-                      </IconButton>
-                      <IconButton
-                        label="Remove BA"
+                      </ActionButton>
+                      <ActionButton
+                        label="Delete"
                         onClick={() =>
                           setDeleteConfirm({
                             open: true,
@@ -359,10 +407,10 @@ export default function BusinessAdvisors() {
                             name: profile.userId?.name || profile.fullName
                           })
                         }
-                        color="text-rose-600 hover:bg-rose-50"
+                        color="border-rose-200 text-rose-700 hover:bg-rose-50"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </IconButton>
+                      </ActionButton>
                     </div>
                   </td>
                 </tr>
@@ -377,6 +425,7 @@ export default function BusinessAdvisors() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} pageSize={pageSize} total={profiles.length} itemLabel="advisors" onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       {modalMode && (
@@ -392,9 +441,9 @@ export default function BusinessAdvisors() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">
-                    {modalMode === 'create' ? 'Register Business Advisor' : 'Edit Business Advisor'}
+                    {modalTitle}
                   </h2>
-                  <p className="mt-2 text-sm text-slate-500">Fill account, profile, documents, bank details, and upload files.</p>
+                  <p className="mt-2 text-sm text-slate-500">{modalDescription}</p>
                 </div>
                 <button type="button" onClick={closeModal} className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100" aria-label="Close">
                   <X className="h-5 w-5" />
@@ -404,15 +453,19 @@ export default function BusinessAdvisors() {
             <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
               <div className="space-y-4 sm:space-y-6">
                 <FormSection title="Account Details">
-                  <ModalField label="Name" required value={form.name} onChange={(value) => updateForm('name', value)} />
-                  <ModalField label="Email" required type="email" value={form.email} onChange={(value) => updateForm('email', value)} />
+                  <ModalField label="Name" required={!isViewMode} readOnly={isViewMode} value={form.name} onChange={(value) => updateForm('name', value)} />
+                  <ModalField label="Email" required={!isViewMode} readOnly={isViewMode} type="email" value={form.email} onChange={(value) => updateForm('email', value)} />
                   {modalMode === 'create' && (
                     <ModalField label="Password" required type="password" value={form.password} onChange={(value) => updateForm('password', value)} />
+                  )}
+                  {modalMode === 'edit' && (
+                    <ModalField label="New Password" type="password" value={form.password} onChange={(value) => updateForm('password', value)} />
                   )}
                   <label className="flex min-h-10 items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
                     <input
                       type="checkbox"
                       checked={form.isActive}
+                      disabled={isViewMode}
                       onChange={(event) => updateForm('isActive', event.target.checked)}
                       className="h-4 w-4 rounded text-sky-600"
                     />
@@ -421,15 +474,16 @@ export default function BusinessAdvisors() {
                 </FormSection>
 
                 <FormSection title="Personal Info">
-                  <ModalField label="Phone" value={form.phone} onChange={(value) => updateForm('phone', value)} />
-                  <ModalField label="City" value={form.city} onChange={(value) => updateForm('city', value)} />
+                  <ModalField label="Phone" readOnly={isViewMode} value={form.phone} onChange={(value) => updateForm('phone', value)} />
+                  <ModalField label="City" readOnly={isViewMode} value={form.city} onChange={(value) => updateForm('city', value)} />
                   <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
                     Address
                     <textarea
                       value={form.address}
+                      readOnly={isViewMode}
                       onChange={(event) => updateForm('address', event.target.value)}
                       rows={3}
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+                      className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100 ${isViewMode ? 'bg-slate-50 text-slate-700' : ''}`}
                     />
                   </label>
                 </FormSection>
@@ -437,11 +491,13 @@ export default function BusinessAdvisors() {
                 <FormSection title="Document Numbers">
                   <ModalField
                     label="Aadhar Number"
+                    readOnly={isViewMode}
                     value={form.documents.aadharCard.number || ''}
                     onChange={(value) => updateDocument('aadharCard', 'number', value.replace(/\D/g, '').slice(0, 12))}
                   />
                   <ModalField
                     label="PAN Number"
+                    readOnly={isViewMode}
                     value={form.documents.panCard.number || ''}
                     onChange={(value) => updateDocument('panCard', 'number', value.slice(0, 10))}
                   />
@@ -455,23 +511,25 @@ export default function BusinessAdvisors() {
                       file={files[docType]}
                       existingUrl={docType === 'profilePhoto' ? form.profilePhoto : form.documents[docType]?.fileUrl}
                       accept={docType === 'profilePhoto' ? 'image/*' : docType === 'agreementLetter' ? '.pdf,application/pdf' : 'image/*,.pdf'}
+                      readOnly={isViewMode}
                       onChange={(file) => setFiles((current) => ({ ...current, [docType]: file }))}
                     />
                   ))}
                 </FormSection>
 
                 <FormSection title="Bank Details">
-                  <ModalField label="Account Holder Name" value={form.bankDetails.accountHolderName || ''} onChange={(value) => updateBank('accountHolderName', value)} />
-                  <ModalField label="Bank Name" value={form.bankDetails.bankName || ''} onChange={(value) => updateBank('bankName', value)} />
-                  <ModalField label="Account Number" value={form.bankDetails.accountNumber || ''} onChange={(value) => updateBank('accountNumber', value)} />
-                  <ModalField label="IFSC Code" value={form.bankDetails.ifscCode || ''} onChange={(value) => updateBank('ifscCode', value)} />
-                  <ModalField label="Branch Name" value={form.bankDetails.branchName || ''} onChange={(value) => updateBank('branchName', value)} />
+                  <ModalField label="Account Holder Name" readOnly={isViewMode} value={form.bankDetails.accountHolderName || ''} onChange={(value) => updateBank('accountHolderName', value)} />
+                  <ModalField label="Bank Name" readOnly={isViewMode} value={form.bankDetails.bankName || ''} onChange={(value) => updateBank('bankName', value)} />
+                  <ModalField label="Account Number" readOnly={isViewMode} value={form.bankDetails.accountNumber || ''} onChange={(value) => updateBank('accountNumber', value)} />
+                  <ModalField label="IFSC Code" readOnly={isViewMode} value={form.bankDetails.ifscCode || ''} onChange={(value) => updateBank('ifscCode', value)} />
+                  <ModalField label="Branch Name" readOnly={isViewMode} value={form.bankDetails.branchName || ''} onChange={(value) => updateBank('branchName', value)} />
                   <label className="block text-sm font-semibold text-slate-700">
                     Account Type
                     <select
                       value={form.bankDetails.accountType || 'Savings'}
+                      disabled={isViewMode}
                       onChange={(event) => updateBank('accountType', event.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+                      className={`mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100 ${isViewMode ? 'bg-slate-50 text-slate-700' : ''}`}
                     >
                       <option value="Savings">Savings</option>
                       <option value="Current">Current</option>
@@ -482,35 +540,28 @@ export default function BusinessAdvisors() {
             </div>
 
             <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-6 sm:py-4">
-              <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
-              >
-                {saving ? 'Saving...' : modalMode === 'create' ? 'Register Business Advisor' : 'Save Business Advisor'}
-              </button>
+              {isViewMode ? (
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                >
+                  Close
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
+                >
+                  {submitLabel}
+                </button>
+              )}
             </div>
           </form>
         </div>
       )}
 
-      <ProfileDrawer profile={drawer} onClose={() => setDrawer(null)} />
-      <PromptDialog
-        open={passwordPrompt.open}
-        title="Reset Password"
-        message={`Set a new password for ${passwordPrompt.name}.`}
-        placeholder="Enter new password"
-        confirmText="Reset Password"
-        onCancel={() => setPasswordPrompt({ open: false, userId: '', name: '' })}
-        onConfirm={async (value) => {
-          if (value.length < 6) {
-            toast.error('New password must be at least 6 characters')
-            return
-          }
-          await resetPassword(passwordPrompt.userId, value)
-          setPasswordPrompt({ open: false, userId: '', name: '' })
-        }}
-      />
       <ConfirmDialog
         open={deleteConfirm.open}
         title="Remove Business Advisor"
@@ -527,60 +578,74 @@ export default function BusinessAdvisors() {
   )
 }
 
-function IconButton({ label, color, onClick, children }) {
+function ActionButton({ label, color, onClick, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${color}`}
+      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border bg-white px-3 text-sm font-semibold ${color}`}
       aria-label={label}
       title={label}
     >
       {children}
+      {label}
     </button>
   )
 }
 
 function FormSection({ title, children }) {
   return (
-    <section className="rounded-xl border border-slate-200 p-4">
+    <section className="min-w-0 rounded-xl border border-slate-200 p-4">
       <h3 className="mb-4 text-sm font-bold uppercase text-slate-500">{title}</h3>
-      <div className="grid gap-4 md:grid-cols-2">{children}</div>
+      <div className="grid min-w-0 gap-4 md:grid-cols-2">{children}</div>
     </section>
   )
 }
 
-function ModalField({ label, value, onChange, type = 'text', required = false }) {
+function ModalField({ label, value, onChange, type = 'text', required = false, readOnly = false, disabled = false }) {
   return (
     <label className="block text-sm font-semibold text-slate-700">
       {label} {required && <span className="text-rose-500">*</span>}
       <input
         type={type}
         value={value}
+        readOnly={readOnly}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         required={required}
-        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100 ${readOnly || disabled ? 'bg-slate-50 text-slate-700' : ''}`}
       />
     </label>
   )
 }
 
-function FileField({ label, file, existingUrl, accept, onChange }) {
+function FileField({ label, file, existingUrl, accept, onChange, readOnly = false }) {
   return (
-    <div className="rounded-lg border border-slate-200 p-3">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-slate-800">{label}</p>
+    <div className="min-w-0 rounded-lg border border-slate-200 p-3">
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+        <p className="min-w-0 truncate text-sm font-semibold text-slate-800">{label}</p>
         {existingUrl && (
-          <a href={assetUrl(existingUrl)} target="_blank" rel="noreferrer" className="text-xs font-bold text-sky-600 hover:text-sky-700">
+          <a href={assetUrl(existingUrl)} target="_blank" rel="noreferrer" className="shrink-0 text-xs font-bold text-sky-600 hover:text-sky-700">
             View
           </a>
         )}
       </div>
-      <label className="flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-slate-600 hover:border-cyan-400 hover:bg-sky-50">
-        <UploadCloud className="h-4 w-4" />
-        {file ? file.name : 'Choose file'}
-        <input type="file" className="sr-only" accept={accept} onChange={(event) => onChange(event.target.files?.[0] || null)} />
-      </label>
+      {readOnly ? (
+        <div className="flex min-h-10 min-w-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-600">
+          {existingUrl ? 'Uploaded file available' : 'No file uploaded'}
+        </div>
+      ) : (
+        <label className="flex min-h-10 min-w-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-slate-600 hover:border-cyan-400 hover:bg-sky-50">
+          <UploadCloud className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 truncate">{file ? file.name : 'Choose file'}</span>
+          <input type="file" className="sr-only" accept={accept} onChange={(event) => onChange(event.target.files?.[0] || null)} />
+        </label>
+      )}
+      {file && !readOnly ? (
+        <p className="mt-2 min-w-0 truncate text-xs font-medium text-slate-500" title={file.name}>
+          Selected file will upload after save.
+        </p>
+      ) : null}
     </div>
   )
 }

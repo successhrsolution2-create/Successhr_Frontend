@@ -33,9 +33,12 @@ export const fetchMe = createAsyncThunk('auth/fetchMe', async (_, { rejectWithVa
   }
 })
 
+const savedToken = localStorage.getItem('token')
+
 const initialState = {
-  token: localStorage.getItem('token'),
+  token: savedToken,
   user: readUser(),
+  checking: Boolean(savedToken),
   loading: false,
   error: null
 }
@@ -47,6 +50,7 @@ const authSlice = createSlice({
     logout(state) {
       state.token = null
       state.user = null
+      state.checking = false
       state.error = null
       localStorage.removeItem('token')
       localStorage.removeItem('user')
@@ -55,6 +59,7 @@ const authSlice = createSlice({
     setCredentials(state, action) {
       state.token = action.payload.token
       state.user = action.payload.user
+      state.checking = false
       localStorage.setItem('token', action.payload.token)
       localStorage.setItem('user', JSON.stringify(action.payload.user))
     },
@@ -67,10 +72,12 @@ const authSlice = createSlice({
     builder
       .addCase(loginUser.pending, (state) => {
         state.loading = true
+        state.checking = false
         state.error = null
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false
+        state.checking = false
         state.token = action.payload.token
         state.user = action.payload.user
         localStorage.setItem('token', action.payload.token)
@@ -78,15 +85,21 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false
+        state.checking = false
         state.error = action.payload
       })
+      .addCase(fetchMe.pending, (state) => {
+        state.checking = true
+      })
       .addCase(fetchMe.fulfilled, (state, action) => {
+        state.checking = false
         state.user = action.payload
         localStorage.setItem('user', JSON.stringify(action.payload))
       })
       .addCase(fetchMe.rejected, (state) => {
         state.token = null
         state.user = null
+        state.checking = false
         localStorage.removeItem('token')
         localStorage.removeItem('user')
         disconnectSocket()

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarDays, CheckCircle2, Clock3, Download, Eye, Filter, Search, Users } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock3, Download, Eye, Filter, Pencil, Search, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../../../api/axios'
+import Pagination from '../../../components/Pagination'
+import { ExportRangeDialog } from '../../../components/ActionDialogs'
 
 const fallbackCode = (item) => {
   if (item?.candidateCode) return item.candidateCode
@@ -11,6 +13,16 @@ const fallbackCode = (item) => {
   const mm = String(date.getMonth() + 1).padStart(2, '0')
   const tail = String(item?._id || '').slice(-4).toUpperCase().padStart(4, '0')
   return `C${yy}${mm}${tail}`
+}
+
+const dateKey = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 const avatarPalette = [
@@ -25,6 +37,7 @@ const visibleInterviews = (rows) =>
   (Array.isArray(rows) ? rows : []).filter((row) => {
     const hasContent = Boolean(
       String(row?.companyName || '').trim() ||
+        String(row?.jobRole || '').trim() ||
         String(row?.referencePerson || row?.reference || '').trim() ||
         String(row?.remark || '').trim() ||
         String(row?.date || row?.interviewDate || '').trim()
@@ -33,12 +46,67 @@ const visibleInterviews = (rows) =>
     return hasContent || status !== 'Pending'
   })
 
+const interviewStatus = (row) => row?.status || row?.result || 'Pending'
+
+const aggregateSelectionStatus = (interviews) => {
+  const statuses = (Array.isArray(interviews) ? interviews : []).map(interviewStatus)
+  if (!statuses.length) return '-'
+  if (statuses.includes('Selected')) return 'Selected'
+  if (statuses.every((status) => status === 'Rejected')) return 'Rejected'
+  if (statuses.includes('On Hold')) return 'On Hold'
+  return 'In Process'
+}
+
+const selectionStatusTone = {
+  Selected: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  Rejected: 'bg-rose-50 text-rose-700 ring-rose-200',
+  'On Hold': 'bg-slate-50 text-slate-700 ring-slate-200',
+  'In Process': 'bg-amber-50 text-amber-700 ring-amber-200',
+  '-': 'bg-slate-50 text-slate-500 ring-slate-200'
+}
+
+function SelectionStatusBadge({ status }) {
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${selectionStatusTone[status] || selectionStatusTone['In Process']}`}>
+      {status}
+    </span>
+  )
+}
+
+const toInterviewCandidate = (candidate, interviewsRaw = []) => {
+  const interviews = visibleInterviews(interviewsRaw)
+  const interviewDates = interviews
+    .map((row) => String(row?.date || row?.interviewDate || '').slice(0, 10))
+    .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value))
+  const latestJobRole = interviews.find((row) => String(row?.jobRole || '').trim())?.jobRole || ''
+
+  return {
+    id: candidate._id,
+    code: fallbackCode(candidate),
+    fullName: candidate.fullName || '',
+    mobile: candidate.mobileNumber || '',
+    email: candidate.emailId || '',
+    jobRole: latestJobRole || candidate.appliedFor || candidate.currentDesignation || '',
+    referenceSource:
+      candidate.referenceName ||
+      candidate.advisor?.name ||
+      (candidate.intakeType === 'advisor' ? 'Advisor' : candidate.intakeType === 'walkin' ? 'Walk-in' : 'Walk-in'),
+    count: Number(candidate.interviewCount || interviews.length || 0),
+    selectionStatus: aggregateSelectionStatus(interviews),
+    interviewDates,
+    createdAt: candidate.createdAt,
+    registeredDate: dateKey(candidate.createdAt)
+  }
+}
+
 export default function InterviewList() {
   const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
+  const [exportOpen, setExportOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   useEffect(() => {
     const load = async () => {
@@ -47,31 +115,15 @@ export default function InterviewList() {
         const candidates = Array.isArray(data) ? data : []
         const enriched = await Promise.all(
           candidates.map(async (candidate) => {
+            if (Array.isArray(candidate.interviews)) {
+              return toInterviewCandidate(candidate, candidate.interviews)
+            }
+
             try {
               const { data: interviewsRaw } = await api.get(`/cms/candidates/${candidate._id}/interviews`)
-              const interviews = visibleInterviews(interviewsRaw)
-              const interviewDates = interviews
-                .map((row) => String(row?.date || row?.interviewDate || '').slice(0, 10))
-                .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value))
-              return {
-                id: candidate._id,
-                code: fallbackCode(candidate),
-                fullName: candidate.fullName || '',
-                mobile: candidate.mobileNumber || '',
-                email: candidate.emailId || '',
-                count: interviews.length,
-                interviewDates
-              }
+              return toInterviewCandidate(candidate, interviewsRaw)
             } catch (_error) {
-              return {
-                id: candidate._id,
-                code: fallbackCode(candidate),
-                fullName: candidate.fullName || '',
-                mobile: candidate.mobileNumber || '',
-                email: candidate.emailId || '',
-                count: 0,
-                interviewDates: []
-              }
+              return toInterviewCandidate(candidate, [])
             }
           })
         )
@@ -85,36 +137,100 @@ export default function InterviewList() {
 
   const rows = useMemo(() => {
     const query = search.trim().toLowerCase()
-    const hasFrom = Boolean(fromDate)
-    const hasTo = Boolean(toDate)
-    const fromTime = hasFrom ? new Date(`${fromDate}T00:00:00`).getTime() : null
-    const toTime = hasTo ? new Date(`${toDate}T23:59:59`).getTime() : null
     return items
       .filter((candidate) => {
         if (!query) return true
-        const fields = [candidate.code, candidate.id, candidate.fullName, candidate.mobile, candidate.email]
+        const fields = [candidate.code, candidate.id, candidate.fullName, candidate.mobile, candidate.email, candidate.jobRole, candidate.referenceSource, candidate.selectionStatus]
         return fields.some((value) => String(value || '').toLowerCase().includes(query))
       })
       .filter((candidate) => {
-        if (!hasFrom && !hasTo) return true
-        return (candidate.interviewDates || []).some((dateValue) => {
-          const current = new Date(`${dateValue}T12:00:00`).getTime()
-          if (Number.isNaN(current)) return false
-          if (hasFrom && current < fromTime) return false
-          if (hasTo && current > toTime) return false
-          return true
-        })
+        if (!dateFilter) return true
+        return candidate.registeredDate === dateFilter
       })
-  }, [items, search, fromDate, toDate])
+  }, [items, search, dateFilter])
 
   const stats = useMemo(() => {
     const totalCandidates = items.length
     const totalInterviews = items.reduce((sum, item) => sum + (item.count || 0), 0)
     const completedInterviews = items.filter((item) => (item.count || 0) > 0).length
-    const today = new Date().toISOString().slice(0, 10)
+    const today = dateKey(new Date())
     const todaysInterviews = items.reduce((sum, item) => sum + (item.interviewDates || []).filter((d) => d === today).length, 0)
     return { totalCandidates, totalInterviews, completedInterviews, todaysInterviews }
   }, [items])
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, dateFilter, pageSize])
+
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return rows.slice(start, start + pageSize)
+  }, [rows, page, pageSize])
+
+  const applyFilters = () => {
+    setPage(1)
+  }
+
+  const exportCsv = ({ fromDate = '', toDate = '' } = {}) => {
+    try {
+      const from = fromDate ? new Date(`${fromDate}T00:00:00`) : null
+      const to = toDate ? new Date(`${toDate}T23:59:59.999`) : null
+
+      if (!fromDate || !toDate) {
+        toast.error('Select From and To dates for export')
+        return
+      }
+      if (from && Number.isNaN(from.getTime())) {
+        toast.error('Invalid From date')
+        return
+      }
+      if (to && Number.isNaN(to.getTime())) {
+        toast.error('Invalid To date')
+        return
+      }
+      if (from && to && from > to) {
+      toast.error('From date must be before To date')
+      return
+    }
+
+      const withinRange = (item) => {
+        if (!from && !to) return true
+        const created = item?.createdAt ? new Date(item.createdAt) : null
+        if (!created || Number.isNaN(created.getTime())) return false
+        if (from && created < from) return false
+        if (to && created > to) return false
+        return true
+      }
+
+      const headers = ['ID', 'Registered At', 'Name', 'Mobile', 'Email', 'Job Role', 'Reference', 'Interview Count', 'Selection Status', 'Interview Dates']
+      const dataRows = items.filter(withinRange).map((item) => [
+        item.code,
+        item.createdAt ? String(item.createdAt).slice(0, 10) : '',
+        item.fullName,
+        item.mobile,
+        item.email,
+        item.jobRole,
+        item.referenceSource,
+        item.count,
+        item.selectionStatus,
+        (item.interviewDates || []).join(' | ')
+      ])
+      const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
+      const csv = [headers, ...dataRows].map((row) => row.map(csvCell).join(',')).join('\n')
+      const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      const suffix = `-${fromDate}_to_${toDate}`
+      link.download = `interviews${suffix}-${Date.now()}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+      setExportOpen(false)
+      toast.success('CSV exported')
+    } catch (_error) {
+      toast.error('Could not export CSV')
+    }
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -146,21 +262,14 @@ export default function InterviewList() {
         </div>
       </div>
 
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-        <div className="grid gap-3 lg:grid-cols-[1fr_1fr_2fr_auto_auto]">
+      <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
+        <div className="grid gap-2 lg:grid-cols-[minmax(0,180px)_1fr_auto_auto]">
           <input
             type="date"
-            value={fromDate}
-            onChange={(event) => setFromDate(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
-            aria-label="Filter interviews from date"
-          />
-          <input
-            type="date"
-            value={toDate}
-            onChange={(event) => setToDate(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
-            aria-label="Filter interviews to date"
+            value={dateFilter}
+            onChange={(event) => setDateFilter(event.target.value)}
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+            aria-label="Filter registered candidates by date"
           />
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -168,14 +277,22 @@ export default function InterviewList() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by id, name, mobile, email..."
-              className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+              className="h-10 w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
             />
           </div>
-          <button type="button" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 lg:w-auto">
+          <button
+            type="button"
+            onClick={applyFilters}
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50 lg:w-auto"
+          >
             <Filter className="h-4 w-4" />
             Filter
           </button>
-          <button type="button" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 lg:w-auto">
+          <button
+            type="button"
+            onClick={() => setExportOpen(true)}
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 lg:w-auto"
+          >
             <Download className="h-4 w-4" />
             Export
           </button>
@@ -184,43 +301,55 @@ export default function InterviewList() {
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+          <table className="min-w-[1140px] text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
               <tr>
-                <th className="px-5 py-4">ID</th>
-                <th className="px-5 py-4">Name</th>
-                <th className="px-5 py-4">Mobile</th>
-                <th className="px-5 py-4">Interview Count</th>
-                <th className="px-5 py-4 text-center">Actions</th>
+                <th className="px-4 py-3">ID</th>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Mobile</th>
+                <th className="px-4 py-3">Job Role</th>
+                <th className="px-4 py-3">Reference</th>
+                <th className="px-4 py-3">Selection Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {rows.map((candidate) => (
-                <tr key={candidate.id} className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40">
-                  <td className="px-5 py-4 font-mono text-sm font-semibold text-slate-700">{candidate.code}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${avatarPalette[candidate.fullName.length % avatarPalette.length]}`}>
+              {paginatedRows.map((candidate) => (
+                <tr key={candidate.id} className="odd:bg-white even:bg-slate-50 hover:bg-indigo-50/40">
+                  <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-700">{candidate.code}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${avatarPalette[candidate.fullName.length % avatarPalette.length]}`}>
                         {(candidate.fullName || 'C').charAt(0).toUpperCase()}
                       </span>
-                      <span className="font-semibold text-slate-900">{candidate.fullName}</span>
+                      <span className="text-sm font-semibold text-slate-900">{candidate.fullName}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-slate-800">{candidate.mobile}</td>
-                  <td className="px-5 py-4 text-slate-800">
-                    <span className="inline-flex min-w-6 items-center justify-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                      {candidate.count}
-                    </span>
+                  <td className="px-4 py-3 text-slate-800">{candidate.mobile}</td>
+                  <td className="px-4 py-3 text-slate-800">{candidate.jobRole || '-'}</td>
+                  <td className="px-4 py-3 text-slate-800">{candidate.referenceSource || 'Walk-in'}</td>
+                  <td className="px-4 py-3 text-slate-800">
+                    <SelectionStatusBadge status={candidate.selectionStatus} />
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="flex justify-center">
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-1.5">
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/cms/interviews/${candidate.id}`)}
-                        className="inline-flex h-8 w-10 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                        className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-3 text-xs font-semibold text-violet-600 hover:bg-violet-100"
                         aria-label="View interviews"
                       >
-                        <Eye className="h-3 w-3" />
+                        <Eye className="h-4 w-4" />
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/admin/cms/candidates/${candidate.id}/edit?panel=interviews`)}
+                        className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-[#1890d8] px-3 text-xs font-semibold text-white hover:bg-[#0f82c8]"
+                        aria-label="Update interviews"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Update
                       </button>
                     </div>
                   </td>
@@ -228,7 +357,7 @@ export default function InterviewList() {
               ))}
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
                     No interviews found.
                   </td>
                 </tr>
@@ -236,18 +365,22 @@ export default function InterviewList() {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-xs text-slate-500 sm:px-5">
-          <p>Showing 1 to {Math.min(rows.length, 5)} of {rows.length} results</p>
-          <div className="inline-flex items-center gap-2">
-            <button type="button" className="h-7 w-7 rounded border border-slate-200 text-slate-400">{'<'}</button>
-            <button type="button" className="h-7 w-7 rounded bg-indigo-600 text-white">1</button>
-            <button type="button" className="h-7 w-7 rounded text-slate-500">2</button>
-            <button type="button" className="h-7 w-7 rounded text-slate-500">3</button>
-            <button type="button" className="h-7 w-7 rounded border border-slate-200 text-slate-400">{'>'}</button>
-          </div>
-          <button type="button" className="h-8 rounded-lg border border-slate-200 px-3 text-slate-600">5 / page</button>
-        </div>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={rows.length}
+          itemLabel="interview candidates"
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
+      <ExportRangeDialog
+        open={exportOpen}
+        title="Export Interviews"
+        message="Select candidate registration date range for the interviews export."
+        onCancel={() => setExportOpen(false)}
+        onConfirm={exportCsv}
+      />
     </div>
   )
 }

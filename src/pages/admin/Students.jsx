@@ -8,7 +8,8 @@ import socket from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
 import StatusBadge, { statusLabel } from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
-import { ConfirmDialog, PromptDialog } from '../../components/ActionDialogs'
+import { PromptDialog } from '../../components/ActionDialogs'
+import Pagination from '../../components/Pagination'
 
 const selectionStatusColors = {
   shortlisted: 'bg-slate-100 text-slate-700',
@@ -36,6 +37,18 @@ const processStageLabel = {
   rejected: 'Rejected',
   on_hold: 'On Hold'
 }
+
+const candidateStatusOptions = [
+  { value: 'not_viewed', label: 'Not Viewed' },
+  { value: 'in_review', label: 'In Review' },
+  { value: 'priority', label: 'Priority' },
+  { value: 'done', label: 'Done' }
+]
+
+const earningStatusOptions = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'paid', label: 'Paid' }
+]
 
 const safeDate = (value, formatStr = 'yyyy-MM-dd') => {
   if (!value) return ''
@@ -97,8 +110,6 @@ export default function Students() {
   const [bas, setBas] = useState([])
 
   const [loading, setLoading] = useState(true)
-  const [savingFull, setSavingFull] = useState(false)
-  const [uploadingDocuments, setUploadingDocuments] = useState(false)
   const [filters, setFilters] = useState(() => ({
     search: searchParams.get('search') || '',
     status: searchParams.get('status') || 'all',
@@ -109,8 +120,20 @@ export default function Students() {
 
   // NEW STATE
   const [drawerMode, setDrawerMode] = useState('view')
-  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
-  const [commissionDraft, setCommissionDraft] = useState({})
+  const [statusUpdate, setStatusUpdate] = useState({
+    open: false,
+    student: null,
+    placement: null,
+    values: {
+      status: 'not_viewed',
+      salary: '',
+      percent: '',
+      earningStatus: 'pending'
+    },
+    saving: false
+  })
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
 const [deletePrompt, setDeletePrompt] = useState({
   open: false,
@@ -164,69 +187,201 @@ const [deletePrompt, setDeletePrompt] = useState({
   const placementByStudentId = useMemo(
     () =>
       new Map(
-        placements.map((placement) => [
-          placement.studentId?._id || placement.studentId,
-          placement
-        ])
+        placements
+          .map((placement) => [
+            String(placementCandidateId(placement) || ''),
+            placement
+          ])
+          .filter(([studentId]) => studentId)
       ),
     [placements]
   )
+
+  const openStatusUpdate = (student) => {
+    const placement = placementByStudentId.get(student._id)
+    const commission = student.advisorCommission || {}
+
+    setStatusUpdate({
+      open: true,
+      student,
+      placement,
+      values: {
+        status: student.status || 'not_viewed',
+        salary:
+          placement?.offeredSalaryPM !== undefined &&
+          placement?.offeredSalaryPM !== null
+            ? String(placement.offeredSalaryPM)
+            : commission.salary !== undefined &&
+                commission.salary !== null
+              ? String(commission.salary)
+              : '',
+        percent:
+          placement?.earningPercent !== undefined &&
+          placement?.earningPercent !== null
+            ? String(placement.earningPercent)
+            : commission.percentage !== undefined &&
+                commission.percentage !== null
+              ? String(commission.percentage)
+              : '',
+        earningStatus:
+          (placement?.earningStatus || commission.paymentStatus) === 'paid'
+            ? 'paid'
+            : 'pending'
+      },
+      saving: false
+    })
+  }
+
+  const closeStatusUpdate = () => {
+    setStatusUpdate((current) => ({
+      ...current,
+      open: false,
+      student: null,
+      placement: null,
+      saving: false
+    }))
+  }
+
+  const setStatusUpdateValue = (field, value) => {
+    setStatusUpdate((current) => ({
+      ...current,
+      values: {
+        ...current.values,
+        [field]: value
+      }
+    }))
+  }
+
+  const saveStatusUpdate = async () => {
+    const { student, placement, values } = statusUpdate
+    if (!student) return
+
+    const salary = values.salary === '' ? 0 : numeric(values.salary)
+    const percent = values.percent === '' ? 0 : numeric(values.percent)
+
+    if (salary < 0) {
+      toast.error('Salary must be zero or more')
+      return
+    }
+
+    if (percent < 0 || percent > 100) {
+      toast.error('Advisor percentage must be between 0 and 100')
+      return
+    }
+
+    setStatusUpdate((current) => ({
+      ...current,
+      saving: true
+    }))
+
+    try {
+      const { data: updatedStudent } = await api.patch(
+        `/students/${student._id}/status`,
+        {
+          status: values.status,
+          advisorCommission: {
+            salary,
+            percentage: percent,
+            paymentStatus:
+              values.earningStatus === 'paid' ? 'paid' : 'pending'
+          }
+        }
+      )
+
+      let updatedPlacement = null
+
+      if (placement?._id) {
+        const { data } = await api.put(`/placements/${placement._id}`, {
+          offeredSalaryPM: salary,
+          earningPercent: percent,
+          earningStatus:
+            values.earningStatus === 'paid' ? 'paid' : 'pending'
+        })
+
+        updatedPlacement = data
+      }
+
+      setStudents((current) =>
+        current.map((item) =>
+          item._id === updatedStudent._id ? updatedStudent : item
+        )
+      )
+
+      if (updatedPlacement) {
+        setPlacements((current) =>
+          current.map((item) =>
+            item._id === updatedPlacement._id ? updatedPlacement : item
+          )
+        )
+      }
+
+      closeStatusUpdate()
+      toast.success('Status update saved')
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          'Could not save status update'
+      )
+      setStatusUpdate((current) => ({
+        ...current,
+        saving: false
+      }))
+    }
+  }
 
   const commissionByStudentId = useMemo(
     () =>
       students.reduce((acc, student) => {
         const placement = placementByStudentId.get(student._id)
         const placementId = placement?._id
-        const draft = placementId ? commissionDraft[placementId] : null
+        const commission = student.advisorCommission || {}
+        const hasCommission =
+          Boolean(placementId) ||
+          numeric(commission.salary) > 0 ||
+          numeric(commission.percentage) > 0 ||
+          numeric(commission.amount) > 0 ||
+          commission.paymentStatus === 'paid'
 
         const salary =
-          draft?.salary !== undefined
-            ? numeric(draft.salary)
-            : placement?.offeredSalaryPM !== undefined && placement?.offeredSalaryPM !== null
-              ? numeric(placement.offeredSalaryPM)
+          placement?.offeredSalaryPM !== undefined &&
+          placement?.offeredSalaryPM !== null
+            ? numeric(placement.offeredSalaryPM)
+            : commission.salary !== undefined &&
+                commission.salary !== null
+              ? numeric(commission.salary)
               : numeric(student.currentSalary)
 
         const percent =
-          draft?.percent !== undefined
-            ? numeric(draft.percent)
-            : placement?.earningPercent !== undefined && placement?.earningPercent !== null
-              ? numeric(placement.earningPercent)
+          placement?.earningPercent !== undefined &&
+          placement?.earningPercent !== null
+            ? numeric(placement.earningPercent)
+            : commission.percentage !== undefined &&
+                commission.percentage !== null
+              ? numeric(commission.percentage)
               : 0
 
-        const status = draft?.status || placement?.earningStatus || 'pending'
+        const status =
+          placement?.earningStatus || commission.paymentStatus || 'pending'
 
         acc[student._id] = {
           salary,
           percent,
           status,
-          amount: Number(((salary * percent) / 100).toFixed(2)),
+          amount:
+            placement?.earningAmount !== undefined &&
+            placement?.earningAmount !== null
+              ? numeric(placement.earningAmount)
+              : commission.amount !== undefined &&
+                  commission.amount !== null
+                ? numeric(commission.amount)
+                : Number(((salary * percent) / 100).toFixed(2)),
+          hasCommission,
           placementId
         }
         return acc
       }, {}),
-    [students, placementByStudentId, commissionDraft]
+    [students, placementByStudentId]
   )
-
-  const saveCommission = async (studentId) => {
-    const data = commissionByStudentId[studentId]
-    if (!data?.placementId) {
-      toast.error('No placement found for this candidate')
-      return
-    }
-
-    try {
-      const payload = {
-        offeredSalaryPM: data.salary,
-        earningPercent: data.percent,
-        earningStatus: data.status === 'paid' ? 'paid' : 'pending'
-      }
-      const { data: updated } = await api.put(`/placements/${data.placementId}`, payload)
-      setPlacements((current) => current.map((item) => (item._id === data.placementId ? updated : item)))
-      toast.success('Commission updated')
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not update commission')
-    }
-  }
 
   const filtered = useMemo(() => {
     const search = filters.search.toLowerCase().trim()
@@ -265,6 +420,15 @@ const [deletePrompt, setDeletePrompt] = useState({
       )
   }, [students, filters, placementByStudentId])
 
+  useEffect(() => {
+    setPage(1)
+  }, [filters, pageSize])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize])
+
   const deleteStudent = async (student) => {
     if (!window.confirm(`Delete ${student.candidateName}?`))
       return
@@ -282,110 +446,6 @@ const [deletePrompt, setDeletePrompt] = useState({
         error.response?.data?.message ||
           'Could not delete student'
       )
-    }
-  }
-
-  const buildStudentPayload = (student) => ({
-    candidateName: student.candidateName,
-    mobileNumber: student.mobileNumber,
-    aadhaarNo: student.aadhaarNo,
-    whatsappNo: student.whatsappNo,
-    emailId: student.emailId,
-    appliedFor: student.appliedFor,
-    interestedDepartment: student.interestedDepartment,
-    preferredIndustry: student.preferredIndustry,
-    preferredJobLocation: student.preferredJobLocation,
-    education: student.education,
-    totalExperience:
-      student.totalExperience === ''
-        ? undefined
-        : student.totalExperience,
-    careerSummary: student.careerSummary,
-    currentSalary: student.currentSalary,
-    expectedSalary: student.expectedSalary,
-    noticePeriod:
-      student.noticePeriod === ''
-        ? undefined
-        : student.noticePeriod,
-    reasonForJobChange: student.reasonForJobChange,
-    currentJobLocation: student.currentJobLocation,
-    availabilityForInterview:
-      student.availabilityForInterview,
-    marriageStatus: student.marriageStatus || undefined,
-    documents: student.documents || [],
-    status: student.status,
-    adminNotes: student.adminNotes,
-    selectionStatus: student.selectionStatus
-  })
-
-  const saveSelected = async () => {
-    if (!selected) return
-
-    setSavingFull(true)
-
-    try {
-      const { data } = await api.put(
-        `/students/${selected._id}`,
-        buildStudentPayload(selected)
-      )
-
-      setStudents((current) =>
-        current.map((item) =>
-          item._id === data._id ? data : item
-        )
-      )
-
-      setSelected(data)
-
-      toast.success('Student updated')
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          'Could not update student'
-      )
-    } finally {
-      setSavingFull(false)
-    }
-  }
-
-  const requestSaveSelected = () => {
-    if (!selected) return
-    setSaveConfirmOpen(true)
-  }
-
-  const uploadDocuments = async (files) => {
-    if (!selected || !files?.length) return
-
-    setUploadingDocuments(true)
-
-    try {
-      const formData = new FormData()
-
-      files.forEach((file) =>
-        formData.append('documents', file)
-      )
-
-      const { data } = await api.post(
-        `/students/${selected._id}/docs`,
-        formData
-      )
-
-      setStudents((current) =>
-        current.map((item) =>
-          item._id === data._id ? data : item
-        )
-      )
-
-      setSelected(data)
-
-      toast.success('Documents uploaded')
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          'Could not upload documents'
-      )
-    } finally {
-      setUploadingDocuments(false)
     }
   }
 
@@ -428,6 +488,7 @@ const [deletePrompt, setDeletePrompt] = useState({
 
       const rows = filtered.map((student) => {
         const placement = student.placement || {}
+        const commission = student.advisorCommission || {}
 
         return [
           student.candidateName,
@@ -462,10 +523,10 @@ const [deletePrompt, setDeletePrompt] = useState({
             : '',
           placement.companyId?.companyName || '',
           placement.jobProfile || '',
-          placement.offeredSalaryPM ?? '',
-          placement.earningPercent ?? '',
-          placement.earningAmount ?? '',
-          placement.earningStatus || '',
+          placement.offeredSalaryPM ?? commission.salary ?? '',
+          placement.earningPercent ?? commission.percentage ?? '',
+          placement.earningAmount ?? commission.amount ?? '',
+          placement.earningStatus || commission.paymentStatus || '',
           safeDate(placement.joiningDate),
           safeDate(placement.interviewDate),
           placement.interviewMode || '',
@@ -505,7 +566,7 @@ const [deletePrompt, setDeletePrompt] = useState({
     <div className="space-y-4 sm:space-y-6">
       <Header
         title="Students"
-        subtitle="Search, filter, view, edit, export, and delete student references."
+        subtitle="Search, filter, view, update status, export, and delete student references."
         onExport={exportCsv}
       />
 
@@ -533,7 +594,7 @@ const [deletePrompt, setDeletePrompt] = useState({
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((student) => (
+              {paginated.map((student) => (
                 <tr
                   key={student._id}
                   className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40"
@@ -582,45 +643,17 @@ const [deletePrompt, setDeletePrompt] = useState({
                   </td>
 
                   <td className="px-5 py-3 text-slate-600">
-                    {commissionByStudentId[student._id]?.placementId ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={commissionByStudentId[student._id].percent}
-                          onChange={(event) =>
-                            setCommissionDraft((current) => ({
-                              ...current,
-                              [commissionByStudentId[student._id].placementId]: {
-                                ...(current[commissionByStudentId[student._id].placementId] || {}),
-                                percent: event.target.value
-                              }
-                            }))
-                          }
-                          onBlur={() => saveCommission(student._id)}
-                          className="w-20 rounded-lg border border-slate-300 px-2 py-1 text-xs"
-                          placeholder="%"
-                        />
-                        <select
-                          value={commissionByStudentId[student._id].status === 'paid' ? 'paid' : 'unpaid'}
-                          onChange={(event) => {
-                            setCommissionDraft((current) => ({
-                              ...current,
-                              [commissionByStudentId[student._id].placementId]: {
-                                ...(current[commissionByStudentId[student._id].placementId] || {}),
-                                status: event.target.value === 'paid' ? 'paid' : 'pending'
-                              }
-                            }))
-                            setTimeout(() => saveCommission(student._id), 0)
-                          }}
-                          className="rounded-lg border border-slate-300 px-2 py-1 text-xs"
-                        >
-                          <option value="unpaid">Unpaid</option>
-                          <option value="paid">Paid</option>
-                        </select>
-                        <span className="text-xs font-semibold text-slate-700">₹{commissionByStudentId[student._id].amount}</span>
+                    {commissionByStudentId[student._id]?.hasCommission ? (
+                      <div className="space-y-1">
+                        <div className="font-semibold text-slate-900">
+                          ₹{commissionByStudentId[student._id].amount}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {commissionByStudentId[student._id].percent}% /{' '}
+                          {commissionByStudentId[student._id].status === 'paid'
+                            ? 'Paid'
+                            : 'Pending'}
+                        </div>
                       </div>
                     ) : (
                       '-'
@@ -628,7 +661,7 @@ const [deletePrompt, setDeletePrompt] = useState({
                   </td>
 
                   <td className="px-5 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
 
                       {/* VIEW BUTTON */}
                       <button
@@ -637,23 +670,22 @@ const [deletePrompt, setDeletePrompt] = useState({
                           setDrawerMode('view')
                           setSelected(student)
                         }}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sky-600 hover:bg-sky-50"
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50"
                         aria-label="View student"
                       >
                         <Eye className="h-4 w-4" />
+                        View
                       </button>
 
                       {/* EDIT BUTTON */}
                       <button
                         type="button"
-                        onClick={() => {
-                          setDrawerMode('edit')
-                          setSelected(student)
-                        }}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-amber-600 hover:bg-amber-50"
-                        aria-label="Edit student"
+                        onClick={() => openStatusUpdate(student)}
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-700 hover:bg-amber-50"
+                        aria-label="Update status and advisor payment"
                       >
                         <Pencil className="h-4 w-4" />
+                        Update
                       </button>
 
                       {/* DELETE BUTTON */}
@@ -665,10 +697,11 @@ const [deletePrompt, setDeletePrompt] = useState({
     student
   })
 }
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50"
                         aria-label="Delete student"
                       >
                         <Trash2 className="h-4 w-4" />
+                        Delete
                       </button>
 
                     </div>
@@ -689,44 +722,28 @@ const [deletePrompt, setDeletePrompt] = useState({
             </tbody>
           </table>
         </div>
+        <Pagination page={page} pageSize={pageSize} total={filtered.length} itemLabel="candidates" onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
      <DetailDrawer
   open={Boolean(selected)}
   item={selected}
   type="student"
-  mode={drawerMode}
+  mode="view"
   onClose={() => setSelected(null)}
-  adminControls={drawerMode === 'edit'}
-  fullEdit={drawerMode === 'edit'}
-  onItemChange={setSelected}
-  onStatusChange={(status) =>
-    setSelected((current) => ({
-      ...current,
-      status
-    }))
-  }
-  onNotesChange={(adminNotes) =>
-    setSelected((current) => ({
-      ...current,
-      adminNotes
-    }))
-  }
-  onSaveFull={requestSaveSelected}
-  savingFull={savingFull}
-  onUploadDocuments={uploadDocuments}
-  uploadingDocuments={uploadingDocuments}
+  adminControls={false}
+  fullEdit={false}
+  studentPanelView
 />
-      <ConfirmDialog
-        open={saveConfirmOpen}
-        title="Save Candidate Changes"
-        message={`Save updates for ${selected?.candidateName || 'this candidate'}?`}
-        confirmText="Save Changes"
-        onCancel={() => setSaveConfirmOpen(false)}
-        onConfirm={async () => {
-          setSaveConfirmOpen(false)
-          await saveSelected()
-        }}
+      <StatusUpdateDialog
+        open={statusUpdate.open}
+        student={statusUpdate.student}
+        placement={statusUpdate.placement}
+        values={statusUpdate.values}
+        saving={statusUpdate.saving}
+        onChange={setStatusUpdateValue}
+        onCancel={closeStatusUpdate}
+        onConfirm={saveStatusUpdate}
       />
       <PromptDialog
         open={deletePrompt.open}
@@ -748,6 +765,140 @@ const [deletePrompt, setDeletePrompt] = useState({
           }
         }}
       />
+    </div>
+  )
+}
+
+function StatusUpdateDialog({
+  open,
+  student,
+  placement,
+  values,
+  saving,
+  onChange,
+  onCancel,
+  onConfirm
+}) {
+  if (!open || !student) return null
+
+  const salary = numeric(values.salary)
+  const percent = numeric(values.percent)
+  const amount = Number(((salary * percent) / 100).toFixed(2))
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-2 sm:p-4">
+      <div className="max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl ring-1 ring-slate-200">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="text-lg font-bold text-slate-950">
+            Update Status
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {student.candidateName} - {student.mobileNumber}
+          </p>
+        </div>
+
+        <div className="grid gap-4 px-5 py-5 sm:grid-cols-2">
+          <label className="space-y-1.5">
+            <span className="text-sm font-semibold text-slate-700">
+              Candidate Status
+            </span>
+            <select
+              value={values.status}
+              onChange={(event) =>
+                onChange('status', event.target.value)
+              }
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+            >
+              {candidateStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-sm font-semibold text-slate-700">
+              Salary
+            </span>
+            <input
+              type="number"
+              min="0"
+              value={values.salary}
+              onChange={(event) =>
+                onChange('salary', event.target.value)
+              }
+              placeholder="Monthly salary"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-sm font-semibold text-slate-700">
+              Advisor Percentage
+            </span>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={values.percent}
+              onChange={(event) =>
+                onChange('percent', event.target.value)
+              }
+              placeholder="0 to 100"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-sm font-semibold text-slate-700">
+              Payment Status
+            </span>
+            <select
+              value={values.earningStatus}
+              onChange={(event) =>
+                onChange('earningStatus', event.target.value)
+              }
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+            >
+              {earningStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200 sm:col-span-2">
+            <div className="text-xs font-semibold uppercase text-slate-500">
+              Advisor Amount
+            </div>
+            <div className="mt-1 text-xl font-bold text-slate-950">
+              ₹{amount}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={saving}
+            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
+          >
+            {saving ? 'Saving...' : 'Save Update'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

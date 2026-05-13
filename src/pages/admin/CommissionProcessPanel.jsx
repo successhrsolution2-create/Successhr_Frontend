@@ -6,6 +6,7 @@ import api from '../../api/axios'
 import Skeleton from '../../components/Skeleton'
 import socket from '../../socket'
 import { ConfirmDialog } from '../../components/ActionDialogs'
+import Pagination from '../../components/Pagination'
 
 const processStageLabel = {
   appointment_letter_pending: 'Appointment Letter Pending',
@@ -70,6 +71,8 @@ export default function CommissionProcessPanel() {
   const [editingPlacementId, setEditingPlacementId] = useState('')
   const [advancingPlacementId, setAdvancingPlacementId] = useState('')
   const [confirmAction, setConfirmAction] = useState(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [editForm, setEditForm] = useState({
     companyId: '',
     jobProfile: '',
@@ -155,6 +158,15 @@ export default function CommissionProcessPanel() {
 
     return { total, selected, joined, pendingPayments }
   }, [filteredPlacements])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filters, pageSize])
+
+  const paginatedPlacements = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filteredPlacements.slice(start, start + pageSize)
+  }, [filteredPlacements, page, pageSize])
 
   const editingPlacement = useMemo(
     () => placements.find((placement) => placement._id === editingPlacementId) || null,
@@ -402,7 +414,7 @@ export default function CommissionProcessPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredPlacements.map((placement) => {
+              {paginatedPlacements.map((placement) => {
                 const currentProcessStage =
                   placement.processStage || processStageBySelectionStatus[placement.selectionStatus] || 'appointment_letter_pending'
                 const nextProcessStage = getNextProcessStage(currentProcessStage)
@@ -488,6 +500,14 @@ export default function CommissionProcessPanel() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={filteredPlacements.length}
+          itemLabel="placements"
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
       <ProcessEditModal

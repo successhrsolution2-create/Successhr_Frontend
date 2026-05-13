@@ -74,3 +74,68 @@ export function PromptDialog({
     </div>
   )
 }
+
+export function ExportRangeDialog({
+  open,
+  title = 'Export Data',
+  message = 'Select a registration date range for export.',
+  fromValue = '',
+  toValue = '',
+  confirmText = 'Export',
+  cancelText = 'Cancel',
+  onConfirm,
+  onCancel
+}) {
+  const [fromDate, setFromDate] = useState(fromValue)
+  const [toDate, setToDate] = useState(toValue)
+
+  useEffect(() => {
+    if (open) {
+      setFromDate(fromValue || '')
+      setToDate(toValue || '')
+    }
+  }, [open, fromValue, toValue])
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 px-3 py-4">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-xl bg-white p-4 shadow-2xl ring-1 ring-slate-200 sm:p-5">
+        <h3 className="text-lg font-bold text-slate-950">{title}</h3>
+        <p className="mt-2 text-sm text-slate-600">{message}</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="text-sm font-semibold text-slate-700">
+            From Date
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(event) => setFromDate(event.target.value)}
+              className="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            To Date
+            <input
+              type="date"
+              value={toDate}
+              onChange={(event) => setToDate(event.target.value)}
+              className="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+        </div>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onCancel} className="min-h-10 w-full rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto">
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm?.({ fromDate, toDate })}
+            className="min-h-10 w-full rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white hover:bg-orange-600 sm:w-auto"
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client'
 
-const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const defaultHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+const API_ROOT = import.meta.env.VITE_API_URL || `http://${defaultHost}:5000`
 
 const socket = io(API_ROOT, {
   auth: { token: localStorage.getItem('token') },

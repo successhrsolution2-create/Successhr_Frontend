@@ -91,6 +91,7 @@ export default function CandidatePopup({ open, candidate, onClose, onEdit }) {
                     <tr>
                       <th className="px-4 py-3">#</th>
                       <th className="px-4 py-3">Company</th>
+                      <th className="px-4 py-3">Job Role</th>
                       <th className="px-4 py-3">Reference Person</th>
                       <th className="px-4 py-3">Remark</th>
                       <th className="px-4 py-3">Date</th>
@@ -102,6 +103,7 @@ export default function CandidatePopup({ open, candidate, onClose, onEdit }) {
                       <tr key={row.id || idx}>
                         <td className="px-4 py-3 text-slate-500">{idx + 1}</td>
                         <td className="px-4 py-3">{row.companyName || '-'}</td>
+                        <td className="px-4 py-3">{row.jobRole || '-'}</td>
                         <td className="px-4 py-3">{row.referencePerson || '-'}</td>
                         <td className="px-4 py-3">{row.remark || '-'}</td>
                         <td className="px-4 py-3">{row.date || '-'}</td>
@@ -110,7 +112,7 @@ export default function CandidatePopup({ open, candidate, onClose, onEdit }) {
                     ))}
                     {(candidate.interviews || []).length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                        <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                           No interviews.
                         </td>
                       </tr>

@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import {
   UserCheck,
-  // X,
+  X,
   Building2,
   PanelsTopLeft
 } from 'lucide-react'
@@ -33,21 +33,26 @@ export default function Sidebar({ role, children }) {
           open ? 'translate-x-0' : '-translate-x-full'
         } lg:static lg:translate-x-0`}
       >
-        <div className="flex items-center justify-between border-b border-slate-700 p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-700 p-3 sm:p-4">
           <BrandLogo className="max-h-24" />
-          {/* <button onClick={() => setOpen(false)} className="lg:hidden" aria-label="Close menu">
-            <X />
-          </button> */}
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-200 hover:bg-slate-700 lg:hidden"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <nav className="space-y-1 overflow-x-hidden p-2 sm:p-3" onClick={() => setOpen(false)}>
           {isSuperAdmin ? (
             <>
               <div className="my-3 border-t border-slate-700" />
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-300 whitespace-nowrap">Candidate Management</p>
+              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-300">Candidate Management</p>
               <div className="ml-2 mt-1 space-y-1 sm:ml-6">
                 <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
-                  <UserCheck size={16} /> <span className="whitespace-nowrap">Candidates</span>
+                  <UserCheck size={16} /> <span className="min-w-0 truncate">Candidates</span>
                 </div>
                 <NavLink
                   to="/candidate/admin/cms/candidates"
@@ -71,7 +76,7 @@ export default function Sidebar({ role, children }) {
                     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`
                   }
                 >
-                  <PanelsTopLeft size={16} /> <span className="whitespace-nowrap">Process Panel</span>
+                  <PanelsTopLeft size={16} /> <span className="min-w-0 truncate">Process Panel</span>
                 </NavLink>
               </div>
             </>
@@ -81,7 +86,7 @@ export default function Sidebar({ role, children }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenuClick={() => setOpen(true)} />
-        <main className="flex-1 overflow-y-auto px-3 py-4 sm:p-5 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:p-5 lg:p-6">{children}</main>
       </div>
     </div>
   )

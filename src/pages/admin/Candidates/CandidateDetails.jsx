@@ -61,7 +61,7 @@ const processRemarkSections = [
   }
 ]
 
-const emptyInterviewForm = { companyName: '', reference: '', interviewDate: '', remark: '', result: 'Pending' }
+const emptyInterviewForm = { companyName: '', jobRole: '', reference: '', interviewDate: '', remark: '', result: 'Pending' }
 
 const dateValue = (value) => (value ? String(value).slice(0, 10) : '')
 
@@ -158,6 +158,7 @@ export default function CandidateDetails() {
     setEditingInterviewId(item._id)
     setInterviewForm({
       companyName: item.companyName || '',
+      jobRole: item.jobRole || '',
       reference: item.reference || '',
       interviewDate: dateValue(item.interviewDate),
       remark: item.remark || '',
@@ -268,11 +269,17 @@ export default function CandidateDetails() {
 
       {tab === 'interviews' ? (
         <section className="space-y-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
-          <form onSubmit={submitInterview} className="grid gap-3 md:grid-cols-5">
+          <form onSubmit={submitInterview} className="grid gap-3 md:grid-cols-6">
             <input
               value={interviewForm.companyName}
               onChange={(e) => setInterviewForm((c) => ({ ...c, companyName: e.target.value }))}
               placeholder="Company Name"
+              className="rounded-lg border border-slate-300 px-3 py-2"
+            />
+            <input
+              value={interviewForm.jobRole}
+              onChange={(e) => setInterviewForm((c) => ({ ...c, jobRole: e.target.value }))}
+              placeholder="Job Role"
               className="rounded-lg border border-slate-300 px-3 py-2"
             />
             <input
@@ -303,7 +310,7 @@ export default function CandidateDetails() {
               value={interviewForm.remark}
               onChange={(e) => setInterviewForm((c) => ({ ...c, remark: e.target.value }))}
               placeholder="Remark"
-              className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-5"
+              className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-6"
             />
           </form>
 
@@ -325,6 +332,7 @@ export default function CandidateDetails() {
               <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Company</th>
+                  <th className="px-4 py-3">Job Role</th>
                   <th className="px-4 py-3">Reference</th>
                   <th className="px-4 py-3">Interview Date</th>
                   <th className="px-4 py-3">Result</th>
@@ -336,6 +344,7 @@ export default function CandidateDetails() {
                 {interviews.map((item) => (
                   <tr key={item._id}>
                     <td className="px-4 py-3">{item.companyName}</td>
+                    <td className="px-4 py-3">{item.jobRole || '-'}</td>
                     <td className="px-4 py-3">{item.reference || '-'}</td>
                     <td className="px-4 py-3">{dateValue(item.interviewDate) || '-'}</td>
                     <td className="px-4 py-3">{item.result || '-'}</td>
@@ -364,7 +373,7 @@ export default function CandidateDetails() {
                 ))}
                 {interviews.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
                       No interviews yet.
                     </td>
                   </tr>

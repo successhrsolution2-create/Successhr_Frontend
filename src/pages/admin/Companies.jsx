@@ -9,6 +9,7 @@ import DetailDrawer from '../../components/DetailDrawer'
 import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
 import { ConfirmDialog, PromptDialog } from '../../components/ActionDialogs'
+import Pagination from '../../components/Pagination'
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '')
 
@@ -93,6 +94,8 @@ export default function Companies() {
   // NEW STATE
   const [drawerMode, setDrawerMode] = useState('view')
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
 const [deletePrompt, setDeletePrompt] = useState({
   open: false,
@@ -101,14 +104,21 @@ const [deletePrompt, setDeletePrompt] = useState({
 
   useEffect(() => {
     const load = async () => {
-      const [companyRes, baRes] = await Promise.all([
-        api.get('/companies'),
-        api.get('/ba/all')
-      ])
+      try {
+        const [companyRes, baRes] = await Promise.all([
+          api.get('/companies'),
+          api.get('/ba/all')
+        ])
 
-      setCompanies(companyRes.data)
-      setBas(baRes.data)
-      setLoading(false)
+        setCompanies(companyRes.data)
+        setBas(baRes.data)
+      } catch (error) {
+        toast.error(
+          error.response?.data?.message || 'Could not load companies'
+        )
+      } finally {
+        setLoading(false)
+      }
     }
 
     load()
@@ -163,6 +173,15 @@ const [deletePrompt, setDeletePrompt] = useState({
       )
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   }, [companies, filters])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filters, pageSize])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize])
 
   const deleteCompany = async (company) => {
     try {
@@ -311,7 +330,7 @@ const [deletePrompt, setDeletePrompt] = useState({
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((company) => (
+              {paginated.map((company) => (
                 <tr
                   key={company._id}
                   className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40"
@@ -350,7 +369,7 @@ const [deletePrompt, setDeletePrompt] = useState({
                   </td>
 
                   <td className="px-5 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
 
                       {/* VIEW BUTTON */}
                       <button
@@ -359,10 +378,11 @@ const [deletePrompt, setDeletePrompt] = useState({
                           setDrawerMode('view')
                           setSelected(company)
                         }}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sky-600 hover:bg-sky-50"
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50"
                         aria-label="View company"
                       >
                         <Eye className="h-4 w-4" />
+                        View
                       </button>
 
                       {/* EDIT BUTTON */}
@@ -372,10 +392,11 @@ const [deletePrompt, setDeletePrompt] = useState({
                           setDrawerMode('edit')
                           setSelected(company)
                         }}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-amber-600 hover:bg-amber-50"
-                        aria-label="Edit company"
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-700 hover:bg-amber-50"
+                        aria-label="Update company"
                       >
                         <Pencil className="h-4 w-4" />
+                        Update
                       </button>
 
                       {/* DELETE BUTTON */}
@@ -387,10 +408,11 @@ const [deletePrompt, setDeletePrompt] = useState({
     company
   })
 }
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50"
                         aria-label="Delete company"
                       >
                         <Trash2 className="h-4 w-4" />
+                        Delete
                       </button>
 
                     </div>
@@ -411,6 +433,7 @@ const [deletePrompt, setDeletePrompt] = useState({
             </tbody>
           </table>
         </div>
+        <Pagination page={page} pageSize={pageSize} total={filtered.length} itemLabel="companies" onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       <DetailDrawer

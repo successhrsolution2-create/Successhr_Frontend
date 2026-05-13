@@ -1,12 +1,22 @@
 import { UploadCloud, X } from 'lucide-react'
+import { useState } from 'react'
+import { ConfirmDialog } from './ActionDialogs'
 
 export default function FileUpload({ files = [], onFiles, onRemove, multiple = false, accept = 'image/*,.pdf' }) {
+  const [removeIndex, setRemoveIndex] = useState(null)
+
   const handleChange = (event) => {
     const selected = Array.from(event.target.files || [])
     if (selected.length) {
       onFiles?.(selected)
     }
     event.target.value = ''
+  }
+
+  const confirmRemove = () => {
+    if (removeIndex === null) return
+    onRemove?.(removeIndex)
+    setRemoveIndex(null)
   }
 
   return (
@@ -26,7 +36,7 @@ export default function FileUpload({ files = [], onFiles, onRemove, multiple = f
               {onRemove && (
                 <button
                   type="button"
-                  onClick={() => onRemove(index)}
+                  onClick={() => setRemoveIndex(index)}
                   className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200 hover:text-rose-600"
                   aria-label="Remove file"
                 >
@@ -37,6 +47,16 @@ export default function FileUpload({ files = [], onFiles, onRemove, multiple = f
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={removeIndex !== null}
+        title="Remove Image"
+        message="Are you sure you want to remove this image?"
+        confirmText="Yes"
+        cancelText="No"
+        danger
+        onCancel={() => setRemoveIndex(null)}
+        onConfirm={confirmRemove}
+      />
     </div>
   )
 }

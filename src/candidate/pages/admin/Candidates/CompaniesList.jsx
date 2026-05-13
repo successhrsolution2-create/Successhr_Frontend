@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react'
 import api from '../../../api/axios'
 import Skeleton from '../../../components/Skeleton'
 import { ConfirmDialog } from '../../../components/ActionDialogs'
+import Pagination from '../../../components/Pagination'
 
 export default function CompaniesList() {
   const navigate = useNavigate()
@@ -12,6 +13,8 @@ export default function CompaniesList() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const load = async () => {
     try {
@@ -48,6 +51,15 @@ export default function CompaniesList() {
       return fields.some((value) => String(value || '').toLowerCase().includes(query))
     })
   }, [companies, search])
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, pageSize])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize])
 
   const handleDelete = async () => {
     if (!deleting?._id) return
@@ -104,7 +116,7 @@ export default function CompaniesList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((company) => (
+              {paginated.map((company) => (
                 <tr key={company._id} className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40">
                   <td className="px-5 py-3 font-semibold text-slate-900">{company.companyName}</td>
                   <td className="px-5 py-3 text-slate-700">{company.contactPersonName || '-'}</td>
@@ -112,22 +124,24 @@ export default function CompaniesList() {
                   <td className="px-5 py-3 text-slate-700">{company.jobRequirements?.jobProfile || '-'}</td>
                   <td className="px-5 py-3 text-slate-700">{company.jobRequirements?.numberOfVacancy ?? '-'}</td>
                   <td className="px-5 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => navigate(`/candidate/admin/cms/companies/${company._id}/edit`)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-amber-600 hover:bg-amber-50"
-                        aria-label="Edit company"
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-700 hover:bg-amber-50"
+                        aria-label="Update company"
                       >
                         <Pencil className="h-4 w-4" />
+                        Update
                       </button>
                       <button
                         type="button"
                         onClick={() => setDeleting(company)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50"
                         aria-label="Delete company"
                       >
                         <Trash2 className="h-4 w-4" />
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -143,6 +157,14 @@ export default function CompaniesList() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={filtered.length}
+          itemLabel="companies"
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
       <ConfirmDialog

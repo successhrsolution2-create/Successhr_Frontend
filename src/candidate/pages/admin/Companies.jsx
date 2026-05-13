@@ -9,6 +9,7 @@ import DetailDrawer from '../../components/DetailDrawer'
 import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
 import { ConfirmDialog, PromptDialog } from '../../components/ActionDialogs'
+import Pagination from '../../components/Pagination'
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '')
 
@@ -93,6 +94,8 @@ export default function Companies() {
   // NEW STATE
   const [drawerMode, setDrawerMode] = useState('view')
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
 const [deletePrompt, setDeletePrompt] = useState({
   open: false,
@@ -163,6 +166,15 @@ const [deletePrompt, setDeletePrompt] = useState({
       )
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   }, [companies, filters])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filters, pageSize])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize])
 
   const deleteCompany = async (company) => {
     try {
@@ -311,7 +323,7 @@ const [deletePrompt, setDeletePrompt] = useState({
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((company) => (
+              {paginated.map((company) => (
                 <tr
                   key={company._id}
                   className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40"
@@ -411,6 +423,7 @@ const [deletePrompt, setDeletePrompt] = useState({
             </tbody>
           </table>
         </div>
+        <Pagination page={page} pageSize={pageSize} total={filtered.length} itemLabel="companies" onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       <DetailDrawer

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Copy, Eye, KeyRound, Pencil, Plus, Trash2, UploadCloud, X } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import api, { assetUrl } from '../../api/axios'
 import Skeleton from '../../components/Skeleton'
+import Pagination from '../../components/Pagination'
 import { ConfirmDialog, PromptDialog } from '../../components/ActionDialogs'
 import { copyToClipboard } from '../../utils/copyToClipboard'
 
@@ -81,6 +82,8 @@ const profileToForm = (profile) => ({
 export default function BusinessAdvisors() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [profiles, setProfiles] = useState([])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [modalMode, setModalMode] = useState(null)
@@ -99,6 +102,15 @@ export default function BusinessAdvisors() {
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    setPage(1)
+  }, [profiles.length, pageSize])
+
+  const paginatedProfiles = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return profiles.slice(start, start + pageSize)
+  }, [profiles, page, pageSize])
 
   useEffect(() => {
     if (searchParams.get('action') !== 'create') return
@@ -299,7 +311,7 @@ export default function BusinessAdvisors() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {profiles.map((profile) => (
+              {paginatedProfiles.map((profile) => (
                 <tr key={profile._id} className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40">
                   <td className="px-5 py-3 font-semibold text-slate-900">{profile.userId?.name || profile.fullName}</td>
                   <td className="px-5 py-3 text-slate-600">{profile.userId?.email || profile.email}</td>
@@ -377,6 +389,7 @@ export default function BusinessAdvisors() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} pageSize={pageSize} total={profiles.length} itemLabel="advisors" onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       {modalMode && (

@@ -44,19 +44,19 @@ export default function Topbar({ onMenuClick }) {
         type="button"
         onClick={onMenuClick}
         aria-label="Open menu"
-        className="lg:hidden mr-2 p-2 rounded-lg hover:bg-gray-100"
+        className="mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg hover:bg-gray-100 lg:hidden"
       >
         <Menu size={20} />
       </button>
 
       {/* PROFILE */}
-      <div className="ml-auto relative" ref={ref}>
+      <div className="relative ml-auto min-w-0" ref={ref}>
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition"
+          className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-gray-100 sm:px-3"
         >
           <UserCircle className="h-7 w-7 text-gray-600" />
-          <span className="text-sm font-medium hidden sm:block text-gray-700">
+          <span className="hidden max-w-44 truncate text-sm font-medium text-gray-700 sm:block">
             {user?.name}
           </span>
           <ChevronDown
@@ -67,7 +67,7 @@ export default function Topbar({ onMenuClick }) {
 
         {/* DROPDOWN */}
         {open && (
-          <div className="absolute right-0 z-50 mt-3 w-[calc(100vw-1.5rem)] max-w-64 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
+          <div className="absolute right-0 z-50 mt-3 w-[calc(100vw-1rem)] max-w-64 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
 
             {/* USER INFO */}
             <div className="px-4 py-3 bg-gray-50 border-b">

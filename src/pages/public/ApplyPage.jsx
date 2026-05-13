@@ -204,8 +204,8 @@ export default function ApplyPage() {
 
   return (
     <PublicShell advisor={advisor}>
-      <form onSubmit={submit} className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-5">
+      <form onSubmit={submit} className="mx-auto grid w-full max-w-6xl gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-4 sm:space-y-5">
           {submitError ? (
             <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800">
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
@@ -315,7 +315,7 @@ function PublicShell({ children, advisor }) {
               <img src="/success-logo.png" alt="SUCCESS HR Solution" className="h-10 w-28 shrink-0 object-contain sm:h-12 sm:w-32" />
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase text-sky-700">SUCCESS HR Solution</p>
-                <h1 className="truncate text-xl font-bold text-slate-950 sm:text-2xl">Candidate Application</h1>
+                <h1 className="text-xl font-bold leading-tight text-slate-950 sm:text-2xl">Candidate Application</h1>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -336,9 +336,9 @@ function PublicShell({ children, advisor }) {
 function FormSection({ icon, title, children }) {
   return (
     <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex min-w-0 items-center gap-2">
         <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">{icon}</span>
-        <h2 className="text-base font-bold text-slate-950">{title}</h2>
+        <h2 className="min-w-0 break-words text-base font-bold text-slate-950">{title}</h2>
       </div>
       {children}
     </section>
@@ -347,7 +347,7 @@ function FormSection({ icon, title, children }) {
 
 function Field({ label, value, onChange, placeholder, required = false, type = 'text' }) {
   return (
-    <label className="block text-sm font-semibold text-slate-700">
+    <label className="block min-w-0 text-sm font-semibold text-slate-700">
       {label} {required ? <span className="text-rose-500">*</span> : null}
       <input
         type={type}
@@ -364,7 +364,7 @@ function Field({ label, value, onChange, placeholder, required = false, type = '
 
 function Area({ label, value, onChange, className = '', rows = 3 }) {
   return (
-    <label className={`block text-sm font-semibold text-slate-700 ${className}`}>
+    <label className={`block min-w-0 text-sm font-semibold text-slate-700 ${className}`}>
       {label}
       <textarea
         rows={rows}
@@ -380,7 +380,7 @@ function SummaryRow({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
       <span>{label}</span>
-      <span className="text-right font-semibold text-slate-950">{value || '-'}</span>
+      <span className="min-w-0 break-words text-right font-semibold text-slate-950">{value || '-'}</span>
     </div>
   )
 }

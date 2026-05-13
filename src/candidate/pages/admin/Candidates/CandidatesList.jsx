@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { CalendarDays, Download, Eye, Filter, Pencil, Plus, RotateCcw, Search, ShieldCheck, Trash2, UserRoundPlus, Users } from 'lucide-react'
-import { ConfirmDialog } from '../../../components/ActionDialogs'
+import { ConfirmDialog, ExportRangeDialog } from '../../../components/ActionDialogs'
+import Pagination from '../../../components/Pagination'
 import api from '../../../api/axios'
 import {
   PERSONALITY_RATING_FIELDS,
@@ -15,6 +16,16 @@ import {
 const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
 
 const isChecked = (value) => Boolean(value?.checked ?? value)
+
+const dateKey = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 const fallbackCode = (item) => {
   if (item?.candidateCode) return item.candidateCode
@@ -63,9 +74,47 @@ const toLegacyShape = (item) => ({
   additionalNotes: item.careerSummary || '',
   remarks: item.remarks || {},
   successUpdate: item.successUpdate || item.successRemarks || {},
-  interviews: Array.isArray(item.interviews) ? item.interviews : [],
+  selectionStatus: item.selectionStatus || item.placement?.selectionStatus || '',
+  interviews: Array.isArray(item.interviews) ? item.interviews.map(toLegacyInterviewShape) : [],
+  interviewCount: Number(item.interviewCount || item.interviews?.length || 0),
   createdAt: item.createdAt
 })
+
+const toLegacyInterviewShape = (row) => ({
+  id: row?._id || row?.id || '',
+  companyName: row?.companyName || '',
+  jobRole: row?.jobRole || '',
+  referencePerson: row?.referencePerson || row?.reference || '',
+  attendInterview: row?.attendInterview || '',
+  interestedForJoin: row?.interestedForJoin || '',
+  date: row?.date || (row?.interviewDate ? String(row.interviewDate).slice(0, 10) : ''),
+  selectionChances: row?.selectionChances || '',
+  ratingForCompany: row?.ratingForCompany ?? '',
+  notAttendRemark: row?.notAttendRemark || '',
+  notInterestedReason: row?.notInterestedReason || '',
+  replyFromCompany: row?.replyFromCompany || '',
+  positiveFeedback: row?.positiveFeedback || '',
+  negativeFeedback: row?.negativeFeedback || '',
+  overallDiscussion: row?.overallDiscussion || row?.remark || '',
+  note: row?.note || '',
+  updatedBy: row?.updatedBy || '',
+  status: row?.status || row?.result || 'Pending'
+})
+
+const hasInterviewActivity = (candidate) =>
+  Number(candidate.interviewCount || 0) > 0 || (Array.isArray(candidate.interviews) && candidate.interviews.length > 0)
+
+const isShortlistedCandidate = (candidate) => {
+  const success = candidate.successUpdate || {}
+  const stage = String(candidate.selectionStatus || '').toLowerCase()
+  return (
+    isChecked(candidate.remarks?.shortlisted) ||
+    isChecked(success.selected) ||
+    isChecked(success.notSelected) ||
+    stage === 'shortlisted' ||
+    stage === 'selected'
+  )
+}
 
 const avatarPalette = [
   'bg-violet-100 text-violet-600',
@@ -82,13 +131,19 @@ const metricTone = {
   orange: 'border-orange-100 bg-orange-50 text-orange-700'
 }
 
-function MetricChip({ icon: Icon, label, value, tone = 'violet' }) {
+function MetricChip({ icon: Icon, label, value, tone = 'violet', active = false, onClick }) {
   return (
-    <div className={`inline-flex h-9 items-center gap-2 rounded-lg border px-2.5 ${metricTone[tone]}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex h-9 items-center gap-2 rounded-lg border px-2.5 transition hover:-translate-y-px hover:shadow-sm ${
+        active ? 'ring-2 ring-indigo-200' : ''
+      } ${metricTone[tone]}`}
+    >
       <Icon className="h-4 w-4 shrink-0" />
       <span className="text-xs font-semibold text-slate-500">{label}</span>
       <span className="text-sm font-bold text-slate-950">{value}</span>
-    </div>
+    </button>
   )
 }
 
@@ -98,8 +153,11 @@ export default function CandidatesList() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState(null)
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
+  const [exportOpen, setExportOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [tileFilter, setTileFilter] = useState('all')
 
   useEffect(() => {
     const load = async () => {
@@ -117,17 +175,17 @@ export default function CandidatesList() {
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
-    const fromDate = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null
-    const toDate = dateTo ? new Date(`${dateTo}T23:59:59.999`) : null
 
     return candidates
       .filter((candidate) => {
-        if (!fromDate && !toDate) return true
-        const created = candidate?.createdAt ? new Date(candidate.createdAt) : null
-        if (!created || Number.isNaN(created.getTime())) return false
-        if (fromDate && created < fromDate) return false
-        if (toDate && created > toDate) return false
+        if (tileFilter === 'today') return dateKey(candidate.createdAt) === dateKey(new Date())
+        if (tileFilter === 'shortlist') return isShortlistedCandidate(candidate)
+        if (tileFilter === 'interviews') return hasInterviewActivity(candidate)
         return true
+      })
+      .filter((candidate) => {
+        if (!dateFilter) return true
+        return dateKey(candidate.createdAt) === dateFilter
       })
       .filter((candidate) => {
         if (!query) return true
@@ -146,21 +204,30 @@ export default function CandidatesList() {
       ]
       return fields.some((value) => String(value || '').toLowerCase().includes(query))
       })
-  }, [candidates, search, dateFrom, dateTo])
+  }, [candidates, search, dateFilter, tileFilter])
 
   const stats = useMemo(() => {
     const total = candidates.length
-    const monthKey = new Date().toISOString().slice(0, 7)
-    const newThisMonth = candidates.filter((item) => String(item.createdAt || '').slice(0, 7) === monthKey).length
-    const shortlisted = candidates.filter((item) => isChecked(item.remarks?.shortlisted) || isChecked(item.successUpdate?.selected)).length
-    const activeInterviews = candidates.filter((item) => Array.isArray(item.interviews) && item.interviews.length > 0).length
-    return { total, newThisMonth, shortlisted, activeInterviews }
+    const todayKey = dateKey(new Date())
+    const newToday = candidates.filter((item) => dateKey(item.createdAt) === todayKey).length
+    const shortlisted = candidates.filter(isShortlistedCandidate).length
+    const activeInterviews = candidates.filter(hasInterviewActivity).length
+    return { total, newToday, shortlisted, activeInterviews }
   }, [candidates])
 
+  useEffect(() => {
+    setPage(1)
+  }, [search, dateFilter, pageSize, tileFilter])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize])
+
   const resetFilters = () => {
-    setDateFrom('')
-    setDateTo('')
+    setDateFilter('')
     setSearch('')
+    setTileFilter('all')
   }
 
   const handleDelete = async () => {
@@ -177,13 +244,17 @@ export default function CandidatesList() {
     }
   }
 
-  const exportCsv = () => {
+  const exportCsv = ({ fromDate: exportFromDate = '', toDate: exportToDate = '' } = {}) => {
     try {
       const data = candidates
 
-      const fromDate = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null
-      const toDate = dateTo ? new Date(`${dateTo}T23:59:59.999`) : null
+      const fromDate = exportFromDate ? new Date(`${exportFromDate}T00:00:00`) : null
+      const toDate = exportToDate ? new Date(`${exportToDate}T23:59:59.999`) : null
 
+      if (!exportFromDate || !exportToDate) {
+        toast.error('Select From and To dates for export')
+        return
+      }
       if (fromDate && Number.isNaN(fromDate.getTime())) {
         toast.error('Invalid From date')
         return
@@ -378,10 +449,11 @@ export default function CandidatesList() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      const suffix = dateFrom || dateTo ? `-${dateFrom || 'start'}_to_${dateTo || 'today'}` : ''
+      const suffix = `-${exportFromDate}_to_${exportToDate}`
       link.download = `candidates${suffix}-${Date.now()}.csv`
       link.click()
       URL.revokeObjectURL(url)
+      setExportOpen(false)
       toast.success('CSV exported')
     } catch (_error) {
       toast.error('Could not export CSV')
@@ -408,29 +480,22 @@ export default function CandidatesList() {
           </div>
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-2">
-              <MetricChip icon={Users} label="Total" value={stats.total} tone="violet" />
-              <MetricChip icon={CalendarDays} label="Month" value={stats.newThisMonth} tone="blue" />
-              <MetricChip icon={ShieldCheck} label="Shortlist" value={stats.shortlisted} tone="emerald" />
-              <MetricChip icon={UserRoundPlus} label="Interviews" value={stats.activeInterviews} tone="orange" />
+              <MetricChip icon={Users} label="Total" value={stats.total} tone="violet" active={tileFilter === 'all'} onClick={() => setTileFilter('all')} />
+              <MetricChip icon={CalendarDays} label="Today" value={stats.newToday} tone="blue" active={tileFilter === 'today'} onClick={() => setTileFilter('today')} />
+              <MetricChip icon={ShieldCheck} label="Shortlist" value={stats.shortlisted} tone="emerald" active={tileFilter === 'shortlist'} onClick={() => setTileFilter('shortlist')} />
+              <MetricChip icon={UserRoundPlus} label="Interviews" value={stats.activeInterviews} tone="orange" active={tileFilter === 'interviews'} onClick={() => setTileFilter('interviews')} />
             </div>
-            <div className="grid gap-2 sm:grid-cols-[repeat(2,minmax(0,190px))_auto] xl:justify-end">
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,190px)_auto] xl:justify-end">
               <input
                 type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
                 className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
-                aria-label="From date"
-              />
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
-                aria-label="To date"
+                aria-label="Filter candidates by registration date"
               />
               <button
                 type="button"
-                onClick={exportCsv}
+                onClick={() => setExportOpen(true)}
                 className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 sm:w-auto"
               >
                 <Download className="h-4 w-4" />
@@ -450,8 +515,8 @@ export default function CandidatesList() {
         </div>
         <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
           <div className="mb-4 inline-flex rounded-full bg-blue-100 p-4 text-blue-600"><CalendarDays className="h-5 w-5" /></div>
-          <p className="text-[13px] font-medium text-slate-500">New This Month</p>
-          <p className="mt-1 text-[30px] font-bold leading-none text-slate-900">{stats.newThisMonth}</p>
+          <p className="text-[13px] font-medium text-slate-500">New Today</p>
+          <p className="mt-1 text-[30px] font-bold leading-none text-slate-900">{stats.newToday}</p>
           <p className="mt-1 text-sm text-emerald-600">↑ 8.4% from last month</p>
         </div>
         <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
@@ -508,7 +573,7 @@ export default function CandidatesList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((candidate) => (
+              {paginated.map((candidate) => (
                 <tr key={candidate.id} className="odd:bg-white even:bg-slate-50 hover:bg-indigo-50/40">
                   <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-700">{candidate.code}</td>
                   <td className="px-4 py-3">
@@ -546,10 +611,11 @@ export default function CandidatesList() {
                       <button
                         type="button"
                         onClick={() => setDeleting(candidate)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100"
+                        className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-rose-50 px-3 text-xs font-semibold text-rose-500 hover:bg-rose-100"
                         aria-label="Delete candidate"
                       >
                         <Trash2 className="h-4 w-4" />
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -565,10 +631,14 @@ export default function CandidatesList() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2 text-xs font-medium text-slate-500">
-          <p>{filtered.length} candidate{filtered.length === 1 ? '' : 's'} shown</p>
-          <p>{candidates.length} total</p>
-        </div>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={filtered.length}
+          itemLabel="candidates"
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
       <ConfirmDialog
@@ -579,6 +649,13 @@ export default function CandidatesList() {
         danger
         onCancel={() => setDeleting(null)}
         onConfirm={handleDelete}
+      />
+      <ExportRangeDialog
+        open={exportOpen}
+        title="Export Candidates"
+        message="Select registration date range for the candidates export."
+        onCancel={() => setExportOpen(false)}
+        onConfirm={exportCsv}
       />
     </div>
   )

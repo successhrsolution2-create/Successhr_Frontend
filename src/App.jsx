@@ -1,8 +1,10 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import Sidebar from './components/Sidebar'
 import ProtectedRoute from './components/ProtectedRoute'
+import LoadingScreen from './components/LoadingScreen'
+import { fetchMe } from './store/authSlice'
 
 const Login = lazy(() => import('./pages/Login'))
 const BusinessAdvisors = lazy(() => import('./pages/admin/BusinessAdvisors'))
@@ -31,9 +33,10 @@ const CmsInterviewList = lazy(() => import('./candidate/pages/admin/Interviews/I
 const CmsInterviewDetails = lazy(() => import('./candidate/pages/admin/Interviews/InterviewDetails'))
 
 function HomeRedirect() {
-  const { token, user } = useSelector((state) => state.auth)
+  const { token, user, checking } = useSelector((state) => state.auth)
 
-  if (!token) return <Navigate to="/login" replace />
+  if (checking) return <LoadingScreen />
+  if (!token || !user) return <Navigate to="/login" replace />
   if (user?.role === 'superAdmin') return <Navigate to="/admin/references" replace />
   if (user?.role === 'candidateAdmin') return <Navigate to="/admin/cms/candidates" replace />
   return <Navigate to="/ba/dashboard" replace />
@@ -54,7 +57,15 @@ function SettingsShell() {
 }
 
 export default function App() {
-  const routeFallback = <div className="p-6 text-slate-600">Loading…</div>
+  const dispatch = useDispatch()
+  const token = useSelector((state) => state.auth.token)
+  const routeFallback = <LoadingScreen />
+
+  useEffect(() => {
+    if (token) {
+      dispatch(fetchMe())
+    }
+  }, [dispatch, token])
 
   if (import.meta.env.VITE_PUBLIC_APPLY_ONLY === 'true') {
     return (
@@ -365,4 +376,6 @@ export default function App() {
       </Routes>
     </Suspense>
   )
+  
 }
+

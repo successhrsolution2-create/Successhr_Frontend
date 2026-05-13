@@ -63,6 +63,152 @@ const dateInputValue = (value) => {
   return format(parsed, 'yyyy-MM-dd')
 }
 
+const dateDisplayValue = (value) => {
+  if (!value) return ''
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return format(parsed, 'dd MMM yyyy')
+}
+
+const pathValue = (source, path) =>
+  path.split('.').reduce((current, part) => (current && current[part] !== undefined ? current[part] : undefined), source)
+
+const formatMoney = (amount) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+  }).format(Number(amount || 0))
+
+const numeric = (value) => {
+  const parsed = Number(value || 0)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const getStudentEarning = (item) => {
+  if (item?.earning) return item.earning
+
+  if (item?.placement) {
+    return {
+      source: 'placement',
+      earningAmount: numeric(item.placement.earningAmount),
+      earningPercent: numeric(item.placement.earningPercent),
+      offeredSalaryPM: numeric(item.placement.offeredSalaryPM),
+      earningStatus: item.placement.earningStatus || 'pending',
+      earningPaidDate: item.placement.earningPaidDate
+    }
+  }
+
+  const commission = item?.advisorCommission || {}
+  const salary = numeric(commission.salary)
+  const percent = numeric(commission.percentage)
+  const amount =
+    commission.amount !== undefined && commission.amount !== null
+      ? numeric(commission.amount)
+      : Math.round(salary * (percent / 100))
+  const hasCommission = salary > 0 || percent > 0 || amount > 0 || commission.paymentStatus === 'paid'
+
+  if (!hasCommission) return null
+
+  return {
+    source: 'candidate',
+    earningAmount: amount,
+    earningPercent: percent,
+    offeredSalaryPM: salary,
+    earningStatus: commission.paymentStatus || 'pending',
+    earningPaidDate: commission.paidAt
+  }
+}
+
+const studentDetailPanels = [
+  {
+    title: 'Personal Details',
+    fields: [
+      ['candidateName', 'Candidate Name'],
+      ['mobileNumber', 'Mobile Number'],
+      ['whatsappNo', 'WhatsApp Number'],
+      ['emailId', 'Email ID'],
+      ['gender', 'Gender'],
+      ['currentAge', 'Current Age'],
+      ['aadhaarNo', 'Aadhar Card Number'],
+      ['panNo', 'PAN Number'],
+      ['marriageStatus', 'Marital Status'],
+      ['currentAddress', 'Current Address'],
+      ['permanentAddress', 'Permanent Address']
+    ]
+  },
+  {
+    title: 'Education Details',
+    fields: [
+      ['collegeName', 'Institute / College Name'],
+      ['education', 'Qualification in Details'],
+      ['yearOfHigherEducation', 'Year of Higher Education'],
+      ['computerCourses', 'Computer Courses'],
+      ['otherAchievements', 'Other Achievements']
+    ]
+  },
+  {
+    title: 'Placement / Reference Details',
+    fields: [
+      ['placementReference.professorName', 'Professor / Staff / TPO Name'],
+      ['placementReference.professorContactNumber', 'Professor / Staff / TPO Contact Number'],
+      ['placementReference.referenceBy', 'Reference By'],
+      ['placementReference.referenceContactNumber', 'Reference Contact Number']
+    ]
+  },
+  {
+    title: 'Job Preferences',
+    fields: [
+      ['appliedFor', 'Applied For'],
+      ['interestedDepartment', 'Interested Department'],
+      ['lookingForField', 'Looking For Jobs In Which Field?'],
+      ['preferredIndustry', 'Preferred Industry'],
+      ['preferredJobLocation', 'Preferred Job Location'],
+      ['currentJobLocation', 'Current Job Location'],
+      ['availabilityForInterview', 'Availability For Interview']
+    ]
+  },
+  {
+    title: 'Professional Details',
+    fields: [
+      ['totalExperience', 'Total Years of Experience'],
+      ['experienceDepartment', 'Current / Last Job Profile / Department'],
+      ['currentCompany', 'Current / Last Company Name'],
+      ['keyResponsibilities', 'Key Responsibilities In Previous Job'],
+      ['currentSalary', 'Current CTC / Salary'],
+      ['expectedSalary', 'Expected Salary'],
+      ['noticePeriod', 'Notice Period'],
+      ['careerSummary', 'Career Summary'],
+      ['reasonForJobChange', 'Reason For Job Change']
+    ]
+  },
+  {
+    title: 'Family Details',
+    fields: [
+      ['familyDetails.fatherOrHusbandName', 'Father / Husband Name'],
+      ['familyDetails.fatherOccupation', 'Father Occupation'],
+      ['familyDetails.fatherMobileNumber', 'Father Mobile Number'],
+      ['familyDetails.motherOrWifeName', 'Mother / Wife Name'],
+      ['familyDetails.motherOccupation', 'Mother Occupation'],
+      ['familyDetails.motherMobileNumber', 'Mother Mobile Number'],
+      ['familyDetails.siblingName', 'Sibling Name'],
+      ['familyDetails.siblingEducationOccupation', 'Sibling Education / Occupation']
+    ]
+  },
+  {
+    title: 'Additional Information',
+    fields: [
+      ['goalAim', 'Goal / Aim'],
+      ['feedback', 'Feedback'],
+      ['suggestion', 'Any Suggestion'],
+      ['formMeta.day', 'Day'],
+      ['formMeta.receiptNo', 'Receipt No'],
+      ['formMeta.rcWrc', 'RC / WRC'],
+      ['formMeta.date', 'Receipt Date', 'date']
+    ]
+  }
+]
+
 function FieldGrid({ data, fields }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -82,6 +228,82 @@ function FieldGrid({ data, fields }) {
   )
 }
 
+function StudentPanelView({ item }) {
+  const earning = getStudentEarning(item)
+
+  return (
+    <div className="space-y-4">
+      <section>
+        <h3 className="mb-3 text-sm font-bold uppercase text-slate-500">Submission Info</h3>
+        <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-800">
+          Submitted via: {item.source === 'public_form' ? 'Public Form' : 'BA Admin Panel'}
+        </div>
+      </section>
+
+      {earning ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-4">
+          <h3 className="mb-3 text-base font-bold text-slate-950">Advisor Earning</h3>
+          <div className="grid gap-3 md:grid-cols-2">
+            {[
+              ['Salary', formatMoney(earning.offeredSalaryPM)],
+              ['Advisor Percentage', `${earning.earningPercent || 0}%`],
+              ['Advisor Amount', formatMoney(earning.earningAmount)],
+              ['Payment Status', earning.earningStatus === 'paid' ? 'Paid' : 'Pending'],
+              ['Paid Date', earning.earningPaidDate ? dateDisplayValue(earning.earningPaidDate) : 'Not paid yet'],
+              ['Source', earning.source === 'candidate' ? 'Updated by admin' : 'Placement']
+            ].map(([label, display]) => (
+              <div key={label} className="rounded-lg bg-slate-50 p-3">
+                <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
+                <p className="mt-1 break-words text-sm text-slate-900">{display}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {studentDetailPanels.map((panel) => (
+        <section key={panel.title} className="rounded-xl border border-slate-200 bg-white p-4">
+          <h3 className="mb-3 text-base font-bold text-slate-950">{panel.title}</h3>
+          <div className="grid gap-3 md:grid-cols-2">
+            {panel.fields.map(([path, label, kind]) => {
+              const rawValue = pathValue(item, path)
+              const display = kind === 'date' ? dateDisplayValue(rawValue) || 'Not provided' : valueText(rawValue) || 'Not provided'
+
+              return (
+                <div key={path} className="rounded-lg bg-slate-50 p-3">
+                  <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
+                  <p className="mt-1 break-words text-sm text-slate-900">{display}</p>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      ))}
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <h3 className="mb-3 text-base font-bold text-slate-950">Upload Resume</h3>
+        {item.documents?.length ? (
+          <div className="space-y-2">
+            {item.documents.map((doc) => (
+              <a
+                key={doc._id || doc.fileUrl}
+                href={assetUrl(doc.fileUrl)}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-sky-600 hover:bg-sky-50"
+              >
+                {doc.documentLabel || doc.fileName || 'Resume'} - {doc.uploadedAt ? format(new Date(doc.uploadedAt), 'dd MMM yyyy') : 'Uploaded'}
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">No resume uploaded.</p>
+        )}
+      </section>
+    </div>
+  )
+}
+
 export default function DetailDrawer({
   item,
   type,
@@ -97,7 +319,8 @@ export default function DetailDrawer({
   saveFullLabel = 'Save All Changes',
   savingFull = false,
   onUploadDocuments,
-  uploadingDocuments = false
+  uploadingDocuments = false,
+  studentPanelView = false
 }) {
   if (!open || !item) return null
 
@@ -271,6 +494,8 @@ export default function DetailDrawer({
                   </label>
                 </section>
               </>
+            ) : studentPanelView ? (
+              <StudentPanelView item={item} />
             ) : (
               <>
                 <section>

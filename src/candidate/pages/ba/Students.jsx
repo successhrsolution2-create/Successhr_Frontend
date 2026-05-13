@@ -3,11 +3,10 @@ import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { useSelector } from 'react-redux'
 import toast from 'react-hot-toast'
-import { Pencil } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import api from '../../api/axios'
 import socket, { connectSocket, disconnectSocket } from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
-import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
 
 const formatMoney = (amount) =>
@@ -17,20 +16,50 @@ const formatMoney = (amount) =>
     maximumFractionDigits: 0
   }).format(Number(amount || 0))
 
-const selectionStatusColors = {
-  shortlisted: 'bg-slate-100 text-slate-700',
-  selected: 'bg-emerald-100 text-emerald-700',
-  joined: 'bg-emerald-200 text-emerald-800',
-  rejected: 'bg-rose-100 text-rose-700',
-  on_hold: 'bg-amber-100 text-amber-700'
+const numeric = (value) => {
+  const parsed = Number(value || 0)
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
-const selectionStatusLabel = {
-  shortlisted: 'Shortlisted',
-  selected: 'Selected',
-  joined: 'Joined',
-  rejected: 'Rejected',
-  on_hold: 'On Hold'
+const buildCandidateEarning = (student, placement) => {
+  if (placement) {
+    return {
+      source: 'placement',
+      earningAmount: numeric(placement.earningAmount),
+      earningPercent: numeric(placement.earningPercent),
+      offeredSalaryPM: numeric(placement.offeredSalaryPM),
+      earningStatus: placement.earningStatus || 'pending',
+      earningPaidDate: placement.earningPaidDate,
+      interviewDate: placement.interviewDate,
+      selectionStatus: placement.selectionStatus
+    }
+  }
+
+  const commission = student.advisorCommission || {}
+  const salary = numeric(commission.salary)
+  const percent = numeric(commission.percentage)
+  const amount =
+    commission.amount !== undefined && commission.amount !== null
+      ? numeric(commission.amount)
+      : Math.round(salary * (percent / 100))
+  const hasCommission =
+    salary > 0 ||
+    percent > 0 ||
+    amount > 0 ||
+    commission.paymentStatus === 'paid'
+
+  if (!hasCommission) return null
+
+  return {
+    source: 'candidate',
+    earningAmount: amount,
+    earningPercent: percent,
+    offeredSalaryPM: salary,
+    earningStatus: commission.paymentStatus || 'pending',
+    earningPaidDate: commission.paidAt,
+    interviewDate: null,
+    selectionStatus: student.selectionStatus || student.status
+  }
 }
 
 const processStageLabel = {
@@ -50,8 +79,6 @@ export default function Students() {
   const [placements, setPlacements] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
-  const [savingFull, setSavingFull] = useState(false)
-  const [uploadingDocuments, setUploadingDocuments] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
@@ -116,9 +143,11 @@ export default function Students() {
     () =>
       students.map((student) => {
         const placement = placementByStudentId.get(student._id)
+        const earning = buildCandidateEarning(student, placement)
         return {
           ...student,
           placement,
+          earning,
           effectiveStatus: placement?.selectionStatus || student.status
         }
       }),
@@ -153,9 +182,9 @@ export default function Students() {
       .filter((student) => (filters.status === 'all' ? true : student.effectiveStatus === filters.status))
       .filter((student) => {
         if (filters.earning === 'all') return true
-        if (filters.earning === 'recorded') return Boolean(student.placement)
-        if (filters.earning === 'paid') return student.placement?.earningStatus === 'paid'
-        if (filters.earning === 'pending') return student.placement?.earningStatus === 'pending'
+        if (filters.earning === 'recorded') return Boolean(student.earning)
+        if (filters.earning === 'paid') return student.earning?.earningStatus === 'paid'
+        if (filters.earning === 'pending') return student.earning?.earningStatus === 'pending'
         return true
       })
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -163,79 +192,15 @@ export default function Students() {
 
   const stats = useMemo(() => {
     const totalSubmitted = students.length
-    const selectedJoined = placements.filter(
-      (placement) => placement.selectionStatus === 'selected' || placement.selectionStatus === 'joined'
+    const selectedJoined = enriched.filter(
+      (student) => student.effectiveStatus === 'selected' || student.effectiveStatus === 'joined'
     ).length
-    const totalEarned = placements.reduce((sum, placement) => sum + Number(placement.earningAmount || 0), 0)
-    const pending = placements
-      .filter((placement) => placement.earningStatus === 'pending')
-      .reduce((sum, placement) => sum + Number(placement.earningAmount || 0), 0)
+    const totalEarned = enriched.reduce((sum, student) => sum + numeric(student.earning?.earningAmount), 0)
+    const pending = enriched
+      .filter((student) => student.earning?.earningStatus === 'pending')
+      .reduce((sum, student) => sum + numeric(student.earning?.earningAmount), 0)
     return { totalSubmitted, selectedJoined, totalEarned, pending }
-  }, [students.length, placements])
-
-  const buildStudentPayload = (student) => ({
-    candidateName: student.candidateName,
-    mobileNumber: student.mobileNumber,
-    aadhaarNo: student.aadhaarNo,
-    whatsappNo: student.whatsappNo,
-    emailId: student.emailId,
-    appliedFor: student.appliedFor,
-    interestedDepartment: student.interestedDepartment,
-    preferredIndustry: student.preferredIndustry,
-    preferredJobLocation: student.preferredJobLocation,
-    education: student.education,
-    currentCompany: student.currentCompany,
-    totalExperience: student.totalExperience === '' ? undefined : student.totalExperience,
-    careerSummary: student.careerSummary,
-    currentSalary: student.currentSalary,
-    expectedSalary: student.expectedSalary,
-    noticePeriod: student.noticePeriod === '' ? undefined : student.noticePeriod,
-    reasonForJobChange: student.reasonForJobChange,
-    currentJobLocation: student.currentJobLocation,
-    availabilityForInterview: student.availabilityForInterview,
-    marriageStatus: student.marriageStatus || undefined,
-    documents: student.documents || []
-  })
-
-  const saveSelected = async () => {
-    if (!selected) return
-
-    setSavingFull(true)
-    try {
-      const { data } = await api.put(`/students/${selected._id}`, buildStudentPayload(selected))
-      setStudents((current) => current.map((item) => (item._id === data._id ? data : item)))
-      setSelected((current) => ({
-        ...data,
-        placement: current?.placement
-      }))
-      toast.success('Candidate details updated')
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not update candidate')
-    } finally {
-      setSavingFull(false)
-    }
-  }
-
-  const uploadDocuments = async (files) => {
-    if (!selected || !files?.length) return
-
-    setUploadingDocuments(true)
-    try {
-      const formData = new FormData()
-      files.forEach((file) => formData.append('documents', file))
-      const { data } = await api.post(`/students/${selected._id}/docs`, formData)
-      setStudents((current) => current.map((item) => (item._id === data._id ? data : item)))
-      setSelected((current) => ({
-        ...data,
-        placement: current?.placement
-      }))
-      toast.success('Documents uploaded')
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not upload documents')
-    } finally {
-      setUploadingDocuments(false)
-    }
-  }
+  }, [students.length, enriched])
 
   if (loading) return <Skeleton rows={10} />
 
@@ -304,7 +269,6 @@ export default function Students() {
                 <th className="px-5 py-3">Candidate</th>
                 <th className="px-5 py-3">Applied For</th>
                 <th className="px-5 py-3">Submitted</th>
-                <th className="px-5 py-3">Ref. Status</th>
                 <th className="px-5 py-3">Next Process</th>
                 <th className="px-5 py-3">My Earning</th>
                 <th className="px-5 py-3">Documents</th>
@@ -327,24 +291,11 @@ export default function Students() {
                   </td>
                   <td className="px-5 py-3 text-slate-700">{student.appliedFor || 'Not provided'}</td>
                   <td className="px-5 py-3 text-slate-600">{format(new Date(student.createdAt), 'dd MMM yyyy')}</td>
-                  <td className="px-5 py-3">
-                    {student.placement?.selectionStatus ? (
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          selectionStatusColors[student.placement.selectionStatus] || selectionStatusColors.shortlisted
-                        }`}
-                      >
-                        {selectionStatusLabel[student.placement.selectionStatus] || student.placement.selectionStatus}
-                      </span>
-                    ) : (
-                      <StatusBadge status={student.status} />
-                    )}
-                  </td>
                   <td className="px-5 py-3 text-slate-700">
                     {student.placement?.processStage ? processStageLabel[student.placement.processStage] || student.placement.processStage : '-'}
                   </td>
                   <td className="px-5 py-3">
-                    <EarningCell placement={student.placement} />
+                    <EarningCell earning={student.earning} />
                   </td>
                   <td className="px-5 py-3 text-slate-700">
                     {student.documents?.length ? (
@@ -362,15 +313,15 @@ export default function Students() {
                       }}
                       className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-700"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Update
+                      <Eye className="h-3.5 w-3.5" />
+                      View
                     </button>
                   </td>
                 </tr>
               ))}
               {!filtered.length && (
                 <tr>
-                  <td colSpan="8" className="px-5 py-12 text-center text-slate-500">
+                  <td colSpan="7" className="px-5 py-12 text-center text-slate-500">
                     No candidates found for current filters.
                   </td>
                 </tr>
@@ -385,13 +336,7 @@ export default function Students() {
         item={selected}
         type="student"
         onClose={() => setSelected(null)}
-        fullEdit
-        onItemChange={setSelected}
-        onSaveFull={saveSelected}
-        saveFullLabel="Update Student Data"
-        savingFull={savingFull}
-        onUploadDocuments={uploadDocuments}
-        uploadingDocuments={uploadingDocuments}
+        studentPanelView
       />
     </div>
   )
@@ -406,18 +351,31 @@ function StatCard({ label, value }) {
   )
 }
 
-function EarningCell({ placement }) {
-  if (!placement) {
+function EarningCell({ earning }) {
+  if (!earning) {
     return <span className="text-sm text-slate-500">Not placed yet</span>
   }
 
-  if (placement.selectionStatus === 'rejected') {
+  if (earning.selectionStatus === 'rejected') {
     return <span className="text-sm text-slate-500">Not applicable</span>
   }
 
   return (
     <div>
-      <p className="font-semibold text-emerald-700">{formatMoney(placement.earningAmount || 0)}</p>
+      <p className="font-semibold text-emerald-700">{formatMoney(earning.earningAmount || 0)}</p>
+      <p className="text-xs text-slate-500">
+        {earning.earningPercent || 0}% of {formatMoney(earning.offeredSalaryPM || 0)}
+      </p>
+      {earning.source === 'candidate' ? (
+        <p className="text-xs text-sky-700">Updated by admin</p>
+      ) : null}
+      {earning.earningStatus === 'paid' ? (
+        <p className="text-xs text-emerald-700">
+          Paid{earning.earningPaidDate ? ` on ${format(new Date(earning.earningPaidDate), 'dd MMM yyyy')}` : ''}
+        </p>
+      ) : (
+        <p className="text-xs text-amber-700">Payment pending</p>
+      )}
     </div>
   )
 }

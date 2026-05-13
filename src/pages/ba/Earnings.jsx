@@ -8,6 +8,10 @@ import socket, { connectSocket, disconnectSocket } from '../../socket'
 import Skeleton from '../../components/Skeleton'
 
 const selectionStatusLabel = {
+  not_viewed: 'Not Viewed',
+  in_review: 'In Review',
+  priority: 'Priority',
+  done: 'Done',
   shortlisted: 'Shortlisted',
   selected: 'Selected',
   joined: 'Joined',
@@ -33,15 +37,74 @@ const formatMoney = (amount) =>
     maximumFractionDigits: 0
   }).format(Number(amount || 0))
 
+const numeric = (value) => {
+  const parsed = Number(value || 0)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const placementCandidateId = (placement) =>
+  String(placement.student?._id || placement.studentId?._id || placement.studentId || '')
+
+const placementToEarningRow = (placement) => ({
+  ...placement,
+  recordType: 'placement',
+  rowId: placement._id,
+  studentName: placement.studentName || placement.student?.candidateName || 'Candidate',
+  companyName: placement.companyName || placement.company?.companyName || 'Company',
+  offeredSalaryPM: numeric(placement.offeredSalaryPM),
+  earningPercent: numeric(placement.earningPercent || placement.commissionPercent),
+  earningAmount: numeric(placement.earningAmount || placement.commissionAmount),
+  earningStatus: placement.earningStatus || placement.commissionStatus || 'pending',
+  earningPaidDate: placement.earningPaidDate || placement.commissionPaidDate,
+  selectionStatus: placement.selectionStatus,
+  processStage: placement.processStage
+})
+
+const candidateToEarningRow = (student) => {
+  const commission = student.advisorCommission || {}
+  const salary = numeric(commission.salary)
+  const percent = numeric(commission.percentage)
+  const amount =
+    commission.amount !== undefined && commission.amount !== null
+      ? numeric(commission.amount)
+      : Math.round(salary * (percent / 100))
+  const hasCommission =
+    salary > 0 ||
+    percent > 0 ||
+    amount > 0 ||
+    commission.paymentStatus === 'paid'
+
+  if (!hasCommission) return null
+
+  return {
+    _id: `candidate-${student._id}`,
+    rowId: `candidate-${student._id}`,
+    recordType: 'candidate',
+    studentName: student.candidateName || 'Candidate',
+    companyName: 'Admin update',
+    jobProfile: student.appliedFor || '',
+    offeredSalaryPM: salary,
+    earningPercent: percent,
+    earningAmount: amount,
+    earningStatus: commission.paymentStatus || 'pending',
+    earningPaidDate: commission.paidAt,
+    selectionStatus: student.selectionStatus || student.status,
+    processStage: '',
+    createdAt: student.updatedAt || student.createdAt
+  }
+}
+
 export default function Earnings() {
   const token = useSelector((state) => state.auth.token)
+  const [students, setStudents] = useState([])
   const [placements, setPlacements] = useState([])
   const [loading, setLoading] = useState(true)
   const [activePlacement, setActivePlacement] = useState(null)
 
   const loadPlacements = async () => {
-    const { data } = await api.get('/placements/my')
-    setPlacements(data)
+    const [placementRes, studentRes] = await Promise.all([api.get('/placements/my'), api.get('/students')])
+    setPlacements(placementRes.data)
+    setStudents(studentRes.data)
     setLoading(false)
   }
 
@@ -82,6 +145,8 @@ export default function Earnings() {
     socket.on('placement_deleted', handlePlacementUpdated)
     socket.on('earning_paid', handlePaid)
     socket.on('commission_paid', handlePaid)
+    socket.on('student_updated', handlePlacementUpdated)
+    socket.on('candidate_updated', handlePlacementUpdated)
 
     return () => {
       socket.off('my_placement', handlePlacement)
@@ -89,20 +154,35 @@ export default function Earnings() {
       socket.off('placement_deleted', handlePlacementUpdated)
       socket.off('earning_paid', handlePaid)
       socket.off('commission_paid', handlePaid)
+      socket.off('student_updated', handlePlacementUpdated)
+      socket.off('candidate_updated', handlePlacementUpdated)
       disconnectSocket()
     }
   }, [token])
 
+  const earningRows = useMemo(() => {
+    const placedCandidateIds = new Set(placements.map(placementCandidateId).filter(Boolean))
+    const placementRows = placements.map(placementToEarningRow)
+    const candidateRows = students
+      .filter((student) => !placedCandidateIds.has(String(student._id)))
+      .map(candidateToEarningRow)
+      .filter(Boolean)
+
+    return [...placementRows, ...candidateRows].sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    )
+  }, [placements, students])
+
   const summary = useMemo(() => {
-    const studentsPlaced = placements.length
-    const totalIEarn = placements.reduce((sum, placement) => sum + Number(placement.earningAmount || placement.commissionAmount || 0), 0)
-    const received = placements
-      .filter((placement) => (placement.earningStatus || placement.commissionStatus) === 'paid')
-      .reduce((sum, placement) => sum + Number(placement.earningAmount || placement.commissionAmount || 0), 0)
+    const studentsPlaced = earningRows.length
+    const totalIEarn = earningRows.reduce((sum, placement) => sum + numeric(placement.earningAmount), 0)
+    const received = earningRows
+      .filter((placement) => placement.earningStatus === 'paid')
+      .reduce((sum, placement) => sum + numeric(placement.earningAmount), 0)
     const pending = totalIEarn - received
 
     return { studentsPlaced, totalIEarn, received, pending }
-  }, [placements])
+  }, [earningRows])
 
   if (loading) {
     return <Skeleton rows={10} />
@@ -138,25 +218,25 @@ export default function Earnings() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {placements.map((placement) => {
-                const earning = placement.earningAmount || placement.commissionAmount || 0
-                const paymentStatus = placement.earningStatus || placement.commissionStatus
-                const paidDate = placement.earningPaidDate || placement.commissionPaidDate
+              {earningRows.map((placement) => {
+                const earning = placement.earningAmount || 0
+                const paymentStatus = placement.earningStatus
+                const paidDate = placement.earningPaidDate
 
                 return (
                   <tr
-                    key={placement._id}
+                    key={placement.rowId || placement._id}
                     onClick={() => setActivePlacement(placement)}
                     className="cursor-pointer odd:bg-white even:bg-slate-50 hover:bg-indigo-50"
                   >
                     <td className="px-5 py-3 font-semibold text-slate-900">
-                      {placement.studentName || placement.student?.candidateName || 'Candidate'}
+                      {placement.studentName || 'Candidate'}
                     </td>
                     <td className="px-5 py-3 text-slate-700">
-                      {placement.companyName || placement.company?.companyName || 'Company'}
+                      {placement.companyName || 'Company'}
                     </td>
                     <td className="px-5 py-3 text-slate-700">{formatMoney(placement.offeredSalaryPM || 0)} PM</td>
-                    <td className="px-5 py-3 text-slate-700">{placement.earningPercent || placement.commissionPercent || 0}%</td>
+                    <td className="px-5 py-3 text-slate-700">{placement.earningPercent || 0}%</td>
                     <td className="px-5 py-3 font-semibold text-emerald-700">{formatMoney(earning)}</td>
                     <td className="px-5 py-3">
                       <SelectionBadge status={placement.selectionStatus} />
@@ -170,7 +250,7 @@ export default function Earnings() {
                   </tr>
                 )
               })}
-              {placements.length === 0 && (
+              {earningRows.length === 0 && (
                 <tr>
                   <td colSpan="8" className="px-5 py-12 text-center text-slate-500">
                     No earnings yet. Once your referred candidates are placed by the admin, your earnings will appear here.
@@ -191,10 +271,10 @@ export default function Earnings() {
 
 function EarningDetailModal({ placement, onClose }) {
   const offered = Number(placement.offeredSalaryPM || 0)
-  const percent = Number(placement.earningPercent || placement.commissionPercent || 0)
-  const amount = Number(placement.earningAmount || placement.commissionAmount || 0)
-  const paidDate = placement.earningPaidDate || placement.commissionPaidDate
-  const paymentStatus = placement.earningStatus || placement.commissionStatus
+  const percent = Number(placement.earningPercent || 0)
+  const amount = Number(placement.earningAmount || 0)
+  const paidDate = placement.earningPaidDate
+  const paymentStatus = placement.earningStatus
 
   return (
     <div className="fixed inset-0 z-50">
@@ -203,9 +283,9 @@ function EarningDetailModal({ placement, onClose }) {
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900 sm:text-xl">
-              {placement.studentName || placement.student?.candidateName || 'Placement'}
+              {placement.studentName || 'Placement'}
             </h2>
-            <p className="text-sm text-slate-500">{placement.companyName || placement.company?.companyName || 'Company'}</p>
+            <p className="text-sm text-slate-500">{placement.companyName || 'Company'}</p>
           </div>
           <button
             type="button"
@@ -262,11 +342,15 @@ function SelectionBadge({ status }) {
   const color =
     status === 'joined'
       ? 'bg-emerald-100 text-emerald-700'
+      : status === 'done'
+        ? 'bg-emerald-100 text-emerald-700'
       : status === 'selected'
         ? 'bg-blue-100 text-blue-700'
+        : status === 'in_review'
+          ? 'bg-blue-100 text-blue-700'
         : status === 'rejected'
           ? 'bg-rose-100 text-rose-700'
-          : status === 'on_hold'
+          : status === 'on_hold' || status === 'priority'
             ? 'bg-amber-100 text-amber-700'
             : 'bg-slate-100 text-slate-700'
 
