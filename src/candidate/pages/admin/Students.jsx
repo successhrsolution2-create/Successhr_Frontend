@@ -215,9 +215,6 @@ const [deletePrompt, setDeletePrompt] = useState({
   }, [filtered, page, pageSize])
 
   const deleteStudent = async (student) => {
-    if (!window.confirm(`Delete ${student.candidateName}?`))
-      return
-
     try {
       await api.delete(`/students/${student._id}`)
 

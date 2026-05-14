@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { ArrowLeft, BriefcaseBusiness, ClipboardList, ExternalLink, Eye, FileImage, MapPin, Pencil, Upload, UserRound, Users, X } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, ClipboardList, ExternalLink, Eye, FileImage, MapPin, Pencil, Trash2, Upload, UserRound, Users, X } from 'lucide-react'
 import api, { assetUrl } from '../../../api/axios'
-import { candidateDocumentTypes } from '../../../constants/candidateDocuments'
+import { ConfirmDialog } from '../../../components/ActionDialogs'
 import {
+  allCandidateDocumentTypes,
+  candidateDocumentTypes,
+  successDocumentTypes
+} from '../../../constants/candidateDocuments'
+import {
+  DIRECTOR_ASSESSMENT_FIELDS,
+  DIRECTOR_MODE_VALUES,
+  DIRECTOR_RATING_VALUES,
+  DIRECTOR_YES_NO_VALUES,
+  MANAGER_ASSESSMENT_FIELDS,
   PERSONALITY_RATING_FIELDS,
   PROFESSIONAL_RATING_FIELDS,
-  QUESTION_CHOICES,
   RATING_VALUES,
   SUCCESS_INFO_FIELDS,
   calculateQuestionMarksResult,
@@ -38,26 +47,59 @@ const interviewDocumentTypes = [
   { key: 'confirmationLetter', label: 'Confirmation Letter' }
 ]
 
-const documentKeyByLabel = candidateDocumentTypes.reduce((acc, item) => {
+const documentKeyByLabel = allCandidateDocumentTypes.reduce((acc, item) => {
   acc[String(item.label || '').trim().toLowerCase()] = item.key
   return acc
 }, {})
+const knownCandidateDocumentKeys = new Set(allCandidateDocumentTypes.map((item) => item.key))
 
 const normalizeDocToken = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 
 const resolveCandidateDocumentType = (doc = {}) => {
-  if (doc.documentType) return String(doc.documentType)
+  if (doc.documentType && knownCandidateDocumentKeys.has(String(doc.documentType))) return String(doc.documentType)
   const labelKey = String(doc.documentLabel || '').trim().toLowerCase()
   if (documentKeyByLabel[labelKey]) return documentKeyByLabel[labelKey]
 
   const normalizedLabel = normalizeDocToken(doc.documentLabel || doc.fileName)
   const alias = {
     updatedresume: 'updatedResume',
-    alleducationcertificates: 'educationCertificates',
-    educationcertificates: 'educationCertificates',
+    tenthcertificate: 'tenthCertificate',
+    tenthclasscertificate: 'tenthCertificate',
+    tenthstdcertificate: 'tenthCertificate',
+    class10certificate: 'tenthCertificate',
+    sscertificate: 'tenthCertificate',
+    ssccertificate: 'tenthCertificate',
+    twelfthcertificate: 'twelfthCertificate',
+    twelfthclasscertificate: 'twelfthCertificate',
+    twelfthstdcertificate: 'twelfthCertificate',
+    class12certificate: 'twelfthCertificate',
+    hsccertificate: 'twelfthCertificate',
+    graduatecertificate: 'graduateCertificate',
+    graduationcertificate: 'graduateCertificate',
+    degreecertificate: 'graduateCertificate',
+    postgraduatecertificate: 'postGraduateCertificate',
+    pgcertificate: 'postGraduateCertificate',
+    postgraduationcertificate: 'postGraduateCertificate',
     experienceletter: 'experienceLetter',
     salaryslip: 'salarySlip',
-    bankstatement: 'salarySlip',
+    bankstatement: 'bankStatement',
+    mscitcertificate: 'msCitCertificate',
+    mscit: 'msCitCertificate',
+    ccccertificate: 'cccCertificate',
+    ccc: 'cccCertificate',
+    advancedexcelcertificate: 'advancedExcelCertificate',
+    advancedexcel: 'advancedExcelCertificate',
+    powerpointcertificate: 'powerPointCertificate',
+    powerpoint: 'powerPointCertificate',
+    pptcertificate: 'powerPointCertificate',
+    tallycertificate: 'tallyCertificate',
+    tally: 'tallyCertificate',
+    autocadcertificate: 'autoCadCertificate',
+    autocad: 'autoCadCertificate',
+    typingcertificate: 'typingCertificate',
+    typing: 'typingCertificate',
+    catiacertificate: 'catiaCertificate',
+    catia: 'catiaCertificate',
     computercoursescertificate: 'computerCourseCertificate',
     computercoursecertificate: 'computerCourseCertificate',
     aadharcard: 'aadharCard',
@@ -66,15 +108,18 @@ const resolveCandidateDocumentType = (doc = {}) => {
     passportsizephoto: 'passportSizePhoto',
     medicalfitnesscertificates: 'medicalFitnessCertificate',
     medicalfitnesscertificate: 'medicalFitnessCertificate',
-    hp: 'hamiPatra',
     hamipatra: 'hamiPatra',
-    cl: 'concernLetter',
+    hphamipatra: 'hamiPatra',
     concernletter: 'concernLetter',
-    selectedvideofeedbackvideo: 'selectedVideoFeedbackVideo',
-    selectedvideo: 'selectedVideoFeedbackVideo',
-    feedbackvideo: 'selectedVideoFeedbackVideo',
+    clconcernletter: 'concernLetter',
+    selectedvideo: 'selectedVideo',
+    feedbackvideo: 'selectedVideo',
+    selectedfeedbackvideo: 'selectedVideo',
+    jobjoininghamipatra: 'jobJoiningHamiPatra',
     candidatephoto: 'candidatePhoto',
     photoofcandidates: 'candidatePhoto',
+    photoofcandidatewithletterreceipt: 'candidatePhoto',
+    letterreceiptphoto: 'candidatePhoto',
     formalphoto: 'candidatePhoto'
   }
 
@@ -225,11 +270,11 @@ function DocumentCard({ doc }) {
   )
 }
 
-function DocumentTypeCard({ item, docs = [] }) {
+function DocumentTypeCard({ item, docs = [], label }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3">
       <div className="min-w-0">
-        <p className="text-[15px] font-bold leading-5 text-slate-900">{item.label}</p>
+        <p className="text-[15px] font-bold leading-5 text-slate-900">{label || item.label}</p>
         {item.description ? <p className="mt-0.5 text-[11px] font-semibold leading-4 text-slate-500">{item.description}</p> : null}
         <p className={`mt-0.5 text-xs font-semibold ${docs.length ? 'text-emerald-700' : 'text-amber-700'}`}>
           {docs.length ? `${docs.length} file${docs.length === 1 ? '' : 's'} uploaded` : 'Not provided'}
@@ -296,59 +341,122 @@ function RatingGrid({ title, fields, ratings, onEditHint }) {
   )
 }
 
-function QuestionMarksResultTable({ questions }) {
-  const result = calculateQuestionMarksResult(questions)
+function AssessmentView({ title, fields, assessment, onEditHint }) {
+  const counselingYes = (assessment?.counselingOfCandidate || []).some((item) => String(item) === 'Yes')
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-900 bg-white">
-      <table className="min-w-[1200px] border-collapse text-center text-sm text-slate-950">
-        <tbody>
-          <tr>
-            <th className="w-28 border border-slate-900 px-3 py-3 text-lg font-bold">IQ</th>
-            {result.scores.map((_score, index) => (
-              <th key={index} className="w-16 border border-slate-900 px-3 py-3 text-lg font-bold">
-                {index + 1}
-              </th>
-            ))}
-            <th className="w-28 border border-slate-900 px-3 py-3 text-lg font-bold">TQ</th>
-          </tr>
-          <tr>
-            <th className="border border-slate-900 px-3 py-3 text-lg font-bold">Marks</th>
-            {result.scores.map((score, index) => (
-              <td key={index} className="h-12 border border-slate-900 px-3 py-3 font-semibold">
-                {Number.isFinite(score) ? score : ''}
+    <div className="overflow-hidden rounded-xl border border-slate-200">
+      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <h3 className="text-sm font-bold text-slate-900">{title}</h3>
+        <p className="mt-1 text-xs text-slate-500">Class and priority use Low / Medium / High. Counseling uses Yes / No and Online / Offline.</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-[760px] w-full text-sm">
+          <thead className="bg-white text-left text-xs uppercase text-slate-500">
+            <tr>
+              <th className="w-14 px-4 py-3">Sr.</th>
+              <th className="min-w-56 px-4 py-3">Questions</th>
+              {DIRECTOR_RATING_VALUES.map((value) => (
+                <th key={value} className="w-24 px-4 py-3 text-center">
+                  {value}
+                </th>
+              ))}
+              {DIRECTOR_YES_NO_VALUES.map((value) => (
+                <th key={value} className="w-20 px-4 py-3 text-center">
+                  {value}
+                </th>
+              ))}
+              {DIRECTOR_MODE_VALUES.map((value) => (
+                <th key={value} className="w-24 px-4 py-3 text-center">
+                  {value}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {fields.map((field, index) => {
+              const selected = assessment?.[field.key] || []
+              return (
+                <tr key={field.key} className="odd:bg-white even:bg-slate-50">
+                  <td className="px-4 py-3 text-slate-500">{index + 1}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-800">{field.label}</td>
+                  {DIRECTOR_RATING_VALUES.map((value) => (
+                    <td key={value} className="px-4 py-3 text-center">
+                      <input
+                        type="radio"
+                        name={`${title}-${field.key}`}
+                        checked={selected.some((item) => String(item) === value)}
+                        readOnly
+                        onClick={onEditHint}
+                        className="h-4 w-4 border-slate-300 text-indigo-600"
+                        aria-label={`${field.label} ${value}`}
+                      />
+                    </td>
+                  ))}
+                  <td colSpan={4} className="px-4 py-3 text-center text-xs font-semibold text-slate-400">
+                    -
+                  </td>
+                </tr>
+              )
+            })}
+            <tr className="odd:bg-white even:bg-slate-50">
+              <td className="px-4 py-3 text-slate-500">3</td>
+              <td className="px-4 py-3 font-semibold text-slate-800">Counseling Of Candidate</td>
+              <td colSpan={3} className="px-4 py-3 text-center text-xs font-semibold text-slate-400">
+                -
               </td>
-            ))}
-            <td className="relative h-12 border border-slate-900 px-3 py-3 align-bottom font-bold">
-              <span className="absolute inset-0 bg-[linear-gradient(to_bottom_right,transparent_49%,#0f172a_50%,transparent_51%)]" />
-              <span className="relative z-10">
-                {result.total}/{result.maxTotal}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              {DIRECTOR_YES_NO_VALUES.map((value) => (
+                <td key={value} className="px-4 py-3 text-center">
+                  <input
+                    type="radio"
+                    name={`${title}-counseling`}
+                    checked={(assessment?.counselingOfCandidate || []).some((item) => String(item) === value)}
+                    readOnly
+                    onClick={onEditHint}
+                    className="h-4 w-4 border-slate-300 text-indigo-600"
+                    aria-label={`Counseling Of Candidate ${value}`}
+                  />
+                </td>
+              ))}
+              {counselingYes ? (
+                DIRECTOR_MODE_VALUES.map((value) => (
+                  <td key={value} className="px-4 py-3 text-center">
+                    <input
+                      type="radio"
+                      name={`${title}-counseling-mode`}
+                      checked={(assessment?.counselingMode || []).some((item) => String(item) === value)}
+                      readOnly
+                      onClick={onEditHint}
+                      className="h-4 w-4 border-slate-300 text-indigo-600"
+                      aria-label={`Counseling Mode ${value}`}
+                    />
+                  </td>
+                ))
+              ) : (
+                <td colSpan={2} className="px-4 py-3 text-center text-xs font-semibold text-slate-400">
+                  -
+                </td>
+              )}
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
 
-function InterviewQuestionsView({ candidateName, questions, onEditHint }) {
+function InterviewQuestionsView({ questions, onEditHint }) {
+  const result = calculateQuestionMarksResult(questions)
+
   return (
     <div className="rounded-xl border-2 border-slate-900 bg-white p-4 sm:p-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <p className="shrink-0 text-base font-bold text-slate-950 sm:text-lg">Candidate Name -</p>
-        <div className="min-h-9 flex-1 border-b-2 border-slate-900 px-2 py-1 text-sm font-semibold text-slate-900 sm:text-base">
-          {candidateName || ''}
-        </div>
-      </div>
-
-      <div className="mt-7 text-center">
-        <span className="inline-flex bg-slate-950 px-2 py-1 text-base font-bold text-white sm:text-lg">Interview Questions</span>
+      <div className="text-center">
+        <span className="inline-flex bg-slate-950 px-2 py-1 text-base font-bold text-white sm:text-lg">Interview Questions and Answers</span>
       </div>
 
       <div className="mt-6 space-y-3">
         {(questions || []).map((row, index) => (
-          <div key={index} className="grid gap-2 md:grid-cols-[44px_minmax(0,1fr)_180px] md:items-center">
+          <div key={index} className="grid gap-2 md:grid-cols-[44px_minmax(0,1fr)_140px] md:items-center">
             <div className="text-sm font-bold text-slate-950 sm:text-base">{index + 1}.</div>
             <input
               value={fieldValue(row.question)}
@@ -357,32 +465,25 @@ function InterviewQuestionsView({ candidateName, questions, onEditHint }) {
               className="h-10 min-w-0 cursor-pointer border-0 border-b-2 border-slate-900 bg-transparent px-1 text-sm font-semibold text-slate-900 outline-none"
               aria-label={`Interview question ${index + 1}`}
             />
-            <div className="grid grid-cols-3 overflow-hidden border border-slate-900">
-              {QUESTION_CHOICES.map((choice) => {
-                const checked = (row.choices || []).includes(choice)
-                return (
-                  <span
-                    key={choice}
-                    onClick={onEditHint}
-                    className={`flex h-9 cursor-pointer items-center justify-center gap-2 border-r border-slate-900 text-sm font-bold last:border-r-0 ${
-                      checked ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-slate-950'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name={`question-choice-${index}`}
-                      checked={checked}
-                      readOnly
-                      className="h-4 w-4 border-slate-400 text-indigo-600"
-                      aria-label={`Question ${index + 1} option ${choice}`}
-                    />
-                    {choice}
-                  </span>
-                )
-              })}
-            </div>
+            <button
+              type="button"
+              onClick={onEditHint}
+              className="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900"
+              aria-label={`Question ${index + 1} marks`}
+            >
+              <span>{fieldValue(row.marks)}</span>
+              <span className="text-slate-500">/10</span>
+            </button>
           </div>
         ))}
+      </div>
+
+      <div className="mt-5 flex justify-end">
+        <div className="inline-flex items-center gap-3 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-900">
+          <span>Total Marks</span>
+          <span className="text-indigo-700">{result.total}/{result.maxTotal}</span>
+          <span className="text-emerald-700">{result.percentageLabel}</span>
+        </div>
       </div>
     </div>
   )
@@ -391,7 +492,7 @@ function InterviewQuestionsView({ candidateName, questions, onEditHint }) {
 const interviewDetailFields = [
   ['candidateName', 'Name Of Candidate'],
   ['companyName', 'Name Of Company'],
-  ['jobRole', 'Job Role'],
+  ['jobRole', 'Job Role/Department'],
   ['referencePerson', 'Reference'],
   ['attendInterview', 'Attend Interview'],
   ['interestedForJoin', 'Interested For Join'],
@@ -450,6 +551,7 @@ export default function CandidateDetail() {
   const [activePanel, setActivePanel] = useState(() => panelFromSearch(searchParams))
   const [candidate, setCandidate] = useState(null)
   const [selectedInterview, setSelectedInterview] = useState(null)
+  const [deletingInterview, setDeletingInterview] = useState(null)
   const [documentInterviewId, setDocumentInterviewId] = useState('')
   const [previewDoc, setPreviewDoc] = useState(null)
   const viewOnly = searchParams.get('viewOnly') === '1'
@@ -468,6 +570,33 @@ export default function CandidateDetail() {
   const goToEdit = () => {
     const panel = editablePanels.has(activePanel) ? activePanel : 'details'
     navigate(`/admin/cms/candidates/${id}/edit?panel=${panel}`)
+  }
+
+  const handleDeleteInterview = async () => {
+    if (!deletingInterview?.id) return
+
+    try {
+      await api.delete(`/cms/interviews/${deletingInterview.id}`)
+      setCandidate((current) =>
+        current
+          ? {
+              ...current,
+              interviews: (current.interviews || []).filter((row) => String(row.id) !== String(deletingInterview.id))
+            }
+          : current
+      )
+      if (String(selectedInterview?.id || '') === String(deletingInterview.id)) {
+        setSelectedInterview(null)
+      }
+      if (String(documentInterviewId || '') === String(deletingInterview.id)) {
+        setDocumentInterviewId('')
+      }
+      toast.success('Interview deleted')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not delete interview')
+    } finally {
+      setDeletingInterview(null)
+    }
   }
 
   useEffect(() => {
@@ -539,8 +668,8 @@ export default function CandidateDetail() {
 
       {activePanel === 'details' ? (
         <>
-          <Section title="Candidate Details" icon={UserRound}>
-            <FieldGroup title="Basic Information" icon={UserRound}>
+          <Section title="Personal Details" icon={UserRound}>
+            <FieldGroup title="All Details" icon={UserRound}>
               <Field label="Candidate Name">
                 <ReadOnlyInput value={candidate.fullName} onEditHint={showEditHint} />
               </Field>
@@ -553,84 +682,262 @@ export default function CandidateDetail() {
               <Field label="Email ID">
                 <ReadOnlyInput type="email" value={candidate.email} onEditHint={showEditHint} />
               </Field>
-              <Field label="Education">
-                <ReadOnlyInput value={candidate.education} onEditHint={showEditHint} />
+              <Field label="Aadhar Card Number">
+                <ReadOnlyInput value={candidate.aadhaarNo} onEditHint={showEditHint} />
               </Field>
-              <Field label="College Name">
-                <ReadOnlyInput value={candidate.collegeName} onEditHint={showEditHint} />
+              <Field label="PAN Number">
+                <ReadOnlyInput value={candidate.panNo} onEditHint={showEditHint} />
+              </Field>
+              <Field label="DOB">
+                <ReadOnlyInput type="date" value={candidate.dateOfBirth} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Current Age">
+                <ReadOnlyInput type="number" value={candidate.currentAge} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Gender">
+                <ReadOnlyInput value={candidate.gender} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Marital Status">
+                <ReadOnlyInput value={candidate.marriageStatus} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Current Village">
+                <ReadOnlyInput value={candidate.currentAddressVillage} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Current Taluka">
+                <ReadOnlyInput value={candidate.currentAddressTaluka} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Current District">
+                <ReadOnlyInput value={candidate.currentAddressDistrict} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Current State">
+                <ReadOnlyInput value={candidate.currentAddressState} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Permanent Village">
+                <ReadOnlyInput value={candidate.permanentAddressVillage} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Permanent Taluka">
+                <ReadOnlyInput value={candidate.permanentAddressTaluka} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Permanent District">
+                <ReadOnlyInput value={candidate.permanentAddressDistrict} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Permanent State">
+                <ReadOnlyInput value={candidate.permanentAddressState} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
 
-            <FieldGroup title="Job Preference" icon={MapPin}>
-              <Field label="Applied For">
-                <ReadOnlyInput value={candidate.appliedFor} onEditHint={showEditHint} />
+            <FieldGroup title="Family Details" icon={Users}>
+              <Field label="Father / Husband Name">
+                <ReadOnlyInput value={candidate.familyDetails.fatherOrHusbandName} onEditHint={showEditHint} />
               </Field>
-              <Field label="Preferred Job Location">
-                <ReadOnlyInput value={candidate.preferredJobLocation} onEditHint={showEditHint} />
+              <Field label="Father Occupation">
+                <ReadOnlyInput value={candidate.familyDetails.fatherOccupation} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Father Mobile Number">
+                <ReadOnlyInput value={candidate.familyDetails.fatherMobileNumber} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Mother / Wife Name">
+                <ReadOnlyInput value={candidate.familyDetails.motherOrWifeName} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Mother Occupation">
+                <ReadOnlyInput value={candidate.familyDetails.motherOccupation} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Mother Mobile Number">
+                <ReadOnlyInput value={candidate.familyDetails.motherMobileNumber} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Sibling Name">
+                <ReadOnlyInput value={candidate.familyDetails.siblingName} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Sibling Education / Occupation">
+                <ReadOnlyInput value={candidate.familyDetails.siblingEducationOccupation} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+          </Section>
+
+          <Section title="Education Details" icon={ClipboardList}>
+            <FieldGroup title="Education">
+              <Field label="Highest Education">
+                <ReadOnlyInput value={candidate.educationSector} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Year of Higher Education">
+                <ReadOnlyInput value={candidate.yearOfHigherEducation} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Education Branch">
+                <ReadOnlyInput value={candidate.educationBranch} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Special Subject / Remark">
+                <ReadOnlyInput value={candidate.educationSpecialization} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Computer Courses">
+                <ReadOnlyInput value={candidate.computerCourse} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Other Certification Courses">
+                <ReadOnlyInput value={candidate.certificationCourse} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+
+            <FieldGroup title="Institute Reference Details">
+              <Field label="Institute Name">
+                <ReadOnlyInput value={candidate.collegeName} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Institute Representative Name">
+                <ReadOnlyInput value={candidate.placementReference.professorName} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Designation">
+                <ReadOnlyInput value={candidate.instituteDesignation} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Mobile Number">
+                <ReadOnlyInput value={candidate.placementReference.professorContactNumber} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Institute Village">
+                <ReadOnlyInput value={candidate.instituteAddressVillage} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Institute Taluka">
+                <ReadOnlyInput value={candidate.instituteAddressTaluka} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Institute District">
+                <ReadOnlyInput value={candidate.instituteAddressDistrict} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Institute State">
+                <ReadOnlyInput value={candidate.instituteAddressState} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+
+            <FieldGroup title="Institute / College Details">
+              <Field label="12th / Graduate College Name">
+                <ReadOnlyInput value={candidate.college12GraduateName} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Post Graduate College Name">
+                <ReadOnlyInput value={candidate.postGraduateCollegeName} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Teacher">
+                <ReadOnlyInput value={candidate.collegeTeacherName} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Designation">
+                <ReadOnlyInput value={candidate.collegeDesignation} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Mobile Number">
+                <ReadOnlyInput value={candidate.collegeMobileNumber} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Reference">
+                <ReadOnlyInput value={candidate.collegeReference} onEditHint={showEditHint} />
+              </Field>
+              <Field label="College Village">
+                <ReadOnlyInput value={candidate.collegeAddressVillage} onEditHint={showEditHint} />
+              </Field>
+              <Field label="College Taluka">
+                <ReadOnlyInput value={candidate.collegeAddressTaluka} onEditHint={showEditHint} />
+              </Field>
+              <Field label="College District">
+                <ReadOnlyInput value={candidate.collegeAddressDistrict} onEditHint={showEditHint} />
+              </Field>
+              <Field label="College State">
+                <ReadOnlyInput value={candidate.collegeAddressState} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+          </Section>
+
+          <Section title="Professional Details" icon={BriefcaseBusiness}>
+            <FieldGroup title="Job Preference" icon={MapPin}>
+              <Field label="Preferred Department">
+                <ReadOnlyInput value={candidate.interestedDepartment} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Preferred Industry">
+                <ReadOnlyInput value={candidate.preferredIndustry} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Industry Specialization">
+                <ReadOnlyInput value={candidate.industrySpecialization} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+
+            <FieldGroup title="Current Salary Per Month">
+              <Field label="NET / In-hand Salary">
+                <ReadOnlyInput value={candidate.netInHandSalary} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Gross Per Month">
+                <ReadOnlyInput value={candidate.grossSalaryPerMonth} onEditHint={showEditHint} />
+              </Field>
+              <Field label="CTC Per Month">
+                <ReadOnlyInput value={candidate.ctcSalaryPerMonth} onEditHint={showEditHint} />
               </Field>
               <Field label="Current Job Location">
                 <ReadOnlyInput value={candidate.currentJobLocation} onEditHint={showEditHint} />
               </Field>
-              <Field label="Reason Of Job Change" className="md:col-span-2 xl:col-span-3">
-                <ReadOnlyTextArea rows={3} value={candidate.reasonForJobChange} onEditHint={showEditHint} />
+              <Field label="Preferred Job Location">
+                <ReadOnlyInput value={candidate.preferredJobLocation} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
 
-            <FieldGroup title="Experience & Salary" icon={BriefcaseBusiness}>
-              <Field label="Experience (Years)">
-                <ReadOnlyInput type="number" value={candidate.totalExperience} onEditHint={showEditHint} />
+            <FieldGroup title="Expected Salary Per Month">
+              <Field label="Expected NET / In-hand Salary">
+                <ReadOnlyInput value={candidate.expectedNetInHandSalary} onEditHint={showEditHint} />
               </Field>
-              <Field label="Experience Department">
-                <ReadOnlyInput value={candidate.experienceDepartment} onEditHint={showEditHint} />
+              <Field label="Expected Gross Per Month">
+                <ReadOnlyInput value={candidate.expectedGrossSalaryPerMonth} onEditHint={showEditHint} />
               </Field>
-              <Field label="Current Salary">
-                <ReadOnlyInput value={candidate.currentSalary} onEditHint={showEditHint} />
+              <Field label="Expected CTC Per Month">
+                <ReadOnlyInput value={candidate.expectedCtcSalaryPerMonth} onEditHint={showEditHint} />
               </Field>
-              <Field label="Expected Salary">
-                <ReadOnlyInput value={candidate.expectedSalary} onEditHint={showEditHint} />
+            </FieldGroup>
+
+            <FieldGroup title="Job Working Status">
+              <Field label="Job Working Status">
+                <ReadOnlyInput value={candidate.jobWorkingStatus} onEditHint={showEditHint} />
               </Field>
+            </FieldGroup>
+
+            <FieldGroup title="Total Years of Experience">
+              <Field label="Total Year of Experience">
+                <ReadOnlyInput value={candidate.experienceType} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Enter Experience">
+                <ReadOnlyInput value={candidate.totalExperience} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+
+            <FieldGroup title="Notice Period">
               <Field label="Notice Period">
                 <ReadOnlyInput value={candidate.noticePeriod} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
 
+            <FieldGroup title="Reason For Job Change">
+              <Field label="Reason For Job Change">
+                <ReadOnlyInput value={candidate.reasonForJobChange} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+
+            <FieldGroup title="Key Skills / Knowledge">
+              <Field label="Key Skills / Knowledge">
+                <ReadOnlyInput value={candidate.keySkillsKnowledge} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+
+            <FieldGroup title="Key Job Responsibility">
+              <Field label="Key Job Responsibility">
+                <ReadOnlyInput value={candidate.careerJobResponsibilities} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
           </Section>
 
-          <Section title="Receipt Details" icon={ClipboardList}>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Day">
-                <ReadOnlyInput value={candidate.formMeta.day} onEditHint={showEditHint} />
+          <Section title="Reference Success Details" icon={Users}>
+            <FieldGroup title="Reference Details">
+              <Field label="Business Advisor Code">
+                <ReadOnlyInput value={candidate.advisorCode} onEditHint={showEditHint} />
               </Field>
-              <Field label="Receipt No">
-                <ReadOnlyInput value={candidate.formMeta.receiptNo} onEditHint={showEditHint} />
+              <Field label="Reference Name">
+                <ReadOnlyInput value={candidate.placementReference.referenceBy} onEditHint={showEditHint} />
               </Field>
-              <Field label="RC / WRC">
-                <ReadOnlyInput value={candidate.formMeta.rcWrc} onEditHint={showEditHint} />
+              <Field label="Reference Mobile Number">
+                <ReadOnlyInput value={candidate.placementReference.referenceContactNumber} onEditHint={showEditHint} />
               </Field>
-              <Field label="Date">
-                <ReadOnlyInput type="date" value={dateLabel(candidate.formMeta.date)} onEditHint={showEditHint} />
+              <Field label="Reference Profile">
+                <ReadOnlyInput value={candidate.referenceProfile} onEditHint={showEditHint} />
               </Field>
-            </div>
-          </Section>
-
-          <Section title="Family Details" icon={Users}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Occupation Of Father">
-                <ReadOnlyInput value={candidate.familyDetails.fatherOccupation} onEditHint={showEditHint} />
+              <Field label="Reference Source" className="md:col-span-2 xl:col-span-3">
+                <ReadOnlyInput value={(candidate.referenceSources || []).join(', ')} onEditHint={showEditHint} />
               </Field>
-              <Field label="Occupation Of Mother">
-                <ReadOnlyInput value={candidate.familyDetails.motherOccupation} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Occupation Of Brother">
-                <ReadOnlyInput value={candidate.familyDetails.brotherOccupation} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Occupation Of Sister">
-                <ReadOnlyInput value={candidate.familyDetails.sisterOccupation} onEditHint={showEditHint} />
-              </Field>
-              <Field label="What is your Goal / Aim?">
-                <ReadOnlyTextArea value={candidate.goalAim} onEditHint={showEditHint} />
-              </Field>
-            </div>
+            </FieldGroup>
           </Section>
         </>
       ) : null}
@@ -639,7 +946,7 @@ export default function CandidateDetail() {
         <>
           <Section title="Candidate Documents" icon={Upload}>
             <p className="rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
-              JPG/PNG images, PDF letters, and MP4/MOV/WebM videos where applicable. Max 10MB each.
+              JPG/PNG images and PDF letters where applicable. Max 10MB each.
             </p>
             <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
               {candidateDocumentTypes.map((item) => (
@@ -656,6 +963,17 @@ export default function CandidateDetail() {
                 </div>
               </div>
             ) : null}
+          </Section>
+
+          <Section title="Success Documents" icon={Upload}>
+            <p className="rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+              Success and joining documents. Videos are shown where applicable.
+            </p>
+            <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+              {successDocumentTypes.map((item) => (
+                <DocumentTypeCard key={item.key} item={item} docs={candidateDocumentsByType[item.key] || []} />
+              ))}
+            </div>
           </Section>
 
           <Section title="Interview Documents" icon={Upload}>
@@ -676,7 +994,7 @@ export default function CandidateDetail() {
                           }`}
                         >
                           <p className="truncate text-sm font-bold">{row.companyName || 'Company interview'}</p>
-                          <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">{row.jobRole || row.date || 'No job role added'}</p>
+                          <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">{row.jobRole || row.date || 'No job role/department added'}</p>
                         </button>
                       )
                     })}
@@ -706,7 +1024,7 @@ export default function CandidateDetail() {
         <Section title="Success Info For Candidate" icon={ClipboardList}>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {SUCCESS_INFO_FIELDS.map((field) => {
-              const multiline = ['candidateDataSource', 'hrContactDetails', 'interviewAttainedList'].includes(field.key)
+              const multiline = ['candidateDataSource', 'hrContactDetails'].includes(field.key)
 
               return (
                 <Field key={field.key} label={field.label} className={multiline ? 'xl:col-span-3' : ''}>
@@ -724,6 +1042,14 @@ export default function CandidateDetail() {
 
       {activePanel === 'assessment' ? (
         <Section title="Success Interviewer Remark">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-bold uppercase text-slate-500">Candidate Name</p>
+            <p className="mt-1 text-base font-bold text-slate-950">{candidate.fullName || '-'}</p>
+          </div>
+
+          <AssessmentView title="Director Assessment" fields={DIRECTOR_ASSESSMENT_FIELDS} assessment={candidate.interviewForm.directorAssessment} onEditHint={showEditHint} />
+          <AssessmentView title="Manager Assessment" fields={MANAGER_ASSESSMENT_FIELDS} assessment={candidate.interviewForm.managerAssessment} onEditHint={showEditHint} />
+
           <div className="grid gap-4 xl:grid-cols-2">
             <RatingGrid title="Professional Assessment" fields={PROFESSIONAL_RATING_FIELDS} ratings={candidate.interviewForm.professionalRatings} onEditHint={showEditHint} />
             <RatingGrid title="Personality Assessment" fields={PERSONALITY_RATING_FIELDS} ratings={candidate.interviewForm.personalityRatings} onEditHint={showEditHint} />
@@ -744,8 +1070,7 @@ export default function CandidateDetail() {
             </Field>
           </FieldGroup>
 
-          <InterviewQuestionsView candidateName={candidate.fullName} questions={candidate.interviewForm.questions} onEditHint={showEditHint} />
-          <QuestionMarksResultTable questions={candidate.interviewForm.questions} />
+          <InterviewQuestionsView questions={candidate.interviewForm.questions} onEditHint={showEditHint} />
         </Section>
       ) : null}
 
@@ -754,17 +1079,15 @@ export default function CandidateDetail() {
           <p className="text-sm font-semibold text-slate-500">Company-wise interview updates are listed by date. Open View for details or Update to edit.</p>
           <div className="overflow-hidden rounded-xl border border-slate-200">
             <div className="overflow-x-auto">
-              <table className="min-w-[1040px] w-full table-fixed text-sm">
+              <table className="min-w-[860px] w-full table-fixed text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                   <tr>
                     <th className="w-14 px-4 py-3">#</th>
                     <th className="px-4 py-3">Company Name</th>
-                    <th className="w-40 px-4 py-3">Job Role</th>
-                    <th className="w-36 px-4 py-3">Reference</th>
+                    <th className="w-40 px-4 py-3">Job Role/Department</th>
                     <th className="w-36 px-4 py-3">Interview Date</th>
-                    <th className="w-24 px-4 py-3">Attend</th>
                     <th className="w-36 px-4 py-3">Selection Chances</th>
-                    <th className="w-44 px-4 py-3 text-right">Actions</th>
+                    <th className="w-72 px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -773,16 +1096,14 @@ export default function CandidateDetail() {
                       <td className="px-4 py-3 text-slate-500">{index + 1}</td>
                       <td className="px-4 py-3 font-semibold text-slate-900">{row.companyName || '-'}</td>
                       <td className="px-4 py-3 text-slate-700">{row.jobRole || '-'}</td>
-                      <td className="px-4 py-3 text-slate-700">{row.referencePerson || 'Walk-in'}</td>
                       <td className="px-4 py-3 text-slate-700">{row.date || '-'}</td>
-                      <td className="px-4 py-3 text-slate-700">{row.attendInterview || '-'}</td>
                       <td className="px-4 py-3 text-slate-700">{row.selectionChances || '-'}</td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"
                             onClick={() => setSelectedInterview(row)}
-                            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            className="inline-flex h-9 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                           >
                             <Eye className="h-4 w-4" />
                             View
@@ -790,10 +1111,18 @@ export default function CandidateDetail() {
                           <button
                             type="button"
                             onClick={() => navigate(`/admin/cms/candidates/${id}/edit?panel=interviews&interview=${row.id}`)}
-                            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700"
+                            className="inline-flex h-9 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700"
                           >
                             <Pencil className="h-4 w-4" />
                             Update
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingInterview(row)}
+                            className="inline-flex h-9 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-rose-50 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-100"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
                           </button>
                         </div>
                       </td>
@@ -801,7 +1130,7 @@ export default function CandidateDetail() {
                   ))}
                   {visibleInterviews.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                         No interview updates added yet.
                       </td>
                     </tr>
@@ -813,6 +1142,16 @@ export default function CandidateDetail() {
           <InterviewDetailsPanel row={selectedInterview} candidateName={candidate.fullName} onClose={() => setSelectedInterview(null)} />
         </Section>
       ) : null}
+
+      <ConfirmDialog
+        open={Boolean(deletingInterview)}
+        title="Delete Interview"
+        message={`Delete ${deletingInterview?.companyName || 'this interview'}?`}
+        confirmText="Delete"
+        danger
+        onCancel={() => setDeletingInterview(null)}
+        onConfirm={handleDeleteInterview}
+      />
 
       {previewDoc ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4" onClick={() => setPreviewDoc(null)}>

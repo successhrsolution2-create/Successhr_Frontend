@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Copy, Eye, Pencil, Plus, Trash2, UploadCloud, X } from 'lucide-react'
+import { Copy, Eye, Pencil, Plus, Search, Trash2, UploadCloud, X } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import api, { assetUrl } from '../../api/axios'
 import Skeleton from '../../components/Skeleton'
@@ -84,6 +84,7 @@ export default function BusinessAdvisors() {
   const [profiles, setProfiles] = useState([])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [modalMode, setModalMode] = useState(null)
@@ -108,12 +109,33 @@ export default function BusinessAdvisors() {
 
   useEffect(() => {
     setPage(1)
-  }, [profiles.length, pageSize])
+  }, [profiles.length, pageSize, searchTerm])
+
+  const filteredProfiles = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    if (!term) return profiles
+
+    return profiles.filter((profile) => {
+      const values = [
+        profile.userId?.name,
+        profile.fullName,
+        profile.userId?.email,
+        profile.email,
+        profile.phone,
+        profile.city,
+        profile.userId?.advisorCode,
+        profile.isProfileComplete ? 'complete' : 'incomplete',
+        profile.userId?.isActive ? 'active' : 'inactive'
+      ]
+
+      return values.some((value) => String(value || '').toLowerCase().includes(term))
+    })
+  }, [profiles, searchTerm])
 
   const paginatedProfiles = useMemo(() => {
     const start = (page - 1) * pageSize
-    return profiles.slice(start, start + pageSize)
-  }, [profiles, page, pageSize])
+    return filteredProfiles.slice(start, start + pageSize)
+  }, [filteredProfiles, page, pageSize])
 
   useEffect(() => {
     if (searchParams.get('action') !== 'create') return
@@ -328,7 +350,7 @@ export default function BusinessAdvisors() {
           : 'Save Business Advisor'
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Business Advisors</h1>
@@ -344,58 +366,74 @@ export default function BusinessAdvisors() {
         </button>
       </div>
 
+      <div className="flex flex-col gap-2 rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search advisors by name, email, phone, city, code..."
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+          />
+        </div>
+        <p className="text-xs font-semibold text-slate-500">
+          Showing {filteredProfiles.length} of {profiles.length}
+        </p>
+      </div>
+
       <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <table className="min-w-full divide-y divide-slate-200 text-[13px]">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-5 py-3">Name</th>
-                <th className="px-5 py-3">Email</th>
-                <th className="px-5 py-3">Phone</th>
-                <th className="px-5 py-3">City</th>
-                <th className="px-5 py-3">Code</th>
-                <th className="px-5 py-3">Profile Status</th>
-                <th className="px-5 py-3">Active</th>
-                <th className="px-5 py-3">Actions</th>
+                <th className="px-4 py-2.5">Name</th>
+                <th className="px-4 py-2.5">Email</th>
+                <th className="px-4 py-2.5">Phone</th>
+                <th className="px-4 py-2.5">City</th>
+                <th className="px-4 py-2.5">Code</th>
+                <th className="px-4 py-2.5">Profile Status</th>
+                <th className="px-4 py-2.5">Active</th>
+                <th className="px-4 py-2.5">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {paginatedProfiles.map((profile) => (
                 <tr key={profile._id} className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40">
-                  <td className="px-5 py-3 font-semibold text-slate-900">{profile.userId?.name || profile.fullName}</td>
-                  <td className="px-5 py-3 text-slate-600">{profile.userId?.email || profile.email}</td>
-                  <td className="px-5 py-3 text-slate-600">{profile.phone || 'Not provided'}</td>
-                  <td className="px-5 py-3 text-slate-600">{profile.city || 'Not provided'}</td>
-                  <td className="px-5 py-3 text-slate-600">
-                    <div className="flex items-center gap-2">
+                  <td className="px-4 py-2 font-semibold leading-5 text-slate-900">{profile.userId?.name || profile.fullName}</td>
+                  <td className="max-w-[220px] break-words px-4 py-2 leading-5 text-slate-600">{profile.userId?.email || profile.email}</td>
+                  <td className="px-4 py-2 leading-5 text-slate-600">{profile.phone || 'Not provided'}</td>
+                  <td className="px-4 py-2 leading-5 text-slate-600">{profile.city || 'Not provided'}</td>
+                  <td className="px-4 py-2 leading-5 text-slate-600">
+                    <div className="flex items-center gap-1.5">
                       <span className="font-mono">{profile.userId?.advisorCode || '-'}</span>
                       {profile.userId?.advisorCode ? (
                         <button type="button" onClick={() => copyCode(profile.userId.advisorCode)} className="rounded p-1 text-slate-500 hover:bg-slate-100">
-                          <Copy className="h-4 w-4" />
+                          <Copy className="h-3.5 w-3.5" />
                         </button>
                       ) : null}
                     </div>
                   </td>
-                  <td className="px-5 py-3">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${profile.isProfileComplete ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                  <td className="px-4 py-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${profile.isProfileComplete ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
                       {profile.isProfileComplete ? 'Complete' : 'Incomplete'}
                     </span>
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-4 py-2">
                     <label className="inline-flex cursor-pointer items-center">
                       <input type="checkbox" checked={Boolean(profile.userId?.isActive)} onChange={() => toggleActive(profile)} className="sr-only" />
-                      <span className={`h-6 w-11 rounded-full p-0.5 transition ${profile.userId?.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                        <span className={`block h-5 w-5 rounded-full bg-white transition ${profile.userId?.isActive ? 'translate-x-5' : ''}`} />
+                      <span className={`h-5 w-9 rounded-full p-0.5 transition ${profile.userId?.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                        <span className={`block h-4 w-4 rounded-full bg-white transition ${profile.userId?.isActive ? 'translate-x-4' : ''}`} />
                       </span>
                     </label>
                   </td>
-                  <td className="px-5 py-3">
-                    <div className="flex flex-wrap gap-2">
+                  <td className="px-4 py-2">
+                    <div className="flex flex-wrap gap-1.5">
                       <ActionButton label="View" onClick={() => openView(profile)} color="border-sky-200 text-sky-700 hover:bg-sky-50">
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5" />
                       </ActionButton>
                       <ActionButton label="Update" onClick={() => openEdit(profile)} color="border-orange-200 text-orange-700 hover:bg-orange-50">
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-3.5 w-3.5" />
                       </ActionButton>
                       <ActionButton
                         label="Delete"
@@ -409,23 +447,23 @@ export default function BusinessAdvisors() {
                         }
                         color="border-rose-200 text-rose-700 hover:bg-rose-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </ActionButton>
                     </div>
                   </td>
                 </tr>
               ))}
-              {profiles.length === 0 && (
+              {filteredProfiles.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="px-5 py-10 text-center text-slate-500">
-                    No Business Advisors created yet.
+                  <td colSpan="8" className="px-5 py-8 text-center text-slate-500">
+                    {profiles.length ? 'No advisors match your search.' : 'No Business Advisors created yet.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        <Pagination page={page} pageSize={pageSize} total={profiles.length} itemLabel="advisors" onPageChange={setPage} onPageSizeChange={setPageSize} />
+        <Pagination page={page} pageSize={pageSize} total={filteredProfiles.length} itemLabel="advisors" onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       {modalMode && (
@@ -436,7 +474,7 @@ export default function BusinessAdvisors() {
             onClick={closeModal}
             aria-label="Close modal"
           />
-          <form onSubmit={saveBA} className="relative flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in sm:h-[95vh] sm:rounded-3xl">
+          <form onSubmit={saveBA} className="relative flex h-[calc(100dvh-1rem)] min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in sm:h-[95vh] sm:rounded-3xl">
             <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -450,7 +488,7 @@ export default function BusinessAdvisors() {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
               <div className="space-y-4 sm:space-y-6">
                 <FormSection title="Account Details">
                   <ModalField label="Name" required={!isViewMode} readOnly={isViewMode} value={form.name} onChange={(value) => updateForm('name', value)} />
@@ -552,7 +590,7 @@ export default function BusinessAdvisors() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
+                  className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-wait disabled:opacity-70"
                 >
                   {submitLabel}
                 </button>
@@ -583,7 +621,7 @@ function ActionButton({ label, color, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border bg-white px-3 text-sm font-semibold ${color}`}
+      className={`inline-flex min-h-8 items-center justify-center gap-1 rounded-md border bg-white px-2.5 text-xs font-semibold ${color}`}
       aria-label={label}
       title={label}
     >

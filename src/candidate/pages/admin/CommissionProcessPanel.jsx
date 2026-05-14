@@ -393,24 +393,19 @@ export default function CommissionProcessPanel() {
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="overflow-x-auto">
-        <table className="min-w-full table-fixed divide-y divide-slate-200 text-sm">
+        <table className="min-w-[1120px] w-full divide-y divide-slate-200 text-[13px]">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-3 py-3">Candidate</th>
-                <th className="px-3 py-3">Company</th>
-                <th className="px-3 py-3">BA</th>
-                <th className="px-3 py-3">Process Stage</th>
-                <th className="px-3 py-3">Job Profile</th>
-                <th className="px-3 py-3">Salary/PM</th>
-                <th className="px-3 py-3">Basis</th>
-                <th className="px-3 py-3">%</th>
-                <th className="px-3 py-3">Earning</th>
-                <th className="px-3 py-3">Joining</th>
-                <th className="px-3 py-3">Appt. Letter</th>
-                <th className="px-3 py-3">Interview</th>
-                <th className="px-3 py-3">Process Notes</th>
-                <th className="px-3 py-3">Payment</th>
-                <th className="sticky right-0 z-10 bg-slate-50 px-3 py-3">Action</th>
+                <th className="px-3 py-2.5">Candidate</th>
+                <th className="px-3 py-2.5">Company</th>
+                <th className="px-3 py-2.5">Process Stage</th>
+                <th className="px-3 py-2.5">Job Profile</th>
+                <th className="px-3 py-2.5">Salary/PM</th>
+                <th className="px-3 py-2.5">%</th>
+                <th className="px-3 py-2.5">Earning</th>
+                <th className="px-3 py-2.5">Joining</th>
+                <th className="px-3 py-2.5">Payment</th>
+                <th className="px-3 py-2.5 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -421,37 +416,23 @@ export default function CommissionProcessPanel() {
 
                 return (
                   <tr key={placement._id} className="odd:bg-white even:bg-slate-50">
-                    <td className="px-3 py-2 font-semibold text-slate-900">{placement.studentId?.candidateName || '-'}</td>
-                    <td className="px-3 py-2 text-slate-700">{placement.companyId?.companyName || '-'}</td>
-                    <td className="px-3 py-2 text-slate-700">{placement.baId?.name || '-'}</td>
-                    <td className="px-3 py-2 text-slate-700">{processStageLabel[currentProcessStage] || '-'}</td>
-                    <td className="px-3 py-2 text-slate-700">
+                    <td className="px-3 py-2 font-semibold leading-5 text-slate-900">{placement.studentId?.candidateName || '-'}</td>
+                    <td className="px-3 py-2 leading-5 text-slate-700">{placement.companyId?.companyName || '-'}</td>
+                    <td className="px-3 py-2 leading-5 text-slate-700">{processStageLabel[currentProcessStage] || '-'}</td>
+                    <td className="px-3 py-2 leading-5 text-slate-700">
                       {placement.companyId?.jobRequirements?.jobProfile || placement.jobProfile || '-'}
                     </td>
-                    <td className="px-3 py-2 text-slate-700">{formatMoney(placement.offeredSalaryPM || 0)}</td>
-                    <td className="px-3 py-2 text-slate-700">{placement.salaryBasis || 1} mo</td>
-                    <td className="px-3 py-2 text-slate-700">{placement.earningPercent || 0}%</td>
+                    <td className="px-3 py-2 leading-5 text-slate-700">{formatMoney(placement.offeredSalaryPM || 0)}</td>
+                    <td className="px-3 py-2 leading-5 text-slate-700">{placement.earningPercent || 0}%</td>
                     <td className="px-3 py-2 font-semibold text-emerald-700">{formatMoney(placement.earningAmount || 0)}</td>
-                    <td className="px-3 py-2 text-slate-700">
+                    <td className="px-3 py-2 leading-5 text-slate-700">
                       {placement.joiningDate ? format(new Date(placement.joiningDate), 'dd MMM yyyy') : '-'}
-                    </td>
-                    <td className="px-3 py-2 text-slate-700">
-                      {placement.appointmentLetterDate ? format(new Date(placement.appointmentLetterDate), 'dd MMM yyyy') : '-'}
-                    </td>
-                    <td className="px-3 py-2 text-slate-700">
-                      <div className="space-y-0.5">
-                        <p>{placement.interviewDate ? format(new Date(placement.interviewDate), 'dd MMM yyyy') : '-'}</p>
-                        <p className="text-xs text-slate-500">{placement.interviewMode || '-'}</p>
-                      </div>
-                    </td>
-                    <td className="max-w-56 truncate px-3 py-2 text-slate-700" title={placement.processNotes || ''}>
-                      {placement.processNotes || '-'}
                     </td>
                     <td className="px-3 py-2">
                       <PaymentBadge status={placement.earningStatus} />
                     </td>
-                    <td className="sticky right-0 bg-white px-3 py-2">
-                      <div className="flex flex-wrap items-center gap-2">
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
                         {nextProcessStage && (
                           <button
                             type="button"
@@ -492,7 +473,7 @@ export default function CommissionProcessPanel() {
               })}
               {!filteredPlacements.length && (
                 <tr>
-                  <td colSpan="15" className="px-5 py-10 text-center text-slate-500">
+                  <td colSpan="10" className="px-5 py-10 text-center text-slate-500">
                     No placements found. Create a placement from Reference Board first, then process updates will appear here.
                   </td>
                 </tr>

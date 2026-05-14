@@ -69,6 +69,25 @@ const numeric = (value) => {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '')
+
+const buildCandidateSearchDigits = (candidate) => {
+  const placement = candidate.placement || {}
+
+  return [
+    candidate.mobileNumber,
+    candidate.aadhaarNo,
+    candidate.whatsappNo,
+    placement.offeredSalaryPM,
+    placement.earningPercent,
+    placement.earningAmount,
+    candidate.createdAt
+  ]
+    .map((value) => digitsOnly(value))
+    .filter(Boolean)
+    .join(' ')
+}
+
 const buildCandidateSearchText = (candidate) => {
   const placement = candidate.placement || {}
 
@@ -385,6 +404,7 @@ const [deletePrompt, setDeletePrompt] = useState({
 
   const filtered = useMemo(() => {
     const search = filters.search.toLowerCase().trim()
+    const searchDigits = digitsOnly(search)
 
     return students
       .map((student) => {
@@ -397,13 +417,14 @@ const [deletePrompt, setDeletePrompt] = useState({
             placement?.selectionStatus || student.selectionStatus || student.status
         }
       })
-      .filter((student) =>
-        search
-          ? `${student.candidateName} ${student.mobileNumber}`
-              .toLowerCase()
-              .includes(search)
-          : true
-      )
+      .filter((student) => {
+        if (!search) return true
+        if (buildCandidateSearchText(student).includes(search)) return true
+        return (
+          searchDigits.length >= 3 &&
+          buildCandidateSearchDigits(student).includes(searchDigits)
+        )
+      })
       .filter((student) =>
         filters.status === 'all'
           ? true
@@ -430,9 +451,6 @@ const [deletePrompt, setDeletePrompt] = useState({
   }, [filtered, page, pageSize])
 
   const deleteStudent = async (student) => {
-    if (!window.confirm(`Delete ${student.candidateName}?`))
-      return
-
     try {
       await api.delete(`/students/${student._id}`)
 
@@ -574,22 +592,22 @@ const [deletePrompt, setDeletePrompt] = useState({
         filters={filters}
         setFilters={setFilters}
         bas={bas}
-        searchPlaceholder="Search by name or mobile"
+        searchPlaceholder="Search candidate, mobile, BA, job..."
       />
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <table className="min-w-full divide-y divide-slate-200 text-[13px]">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-5 py-3">Name</th>
-                <th className="px-5 py-3">Mobile</th>
-                <th className="px-5 py-3">Applied For</th>
-                <th className="px-5 py-3">Submitted By</th>
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Commission</th>
-                <th className="px-5 py-3">Actions</th>
+                <th className="px-4 py-2.5">Name</th>
+                <th className="px-4 py-2.5">Mobile</th>
+                <th className="px-4 py-2.5">Applied For</th>
+                <th className="px-4 py-2.5">Submitted By</th>
+                <th className="px-4 py-2.5">Date</th>
+                <th className="px-4 py-2.5">Status</th>
+                <th className="px-4 py-2.5">Commission</th>
+                <th className="px-4 py-2.5">Actions</th>
               </tr>
             </thead>
 
@@ -599,30 +617,30 @@ const [deletePrompt, setDeletePrompt] = useState({
                   key={student._id}
                   className="odd:bg-white even:bg-slate-50 hover:bg-sky-50/40"
                 >
-                  <td className="px-5 py-3 font-semibold text-slate-900">
+                  <td className="px-4 py-2 font-semibold leading-5 text-slate-900">
                     {student.candidateName}
                   </td>
 
-                  <td className="px-5 py-3 text-slate-600">
+                  <td className="px-4 py-2 leading-5 text-slate-600">
                     {student.mobileNumber}
                   </td>
 
-                  <td className="px-5 py-3 text-slate-600">
+                  <td className="px-4 py-2 leading-5 text-slate-600">
                     {student.appliedFor || 'Not provided'}
                   </td>
 
-                  <td className="px-5 py-3 text-slate-600">
+                  <td className="px-4 py-2 leading-5 text-slate-600">
                     {student.submittedBy?.name || 'BA'}
                   </td>
 
-                  <td className="px-5 py-3 text-slate-600">
+                  <td className="px-4 py-2 leading-5 text-slate-600">
                     {format(
                       new Date(student.createdAt),
                       'dd MMM yyyy'
                     )}
                   </td>
 
-                  <td className="px-5 py-3">
+                  <td className="px-4 py-2">
                     {student.placement?.selectionStatus || student.selectionStatus ? (
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -642,7 +660,7 @@ const [deletePrompt, setDeletePrompt] = useState({
                     )}
                   </td>
 
-                  <td className="px-5 py-3 text-slate-600">
+                  <td className="px-4 py-2 leading-5 text-slate-600">
                     {commissionByStudentId[student._id]?.hasCommission ? (
                       <div className="space-y-1">
                         <div className="font-semibold text-slate-900">
@@ -660,7 +678,7 @@ const [deletePrompt, setDeletePrompt] = useState({
                     )}
                   </td>
 
-                  <td className="px-5 py-3">
+                  <td className="px-4 py-2">
                     <div className="flex flex-wrap gap-2">
 
                       {/* VIEW BUTTON */}
@@ -670,10 +688,10 @@ const [deletePrompt, setDeletePrompt] = useState({
                           setDrawerMode('view')
                           setSelected(student)
                         }}
-                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50"
+                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-sky-200 bg-white px-2.5 text-xs font-semibold text-sky-700 hover:bg-sky-50"
                         aria-label="View student"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5" />
                         View
                       </button>
 
@@ -681,10 +699,10 @@ const [deletePrompt, setDeletePrompt] = useState({
                       <button
                         type="button"
                         onClick={() => openStatusUpdate(student)}
-                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-700 hover:bg-amber-50"
+                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-amber-200 bg-white px-2.5 text-xs font-semibold text-amber-700 hover:bg-amber-50"
                         aria-label="Update status and advisor payment"
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-3.5 w-3.5" />
                         Update
                       </button>
 
@@ -697,10 +715,10 @@ const [deletePrompt, setDeletePrompt] = useState({
     student
   })
 }
-                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-rose-200 bg-white px-2.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
                         aria-label="Delete student"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                         Delete
                       </button>
 

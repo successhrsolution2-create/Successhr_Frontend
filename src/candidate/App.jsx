@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import Sidebar from './components/Sidebar'
 import ProtectedRoute from './components/ProtectedRoute'
+import LoadingScreen from '../components/LoadingScreen'
 
 const Login = lazy(() => import('./pages/Login'))
 const CandidatesList = lazy(() => import('./pages/admin/Candidates/CandidatesList'))
@@ -25,7 +26,7 @@ function AppShell({ role, children }) {
 
 export default function App() {
   return (
-    <Suspense fallback={<div className="p-6 text-slate-600">Loading…</div>}>
+    <Suspense fallback={<LoadingScreen />}>
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/login" element={<Login />} />

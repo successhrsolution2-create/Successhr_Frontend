@@ -91,7 +91,7 @@ export default function CandidatePopup({ open, candidate, onClose, onEdit }) {
                     <tr>
                       <th className="px-4 py-3">#</th>
                       <th className="px-4 py-3">Company</th>
-                      <th className="px-4 py-3">Job Role</th>
+                      <th className="px-4 py-3">Job Role/Department</th>
                       <th className="px-4 py-3">Reference Person</th>
                       <th className="px-4 py-3">Remark</th>
                       <th className="px-4 py-3">Date</th>

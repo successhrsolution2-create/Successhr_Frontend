@@ -347,7 +347,7 @@ export default function CommissionPanel() {
         <p className="mt-1 text-sm text-slate-500">Manage BA-wise earnings, placement edits, and payout status.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total Earnings Generated" value={formatMoney(topStats.totalEarnings)} />
         <StatCard label="Total Paid Out" value={formatMoney(topStats.totalPaid)} />
         <StatCard label="Total Pending" value={formatMoney(topStats.totalPending)} />
@@ -427,44 +427,44 @@ export default function CommissionPanel() {
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <table className="min-w-full divide-y divide-slate-200 text-[13px]">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-5 py-3">BA Name</th>
-                <th className="px-5 py-3">Placed</th>
-                <th className="px-5 py-3">Total Earnings</th>
-                <th className="px-5 py-3">Paid</th>
-                <th className="px-5 py-3">Pending</th>
-                <th className="px-5 py-3">Action</th>
+                <th className="px-4 py-2.5">BA Name</th>
+                <th className="px-4 py-2.5">Placed</th>
+                <th className="px-4 py-2.5">Total Earnings</th>
+                <th className="px-4 py-2.5">Paid</th>
+                <th className="px-4 py-2.5">Pending</th>
+                <th className="px-4 py-2.5">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {paginatedBaWise.map((row) => (
                 <Fragment key={row.baId}>
                   <tr className="odd:bg-white even:bg-slate-50">
-                    <td className="px-5 py-3 font-semibold text-slate-900">{row.baName}</td>
-                    <td className="px-5 py-3 text-slate-700">{row.totalPlacements}</td>
-                    <td className="px-5 py-3 text-slate-700">{formatMoney(row.totalEarnings)}</td>
-                    <td className="px-5 py-3 text-emerald-700">{formatMoney(row.paidAmount)}</td>
-                    <td className="px-5 py-3 text-amber-700">{formatMoney(row.pendingAmount)}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-4 py-2 font-semibold leading-5 text-slate-900">{row.baName}</td>
+                    <td className="px-4 py-2 leading-5 text-slate-700">{row.totalPlacements}</td>
+                    <td className="px-4 py-2 leading-5 text-slate-700">{formatMoney(row.totalEarnings)}</td>
+                    <td className="px-4 py-2 leading-5 text-emerald-700">{formatMoney(row.paidAmount)}</td>
+                    <td className="px-4 py-2 leading-5 text-amber-700">{formatMoney(row.pendingAmount)}</td>
+                    <td className="px-4 py-2">
                       <button
                         type="button"
                         onClick={() => setExpandedBa((current) => (current === row.baId ? '' : row.baId))}
-                        className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        className="inline-flex min-h-8 items-center gap-1 rounded-md border border-slate-300 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                       >
                         {expandedBa === row.baId ? 'Hide' : 'View'}
-                        {expandedBa === row.baId ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        {expandedBa === row.baId ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                       </button>
                     </td>
                   </tr>
 
                   {expandedBa === row.baId && (
                     <tr>
-                      <td colSpan="6" className="bg-slate-50 px-5 py-4">
+                      <td colSpan="6" className="bg-slate-50 px-4 py-3">
                         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
                           <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-slate-200 text-sm">
+                            <table className="min-w-full divide-y divide-slate-200 text-[13px]">
                               <thead className="bg-slate-100 text-left text-xs uppercase text-slate-500">
                                 <tr>
                                   <th className="px-3 py-2">Candidate</th>

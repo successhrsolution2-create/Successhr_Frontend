@@ -104,16 +104,10 @@ const toLegacyInterviewShape = (row) => ({
 const hasInterviewActivity = (candidate) =>
   Number(candidate.interviewCount || 0) > 0 || (Array.isArray(candidate.interviews) && candidate.interviews.length > 0)
 
-const isShortlistedCandidate = (candidate) => {
+const isSelectedCandidate = (candidate) => {
   const success = candidate.successUpdate || {}
   const stage = String(candidate.selectionStatus || '').toLowerCase()
-  return (
-    isChecked(candidate.remarks?.shortlisted) ||
-    isChecked(success.selected) ||
-    isChecked(success.notSelected) ||
-    stage === 'shortlisted' ||
-    stage === 'selected'
-  )
+  return isChecked(success.selected) || stage === 'selected'
 }
 
 const avatarPalette = [
@@ -179,7 +173,7 @@ export default function CandidatesList() {
     return candidates
       .filter((candidate) => {
         if (tileFilter === 'today') return dateKey(candidate.createdAt) === dateKey(new Date())
-        if (tileFilter === 'shortlist') return isShortlistedCandidate(candidate)
+        if (tileFilter === 'selected') return isSelectedCandidate(candidate)
         if (tileFilter === 'interviews') return hasInterviewActivity(candidate)
         return true
       })
@@ -210,9 +204,9 @@ export default function CandidatesList() {
     const total = candidates.length
     const todayKey = dateKey(new Date())
     const newToday = candidates.filter((item) => dateKey(item.createdAt) === todayKey).length
-    const shortlisted = candidates.filter(isShortlistedCandidate).length
+    const selected = candidates.filter(isSelectedCandidate).length
     const activeInterviews = candidates.filter(hasInterviewActivity).length
-    return { total, newToday, shortlisted, activeInterviews }
+    return { total, newToday, selected, activeInterviews }
   }, [candidates])
 
   useEffect(() => {
@@ -330,7 +324,7 @@ export default function CandidatesList() {
         'IQ',
         'TQ',
         'Grade',
-        'Interview Questions',
+        'Interview Questions and Answers',
         'Skills',
         'Languages',
         'Reference Source',
@@ -482,7 +476,7 @@ export default function CandidatesList() {
             <div className="flex flex-wrap items-center gap-2">
               <MetricChip icon={Users} label="Total" value={stats.total} tone="violet" active={tileFilter === 'all'} onClick={() => setTileFilter('all')} />
               <MetricChip icon={CalendarDays} label="Today" value={stats.newToday} tone="blue" active={tileFilter === 'today'} onClick={() => setTileFilter('today')} />
-              <MetricChip icon={ShieldCheck} label="Shortlist" value={stats.shortlisted} tone="emerald" active={tileFilter === 'shortlist'} onClick={() => setTileFilter('shortlist')} />
+              <MetricChip icon={ShieldCheck} label="Selected" value={stats.selected} tone="emerald" active={tileFilter === 'selected'} onClick={() => setTileFilter('selected')} />
               <MetricChip icon={UserRoundPlus} label="Interviews" value={stats.activeInterviews} tone="orange" active={tileFilter === 'interviews'} onClick={() => setTileFilter('interviews')} />
             </div>
             <div className="grid gap-2 sm:grid-cols-[minmax(0,190px)_auto] xl:justify-end">
@@ -521,8 +515,8 @@ export default function CandidatesList() {
         </div>
         <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
           <div className="mb-4 inline-flex rounded-full bg-emerald-100 p-4 text-emerald-600"><ShieldCheck className="h-5 w-5" /></div>
-          <p className="text-[13px] font-medium text-slate-500">Shortlisted</p>
-          <p className="mt-1 text-[30px] font-bold leading-none text-slate-900">{stats.shortlisted}</p>
+          <p className="text-[13px] font-medium text-slate-500">Selected</p>
+          <p className="mt-1 text-[30px] font-bold leading-none text-slate-900">{stats.selected}</p>
           <p className="mt-1 text-sm text-emerald-600">↑ 15.7% from last month</p>
         </div>
         <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
@@ -560,40 +554,39 @@ export default function CandidatesList() {
           <div className="px-5 py-10 text-center text-slate-500">Loading candidates...</div>
         ) : null}
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="min-w-[900px] w-full table-fixed text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
               <tr>
-                <th className="px-4 py-3">ID</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Mobile</th>
-                <th className="px-4 py-3">Reference</th>
-                <th className="px-4 py-3">Education</th>
-                <th className="px-4 py-3">Job Role</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="w-28 px-4 py-3 whitespace-nowrap">ID</th>
+                <th className="w-56 px-4 py-3 whitespace-nowrap">Name</th>
+                <th className="w-32 px-4 py-3 whitespace-nowrap">Mobile</th>
+                <th className="w-56 px-4 py-3 whitespace-nowrap">Job Role/Department</th>
+                <th className="w-60 px-4 py-3 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {paginated.map((candidate) => (
                 <tr key={candidate.id} className="odd:bg-white even:bg-slate-50 hover:bg-indigo-50/40">
-                  <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-700">{candidate.code}</td>
+                  <td className="whitespace-nowrap px-4 py-3 font-mono text-xs font-semibold text-slate-700">{candidate.code}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${avatarPalette[candidate.fullName.length % avatarPalette.length]}`}>
                         {(candidate.fullName || 'C').charAt(0).toUpperCase()}
                       </span>
-                      <span className="text-sm font-semibold text-slate-900">{candidate.fullName}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold leading-5 text-slate-900">{candidate.fullName}</span>
+                        <span className="block truncate text-xs font-semibold text-slate-500">{candidate.mobile || '-'}</span>
+                      </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-800">{candidate.mobile}</td>
-                  <td className="px-4 py-3 text-slate-800">{candidate.referenceSource || 'Walk-in'}</td>
-                  <td className="px-4 py-3 text-slate-800">{candidate.education || '-'}</td>
-                  <td className="px-4 py-3 text-slate-800">{candidate.jobRole || candidate.appliedFor || '-'}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-800">{candidate.mobile}</td>
+                  <td className="px-4 py-3 leading-5 text-slate-800">{candidate.jobRole || candidate.appliedFor || '-'}</td>
                   <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1.5">
+                    <div className="flex justify-end gap-1.5 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/cms/candidates/${candidate.id}`)}
-                        className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-3 text-xs font-semibold text-violet-600 hover:bg-violet-100"
+                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-3 text-xs font-semibold text-violet-600 hover:bg-violet-100"
                         aria-label="View candidate"
                       >
                         <Eye className="h-4 w-4" />
@@ -602,7 +595,7 @@ export default function CandidatesList() {
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/cms/candidates/${candidate.id}/edit`)}
-                        className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-[#1890d8] px-3 text-xs font-semibold text-white hover:bg-[#0f82c8]"
+                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-[#1890d8] px-3 text-xs font-semibold text-white hover:bg-[#0f82c8]"
                         aria-label="Edit candidate"
                       >
                         <Pencil className="h-4 w-4" />
@@ -611,7 +604,7 @@ export default function CandidatesList() {
                       <button
                         type="button"
                         onClick={() => setDeleting(candidate)}
-                        className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-rose-50 px-3 text-xs font-semibold text-rose-500 hover:bg-rose-100"
+                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-rose-50 px-3 text-xs font-semibold text-rose-500 hover:bg-rose-100"
                         aria-label="Delete candidate"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -623,7 +616,7 @@ export default function CandidatesList() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
+                  <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
                     No candidates found.
                   </td>
                 </tr>

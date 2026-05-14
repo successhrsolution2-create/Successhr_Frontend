@@ -171,7 +171,7 @@ export default function CompanyForm() {
         toast.success('Company created')
       }
 
-      navigate('/candidate/admin/cms/companies')
+      navigate('/admin/cms/companies')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not save company')
     } finally {
@@ -186,7 +186,7 @@ export default function CompanyForm() {
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-4 sm:space-y-6">
       <div>
-        <button type="button" onClick={() => navigate('/candidate/admin/cms/companies')} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+        <button type="button" onClick={() => navigate('/admin/cms/companies')} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
           {'<- Companies'}
         </button>
         <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">{isEdit ? 'Edit Company' : 'Add Company'}</h1>

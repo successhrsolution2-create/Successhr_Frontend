@@ -428,7 +428,7 @@ export default function ReferenceBoard() {
     }
   }
 
-  const moveReference = (reference, direction, currentIndex, statusColumn) => {
+  const moveReference = async (reference, direction, currentIndex, statusColumn) => {
     const itemsInStatus = grouped[statusColumn] || []
     let newIndex = currentIndex + (direction === 'up' ? -1 : 1)
 
@@ -450,7 +450,13 @@ export default function ReferenceBoard() {
     }))
 
     try {
-      api.post('/references/reorder', { updates }).catch(() => {})
+      const candidateIds = updates.filter((item) => item.type === 'student').map((item) => item.id)
+      const companyIds = updates.filter((item) => item.type === 'company').map((item) => item.id)
+
+      await Promise.all([
+        candidateIds.length ? api.patch('/students/reorder', { orderedIds: candidateIds }) : Promise.resolve(),
+        companyIds.length ? api.patch('/companies/reorder', { orderedIds: companyIds }) : Promise.resolve()
+      ])
       toast.success(`Moved ${direction === 'up' ? 'up' : 'down'}`)
     } catch (error) {
       toast.error('Could not move reference')

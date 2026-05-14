@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Eye, Pencil, X } from 'lucide-react'
+import { ArrowLeft, Eye, Pencil, X } from 'lucide-react'
 import api from '../../../api/axios'
 import Pagination from '../../../components/Pagination'
 
@@ -32,7 +32,7 @@ const statusBadge = (status) => {
 
 const interviewDetailFields = [
   ['companyName', 'Company Name'],
-  ['jobRole', 'Job Role'],
+  ['jobRole', 'Job Role/Department'],
   ['referencePerson', 'Reference Person'],
   ['remark', 'Remark'],
   ['date', 'Date'],
@@ -49,6 +49,20 @@ const interviewDetailFields = [
   ['note', 'Note'],
   ['updatedBy', 'Update By']
 ]
+
+function BackToInterviewsButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+      aria-label="Back to interviews"
+    >
+      <ArrowLeft className="h-4 w-4" />
+      Back to Interviews
+    </button>
+  )
+}
 
 function InterviewDetailsPanel({ row, onClose }) {
   if (!row) return null
@@ -143,9 +157,7 @@ export default function InterviewDetails() {
   if (!candidate) {
     return (
       <div className="space-y-4">
-        <button type="button" onClick={() => navigate('/admin/cms/interviews')} className="text-sm font-semibold text-sky-600 hover:text-sky-700">
-          {'<- Interviews'}
-        </button>
+        <BackToInterviewsButton onClick={() => navigate('/admin/cms/interviews')} />
         <p className="text-sm text-rose-600">Candidate not found.</p>
       </div>
     )
@@ -155,23 +167,19 @@ export default function InterviewDetails() {
     <div className="space-y-4 sm:space-y-6">
       <div>
         <div>
-          <button type="button" onClick={() => navigate('/admin/cms/interviews')} className="text-sm font-semibold text-sky-600 hover:text-sky-700">
-            {'<- Interviews'}
-          </button>
+          <BackToInterviewsButton onClick={() => navigate('/admin/cms/interviews')} />
           <h1 className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">{candidate.fullName}</h1>
         </div>
       </div>
 
       <div className={`${cardClass} p-4 sm:p-5`}>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="min-w-[820px] w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">#</th>
                 <th className="px-4 py-3">Company Name</th>
-                <th className="px-4 py-3">Job Role</th>
-                <th className="px-4 py-3">Reference Person</th>
-                <th className="px-4 py-3">Remark</th>
+                <th className="px-4 py-3">Job Role/Department</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -183,8 +191,6 @@ export default function InterviewDetails() {
                   <td className="px-4 py-3 text-slate-500">{(page - 1) * pageSize + idx + 1}</td>
                   <td className="px-4 py-3">{row.companyName || '-'}</td>
                   <td className="px-4 py-3">{row.jobRole || '-'}</td>
-                  <td className="px-4 py-3">{rowReference(row) || '-'}</td>
-                  <td className="px-4 py-3">{row.remark || '-'}</td>
                   <td className="px-4 py-3">{rowDate(row) || '-'}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${statusBadge(rowStatus(row))}`}>{rowStatus(row)}</span>
@@ -214,7 +220,7 @@ export default function InterviewDetails() {
               ))}
               {interviews.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                     No interviews.
                   </td>
                 </tr>

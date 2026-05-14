@@ -3,6 +3,8 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import {
   Building2,
+  ChevronDown,
+  ChevronRight,
   LayoutDashboard,
   PanelsTopLeft,
   UserCircle,
@@ -25,20 +27,40 @@ const baLinks = [
   { to: '/ba/earnings', label: 'My Earnings', icon: Wallet }
 ]
 
+const businessAdvisorAdminLinks = [
+  { to: '/admin/references', label: 'Dashboard', icon: PanelsTopLeft },
+  { to: '/admin/business-advisors', label: 'Advisors', icon: Users, end: true },
+  { to: '/admin/students', label: 'Candidates', icon: UserCircle },
+  { to: '/admin/companies', label: 'Companies', icon: Building2 },
+  { to: '/admin/commission', label: 'Earnings', icon: Wallet }
+]
+
 export default function Sidebar({ role, children }) {
   const [open, setOpen] = useState(false)
+  const [baPanelOpen, setBaPanelOpen] = useState(true)
   const { token } = useSelector((state) => state.auth)
   const location = useLocation()
 
   const isSuperAdmin = role === 'superAdmin'
   const isCandidateAdmin = role === 'candidateAdmin'
   const links = useMemo(() => (isSuperAdmin || isCandidateAdmin ? adminMainLinks : baLinks), [isSuperAdmin, isCandidateAdmin])
+  const isBusinessAdvisorPanelActive = businessAdvisorAdminLinks.some((item) =>
+    item.to === '/admin/business-advisors'
+      ? location.pathname === item.to
+      : location.pathname.startsWith(item.to)
+  )
 
   useEffect(() => {
     if (!token) return undefined
     connectSocket(token)
     return () => disconnectSocket()
   }, [token])
+
+  useEffect(() => {
+    if (isBusinessAdvisorPanelActive) {
+      setBaPanelOpen(true)
+    }
+  }, [isBusinessAdvisorPanelActive])
 
   return (
     <div className="flex min-h-screen min-w-0 bg-slate-100">
@@ -79,27 +101,45 @@ export default function Sidebar({ role, children }) {
           {isSuperAdmin ? (
             <>
               <div className="my-3 border-t border-slate-700" />
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-300">Business Advisor Management</p>
+              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-300">Projects</p>
 
-              <div className="ml-2 mt-1 space-y-1 sm:ml-6">
-                <NavLink to="/admin/references" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
-                  <PanelsTopLeft size={16} /> <span className="min-w-0 truncate">Dashboard</span>
-                </NavLink>
-                <NavLink
-                  to="/admin/business-advisors"
-                  end
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`
-                  }
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setBaPanelOpen((current) => !current)
+                  }}
+                  className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold ${
+                    isBusinessAdvisorPanelActive ? 'bg-slate-700 text-white' : 'text-slate-100 hover:bg-slate-700'
+                  }`}
+                  aria-expanded={baPanelOpen}
                 >
-                  <Users size={16} /> <span className="min-w-0 truncate">Advisor</span>
-                </NavLink>
-                <NavLink to="/admin/students" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
-                  <UserCircle size={16} /> <span className="min-w-0 truncate">Candidates</span>
-                </NavLink>
-                <NavLink to="/admin/companies" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
-                  <Building2 size={16} /> <span className="min-w-0 truncate">Companies</span>
-                </NavLink>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Users size={16} />
+                    <span className="min-w-0 truncate">Business Advisor</span>
+                  </span>
+                  {baPanelOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+
+                {baPanelOpen ? (
+                  <div className="ml-2 mt-1 space-y-1 border-l border-slate-700 pl-3 sm:ml-4">
+                    {businessAdvisorAdminLinks.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.end}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                            isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'
+                          }`
+                        }
+                      >
+                        <item.icon size={16} /> <span className="min-w-0 truncate">{item.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
             </>

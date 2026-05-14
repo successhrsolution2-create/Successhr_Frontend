@@ -4,28 +4,170 @@ const imageTypes = ['image/jpeg', 'image/png']
 const letterTypes = ['image/jpeg', 'image/png', 'application/pdf']
 const videoTypes = ['video/mp4', 'video/quicktime', 'video/webm']
 
-const imageAccept = 'image/jpeg,image/png'
+const imageAccept = 'image/jpeg,image/png,.jpg,.jpeg,.png'
 const letterAccept = 'image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf'
 const videoAccept = 'video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm'
 
 export const candidateDocumentTypes = [
-  { key: 'updatedResume', label: 'Updated Resume' },
-  { key: 'educationCertificates', label: 'All Education Certificates' },
-  { key: 'experienceLetter', label: 'Experience Letter' },
+  {
+    key: 'updatedResume',
+    label: 'Updated Resume',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'tenthCertificate',
+    label: '10th Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'twelfthCertificate',
+    label: '12th Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'graduateCertificate',
+    label: 'Graduate Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'postGraduateCertificate',
+    label: 'Post Graduate Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'experienceLetter',
+    label: 'Experience Letter',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
   {
     key: 'salarySlip',
-    label: 'Salary Slip / Bank Statement',
-    description: 'Previous 6 months with highlighted salary'
+    label: 'Salary Slip',
+    description: 'Previous 6 months with highlighted salary',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'bankStatement',
+    label: 'Bank Statement',
+    description: 'Previous 6 months with highlighted salary',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'msCitCertificate',
+    label: 'MS-CIT Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'cccCertificate',
+    label: 'CCC Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'advancedExcelCertificate',
+    label: 'Advanced Excel Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'powerPointCertificate',
+    label: 'PowerPoint Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'tallyCertificate',
+    label: 'Tally Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'autoCadCertificate',
+    label: 'AutoCAD Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'typingCertificate',
+    label: 'Typing Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'catiaCertificate',
+    label: 'CATIA Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
   },
   {
     key: 'computerCourseCertificate',
-    label: 'Computer Courses Certificate',
-    description: 'MS-CIT, Tally, Typing, Auto-Cad, Catia'
+    label: 'Other Computer Course Certificate',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
   },
-  { key: 'aadharCard', label: 'Aadhar Card' },
-  { key: 'panCard', label: 'PAN Card' },
-  { key: 'passportSizePhoto', label: 'Passport Size Photo' },
-  { key: 'medicalFitnessCertificate', label: 'Medical Fitness Certificates' },
+  {
+    key: 'aadharCard',
+    label: 'Aadhar Card',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'panCard',
+    label: 'PAN Card',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'passportSizePhoto',
+    label: 'Passport Size Photo',
+    accept: imageAccept,
+    allowedTypes: imageTypes,
+    typeMessage: 'only JPG or PNG images are allowed'
+  },
+  {
+    key: 'medicalFitnessCertificate',
+    label: 'Medical Fitness Certificates',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'candidatePhoto',
+    label: 'Photo Of Candidate With Letter / Receipt',
+    accept: imageAccept,
+    allowedTypes: imageTypes,
+    typeMessage: 'only JPG or PNG images are allowed'
+  }
+]
+
+export const successDocumentTypes = [
   {
     key: 'hamiPatra',
     label: 'HP - Hami Patra',
@@ -41,21 +183,60 @@ export const candidateDocumentTypes = [
     typeMessage: 'only JPG, PNG, or PDF files are allowed'
   },
   {
-    key: 'selectedVideoFeedbackVideo',
+    key: 'selectedVideo',
     label: 'Selected Video / Feedback Video',
-    description: 'MP4, MOV, or WebM video',
     accept: videoAccept,
     allowedTypes: videoTypes,
     typeMessage: 'only MP4, MOV, or WebM videos are allowed'
   },
   {
-    key: 'candidatePhoto',
-    label: 'Photo Of Candidates',
-    description: 'With letter & receipt / formal photo',
-    accept: imageAccept,
-    allowedTypes: imageTypes,
-    typeMessage: 'only JPG or PNG images are allowed'
+    key: 'jobJoiningHamiPatra',
+    label: 'Job Joining Hami Patra',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
   }
 ]
+
+export const allCandidateDocumentTypes = [...candidateDocumentTypes, ...successDocumentTypes]
+
+export const educationCertificateDocumentKeys = new Set([
+  'tenthCertificate',
+  'twelfthCertificate',
+  'graduateCertificate',
+  'postGraduateCertificate'
+])
+
+export const educationCertificateDocumentTypes = candidateDocumentTypes.filter((documentType) =>
+  educationCertificateDocumentKeys.has(documentType.key)
+)
+
+export const educationCertificateLabel = (documentType) =>
+  documentType.label
+
+export const computerCourseDocumentKeys = new Set([
+  'msCitCertificate',
+  'cccCertificate',
+  'advancedExcelCertificate',
+  'powerPointCertificate',
+  'tallyCertificate',
+  'autoCadCertificate',
+  'typingCertificate',
+  'catiaCertificate',
+  'computerCourseCertificate'
+])
+
+export const computerCourseDocumentTypes = candidateDocumentTypes.filter((documentType) =>
+  computerCourseDocumentKeys.has(documentType.key)
+)
+
+export const groupedCandidateDocumentKeys = new Set([
+  ...educationCertificateDocumentKeys,
+  ...computerCourseDocumentKeys
+])
+
+export const standaloneCandidateDocumentTypes = candidateDocumentTypes.filter(
+  (documentType) => !groupedCandidateDocumentKeys.has(documentType.key)
+)
 
 export const allowedDocumentImageTypes = new Set(imageTypes)
