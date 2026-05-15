@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import toast from 'react-hot-toast'
 import {
   ArrowLeft,
@@ -13,6 +14,7 @@ import {
   ExternalLink,
   GraduationCap,
   Handshake,
+  Lock,
   MessageSquare,
   Pencil,
   Plus,
@@ -22,6 +24,7 @@ import {
   Upload,
   UserRound,
   Users,
+  Unlock,
   X
 } from 'lucide-react'
 import api from '../../../api/axios'
@@ -76,6 +79,7 @@ const panelLabels = {
   assessment: 'Success Interviewer Remark',
   interviews: 'Company Interviews'
 }
+const emptyDirectorUnlockCredentials = { email: '', password: '' }
 const panelFromSearch = (searchParams) => {
   const panel = searchParams.get('panel')
   return editablePanels.has(panel) ? panel : 'details'
@@ -2020,14 +2024,72 @@ function RatingGrid({ title, fields, ratings, onToggle }) {
   )
 }
 
-function AssessmentForm({ title, fields, assessment, onToggle }) {
+function AssessmentRadio({ checked, locked, label, name, onChange }) {
+  if (locked) {
+    return (
+      <button
+        type="button"
+        onClick={onChange}
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-200"
+        aria-label={label}
+        aria-checked={checked}
+        role="radio"
+      >
+        <span
+          className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+            checked ? 'border-indigo-600 bg-indigo-50' : 'border-slate-300 bg-white'
+          }`}
+        >
+          {checked ? <span className="h-2.5 w-2.5 rounded-full bg-indigo-600" /> : null}
+        </span>
+      </button>
+    )
+  }
+
+  return (
+    <input
+      type="radio"
+      name={name}
+      checked={checked}
+      onChange={onChange}
+      className="h-4 w-4 border-slate-300 text-indigo-600"
+      aria-label={label}
+    />
+  )
+}
+
+function AssessmentForm({ title, fields, assessment, onToggle, locked = false, unlockLabel = '', lockLabel = 'Lock', onUnlock, onLock }) {
   const counselingYes = (assessment?.counselingOfCandidate || []).some((item) => String(item) === 'Yes')
+  const showLockControl = locked ? Boolean(onUnlock) : Boolean(onLock)
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200">
       <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-        <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-        <p className="mt-1 text-xs text-slate-500">Class and priority use Low / Medium / High. Counseling uses Yes / No and Online / Offline.</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">{title}</h3>
+            <p className="mt-1 text-xs text-slate-500">Class and priority use Low / Medium / High. Counseling uses Yes / No and Online / Offline.</p>
+            {locked ? (
+              <p className="mt-2 text-xs font-semibold text-amber-700">
+                Locked. Enter super admin credentials before changing these marks.
+              </p>
+            ) : null}
+          </div>
+          {showLockControl ? (
+            <button
+              type="button"
+              onClick={locked ? onUnlock : onLock}
+              className={`inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3 text-xs font-bold ring-1 ${
+                locked
+                  ? 'bg-amber-50 text-amber-800 ring-amber-200 hover:bg-amber-100'
+                  : 'bg-slate-50 text-slate-700 ring-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              {locked ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+              {locked ? (unlockLabel || 'Unlock') : lockLabel}
+            </button>
+          ) : null}
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-[760px] w-full text-sm">
@@ -2061,13 +2123,13 @@ function AssessmentForm({ title, fields, assessment, onToggle }) {
                   <td className="px-4 py-3 font-semibold text-slate-800">{field.label}</td>
                   {DIRECTOR_RATING_VALUES.map((value) => (
                     <td key={value} className="px-4 py-3 text-center">
-                      <input
-                        type="radio"
+                      <AssessmentRadio
                         name={`${title}-${field.key}`}
                         checked={selected.some((item) => String(item) === value)}
+                        disabled={locked}
                         onChange={() => onToggle(field.key, value)}
-                        className="h-4 w-4 border-slate-300 text-indigo-600"
-                        aria-label={`${field.label} ${value}`}
+                        label={`${field.label} ${value}`}
+                        locked={locked}
                       />
                     </td>
                   ))}
@@ -2085,26 +2147,26 @@ function AssessmentForm({ title, fields, assessment, onToggle }) {
               </td>
               {DIRECTOR_YES_NO_VALUES.map((value) => (
                 <td key={value} className="px-4 py-3 text-center">
-                  <input
-                    type="radio"
+                  <AssessmentRadio
                     name={`${title}-counseling`}
                     checked={(assessment?.counselingOfCandidate || []).some((item) => String(item) === value)}
+                    disabled={locked}
                     onChange={() => onToggle('counselingOfCandidate', value)}
-                    className="h-4 w-4 border-slate-300 text-indigo-600"
-                    aria-label={`Counseling Of Candidate ${value}`}
+                    label={`Counseling Of Candidate ${value}`}
+                    locked={locked}
                   />
                 </td>
               ))}
               {counselingYes ? (
                 DIRECTOR_MODE_VALUES.map((value) => (
                   <td key={value} className="px-4 py-3 text-center">
-                    <input
-                      type="radio"
+                    <AssessmentRadio
                       name={`${title}-counseling-mode`}
                       checked={(assessment?.counselingMode || []).some((item) => String(item) === value)}
+                      disabled={locked}
                       onChange={() => onToggle('counselingMode', value)}
-                      className="h-4 w-4 border-slate-300 text-indigo-600"
-                      aria-label={`Counseling Mode ${value}`}
+                      label={`Counseling Mode ${value}`}
+                      locked={locked}
                     />
                   </td>
                 ))
@@ -2117,6 +2179,60 @@ function AssessmentForm({ title, fields, assessment, onToggle }) {
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+function DirectorUnlockDialog({ open, credentials, loading, onChange, onSubmit, onCancel }) {
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 px-3 py-4">
+      <form
+        onSubmit={onSubmit}
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-xl bg-white p-4 shadow-2xl ring-1 ring-slate-200 sm:p-5"
+      >
+        <h3 className="text-lg font-bold text-slate-950">Unlock Director Assessment</h3>
+        <p className="mt-2 text-sm text-slate-600">
+          Enter super admin credentials to allow Director Assessment changes for this candidate.
+        </p>
+        <label className="mt-4 block text-sm font-semibold text-slate-700">
+          Super admin email
+          <input
+            autoFocus
+            type="email"
+            value={credentials.email}
+            onChange={(event) => onChange('email', event.target.value)}
+            className="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          />
+        </label>
+        <label className="mt-3 block text-sm font-semibold text-slate-700">
+          Password
+          <input
+            type="password"
+            value={credentials.password}
+            onChange={(event) => onChange('password', event.target.value)}
+            className="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          />
+        </label>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="min-h-10 w-full rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="min-h-10 w-full rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            {loading ? 'Checking...' : 'Unlock'}
+          </button>
+        </div>
+      </form>
     </div>
   )
 }
@@ -2498,6 +2614,7 @@ function InterviewUpdatePanel({
 }
 
 export default function AddCandidate() {
+  const authUser = useSelector((state) => state.auth.user)
   const navigate = useNavigate()
   const { id } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -2523,13 +2640,28 @@ export default function AddCandidate() {
   const [interviewSearchTerm, setInterviewSearchTerm] = useState('')
   const [deleteDocumentPrompt, setDeleteDocumentPrompt] = useState({ open: false, type: '', docId: '', interviewId: '', label: '' })
   const [autoSaveStatus, setAutoSaveStatus] = useState('')
+  const [directorApprovalToken, setDirectorApprovalToken] = useState('')
+  const [directorUnlockOpen, setDirectorUnlockOpen] = useState(false)
+  const [directorUnlockCredentials, setDirectorUnlockCredentials] = useState(emptyDirectorUnlockCredentials)
+  const [directorUnlocking, setDirectorUnlocking] = useState(false)
+  const [directorAssessmentManuallyLocked, setDirectorAssessmentManuallyLocked] = useState(false)
   const autoSaveTimerRef = useRef(null)
   const autoSavePayloadRef = useRef('')
   const autoSaveRequestRef = useRef(0)
+  const directorAssessmentUnlocked =
+    !directorAssessmentManuallyLocked && (authUser?.role === 'superAdmin' || Boolean(directorApprovalToken))
+  const directorAssessmentLocked = !directorAssessmentUnlocked
 
   useEffect(() => {
     if (isEdit) setActivePanel(panelFromSearch(searchParams))
   }, [isEdit, searchParams])
+
+  useEffect(() => {
+    setDirectorApprovalToken('')
+    setDirectorUnlockOpen(false)
+    setDirectorUnlockCredentials(emptyDirectorUnlockCredentials)
+    setDirectorAssessmentManuallyLocked(false)
+  }, [id])
 
   useEffect(() => {
     if (!isEdit) return
@@ -2607,7 +2739,10 @@ export default function AddCandidate() {
     autoSaveTimerRef.current = setTimeout(async () => {
       try {
         setAutoSaveStatus('saving')
-        await api.put(`/cms/candidates/${id}`, payload)
+        const requestConfig = directorApprovalToken
+          ? { headers: { 'X-Director-Assessment-Approval': directorApprovalToken } }
+          : undefined
+        await api.put(`/cms/candidates/${id}`, payload, requestConfig)
         if (autoSaveRequestRef.current === requestId) {
           autoSavePayloadRef.current = payloadKey
           setAutoSaveStatus('saved')
@@ -2622,7 +2757,7 @@ export default function AddCandidate() {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     }
-  }, [candidate, id, isEdit, loading])
+  }, [candidate, directorApprovalToken, id, isEdit, loading])
 
   const update = (key, value) => setCandidate((current) => ({ ...current, [key]: value }))
 
@@ -2676,6 +2811,67 @@ export default function AddCandidate() {
       successInfo: { ...(current.successInfo || {}), [key]: value }
     }))
 
+  const requestDirectorUnlock = () => {
+    if (authUser?.role === 'superAdmin') {
+      setDirectorAssessmentManuallyLocked(false)
+      toast.success('Director Assessment unlocked')
+      return
+    }
+    if (directorApprovalToken) {
+      setDirectorAssessmentManuallyLocked(false)
+      toast.success('Director Assessment unlocked')
+      return
+    }
+    setDirectorUnlockOpen(true)
+  }
+
+  const lockDirectorAssessment = () => {
+    setDirectorAssessmentManuallyLocked(true)
+    if (authUser?.role !== 'superAdmin') {
+      setDirectorApprovalToken('')
+    }
+    toast.success('Director Assessment locked')
+  }
+
+  const updateDirectorUnlockCredentials = (key, value) =>
+    setDirectorUnlockCredentials((current) => ({ ...current, [key]: value }))
+
+  const closeDirectorUnlock = () => {
+    if (directorUnlocking) return
+    setDirectorUnlockOpen(false)
+    setDirectorUnlockCredentials(emptyDirectorUnlockCredentials)
+  }
+
+  const submitDirectorUnlock = async (event) => {
+    event.preventDefault()
+
+    if (!directorUnlockCredentials.email.trim() || !directorUnlockCredentials.password) {
+      toast.error('Enter super admin email and password')
+      return
+    }
+
+    try {
+      setDirectorUnlocking(true)
+      const { data } = await api.post('/auth/director-assessment-unlock', directorUnlockCredentials)
+      setDirectorApprovalToken(data.token || '')
+      setDirectorAssessmentManuallyLocked(false)
+      setDirectorUnlockOpen(false)
+      setDirectorUnlockCredentials(emptyDirectorUnlockCredentials)
+      toast.success('Director Assessment unlocked for 15 minutes')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not unlock Director Assessment')
+    } finally {
+      setDirectorUnlocking(false)
+    }
+  }
+
+  const ensureDirectorAssessmentUnlocked = () => {
+    if (directorAssessmentUnlocked) return true
+    setDirectorUnlockOpen(true)
+    toast.error('Enter super admin credentials before changing Director Assessment')
+    return false
+  }
+
   const toggleRating = (bucket, key, value) =>
     setCandidate((current) => ({
       ...current,
@@ -2688,7 +2884,9 @@ export default function AddCandidate() {
       }
     }))
 
-  const toggleDirectorAssessment = (key, value) =>
+  const toggleDirectorAssessment = (key, value) => {
+    if (!ensureDirectorAssessmentUnlocked()) return
+
     setCandidate((current) => ({
       ...current,
       interviewForm: {
@@ -2700,6 +2898,7 @@ export default function AddCandidate() {
         }
       }
     }))
+  }
 
   const toggleManagerAssessment = (key, value) =>
     setCandidate((current) => ({
@@ -3110,12 +3309,15 @@ export default function AddCandidate() {
     try {
       setSaving(true)
       const payload = mapCandidateFormToApi(candidate)
+      const requestConfig = directorApprovalToken
+        ? { headers: { 'X-Director-Assessment-Approval': directorApprovalToken } }
+        : undefined
       let candidateId = id
 
       if (isEdit) {
-        await api.put(`/cms/candidates/${id}`, payload)
+        await api.put(`/cms/candidates/${id}`, payload, requestConfig)
       } else {
-        const { data } = await api.post('/cms/candidates', payload)
+        const { data } = await api.post('/cms/candidates', payload, requestConfig)
         candidateId = data?._id
       }
 
@@ -3402,7 +3604,7 @@ export default function AddCandidate() {
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto"
             >
               <Copy className="h-4 w-4" />
-              Copy PDF Link
+              Copy Link
             </button>
           ) : null}
           {showCandidateSave ? (
@@ -3548,7 +3750,17 @@ export default function AddCandidate() {
             <p className="mt-1 text-base font-bold text-slate-950">{candidate.fullName || '-'}</p>
           </div>
 
-          <AssessmentForm title="Director Assessment" fields={DIRECTOR_ASSESSMENT_FIELDS} assessment={candidate.interviewForm.directorAssessment} onToggle={toggleDirectorAssessment} />
+          <AssessmentForm
+            title="Director Assessment"
+            fields={DIRECTOR_ASSESSMENT_FIELDS}
+            assessment={candidate.interviewForm.directorAssessment}
+            onToggle={toggleDirectorAssessment}
+            locked={directorAssessmentLocked}
+            unlockLabel={directorAssessmentLocked ? 'Unlock with Super Admin' : 'Unlocked'}
+            lockLabel="Lock"
+            onUnlock={requestDirectorUnlock}
+            onLock={lockDirectorAssessment}
+          />
           <AssessmentForm title="Manager Assessment" fields={MANAGER_ASSESSMENT_FIELDS} assessment={candidate.interviewForm.managerAssessment} onToggle={toggleManagerAssessment} />
 
           <div className="grid gap-4 xl:grid-cols-2">
@@ -3742,6 +3954,15 @@ export default function AddCandidate() {
           </div>
         </div>
       ) : null}
+
+      <DirectorUnlockDialog
+        open={directorUnlockOpen}
+        credentials={directorUnlockCredentials}
+        loading={directorUnlocking}
+        onChange={updateDirectorUnlockCredentials}
+        onSubmit={submitDirectorUnlock}
+        onCancel={closeDirectorUnlock}
+      />
 
       <ConfirmDialog
         open={deleteDocumentPrompt.open}
