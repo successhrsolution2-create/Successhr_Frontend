@@ -234,14 +234,16 @@ export const questionMarksScore = (row) => {
 export const calculateQuestionMarksResult = (questions, options = {}) => {
   const rows = options.preserveRows && Array.isArray(questions) && questions.length ? questions.map(normalizeQuestionRow) : buildQuestionRows(questions)
   const scores = rows.map(questionMarksScore)
+  const activeQuestionCount = rows.filter(questionHasContent).length
   const total = scores.reduce((sum, score) => sum + (Number.isFinite(score) ? score : 0), 0)
-  const maxTotal = scores.length * QUESTION_MARK_MAX
+  const maxTotal = activeQuestionCount * QUESTION_MARK_MAX
   const percentage = maxTotal ? (total / maxTotal) * 100 : 0
   const percentageLabel = Number.isInteger(percentage) ? `${percentage}%` : `${percentage.toFixed(2)}%`
 
   return {
     rows,
     scores,
+    activeQuestionCount,
     total,
     maxTotal,
     percentage,
