@@ -50,10 +50,13 @@ import {
   PROFESSIONAL_RATING_FIELDS,
   RATING_VALUES,
   SUCCESS_INFO_FIELDS,
+  WITNESS_FIELDS,
+  COMPUTER_COURSE_ASSESSMENT_COURSES,
   calculateQuestionMarksResult,
   emptyCandidateForm,
   emptyInterviewRow,
   emptyQuestionRow,
+  emptyWitnessDetails,
   buildQuestionRows,
   interviewHasContent,
   isMongoId,
@@ -79,7 +82,7 @@ const panelLabels = {
   assessment: 'Success Interviewer Remark',
   interviews: 'Company Interviews'
 }
-const emptyDirectorUnlockCredentials = { email: '', password: '' }
+const emptyDirectorUnlockCredentials = { password: '' }
 const panelFromSearch = (searchParams) => {
   const panel = searchParams.get('panel')
   return editablePanels.has(panel) ? panel : 'details'
@@ -138,6 +141,9 @@ const documentTypeAliases = {
   medicalfitnesscertificates: 'medicalFitnessCertificate',
   computercoursecertificate: 'computerCourseCertificate',
   computercoursescertificate: 'computerCourseCertificate',
+  othercertificationcertificate: 'otherCertificationCertificate',
+  othercertificationcoursecertificate: 'otherCertificationCertificate',
+  certificationcoursecertificate: 'otherCertificationCertificate',
   hamipatra: 'hamiPatra',
   hphamipatra: 'hamiPatra',
   concernletter: 'concernLetter',
@@ -168,11 +174,11 @@ const resolveDocumentType = (doc = {}) => {
   if (normalizedName.includes('resume')) return 'updatedResume'
   if (normalizedName.includes('aadhaar') || normalizedName.includes('aadhar')) return 'aadharCard'
   if (normalizedName.includes('pan')) return 'panCard'
+  if (normalizedName.includes('candidatephoto') || normalizedName.includes('photoofcandidate') || normalizedName.includes('letterreceiptphoto') || normalizedName.includes('formalphoto')) return 'candidatePhoto'
   if (normalizedName.includes('passport') || normalizedName.includes('photo')) return 'passportSizePhoto'
   if (normalizedName.includes('salary')) return 'salarySlip'
   if (normalizedName.includes('bankstatement')) return 'bankStatement'
   if (normalizedName.includes('experience')) return 'experienceLetter'
-  if (normalizedName.includes('candidatephoto') || normalizedName.includes('formalphoto')) return 'candidatePhoto'
   if (normalizedName.includes('10th') || normalizedName.includes('tenth') || normalizedName.includes('ssc') || normalizedName.includes('class10')) return 'tenthCertificate'
   if (normalizedName.includes('12th') || normalizedName.includes('twelfth') || normalizedName.includes('hsc') || normalizedName.includes('class12')) return 'twelfthCertificate'
   if (normalizedName.includes('postgraduate') || normalizedName.includes('postgraduation') || normalizedName.includes('pgcertificate')) return 'postGraduateCertificate'
@@ -185,6 +191,7 @@ const resolveDocumentType = (doc = {}) => {
   if (normalizedName.includes('autocad') || normalizedName.includes('autocadd')) return 'autoCadCertificate'
   if (normalizedName.includes('typing')) return 'typingCertificate'
   if (normalizedName.includes('catia')) return 'catiaCertificate'
+  if (normalizedName.includes('othercertification') || normalizedName.includes('certificationcourse')) return 'otherCertificationCertificate'
   if (normalizedName.includes('computercourse') || normalizedName.includes('computerclass')) return 'computerCourseCertificate'
   if (normalizedName.includes('jobjoining') && normalizedName.includes('hami')) return 'jobJoiningHamiPatra'
   if (normalizedName.includes('hamipatra') || normalizedName.includes('hp')) return 'hamiPatra'
@@ -239,6 +246,8 @@ const documentsGroupedByType = (documents = []) => {
 }
 
 const normalizeDocumentSearch = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
+const globalFieldKey = (panel, key) => `global-${panel}-${normalizeDocToken(key) || 'field'}`
 
 const documentMatchesSearch = ({ item, label, docs = [], term, groupTitle = '' }) => {
   if (!term) return true
@@ -457,6 +466,52 @@ const createSuccessRemarkPdf = (candidate) => {
     })
     return 110
   }
+  const drawComputerCourseAssessment = () => {
+    const assessment = candidate.interviewForm.computerCourseAssessment || {}
+    const selectedCourses = Array.isArray(assessment.courses) ? assessment.courses : []
+    const height = 154
+    ensureSpace(height + 18)
+    drawRect(margin, y, pageWidth - margin * 2, height, { stroke: [0.06, 0.09, 0.16], lineWidth: 1.1 })
+    drawRect(margin, y, pageWidth - margin * 2, 30, { stroke: [0.06, 0.09, 0.16], fill: [0.97, 0.98, 0.99] })
+    drawText('Computer Courses Assessment', margin + 12, y + 9, { size: 11, bold: true, maxWidth: pageWidth - margin * 2 - 24 })
+
+    let courseX = margin + 12
+    const courseY = y + 44
+    drawText('Computer Courses:', courseX, courseY, { size: 9.5, bold: true, maxWidth: 110 })
+    courseX += 118
+    COMPUTER_COURSE_ASSESSMENT_COURSES.forEach((course) => {
+      drawText(course, courseX, courseY, { size: 8.7, bold: true, maxWidth: 76 })
+      drawCheckbox(courseX + Math.min(74, course.length * 5 + 8), courseY - 1, selectedCourses.includes(course))
+      courseX += course === 'Advance Excel' ? 112 : 78
+    })
+
+    const tableY = y + 72
+    const tableW = pageWidth - margin * 2 - 24
+    const x = margin + 12
+    const speedW = 260
+    const colW = (tableW - speedW) / 3
+    drawRect(x, tableY, tableW, 54, { stroke: [0.06, 0.09, 0.16] })
+    drawLine(x + speedW, tableY, x + speedW, tableY + 54, [0.06, 0.09, 0.16], 0.8)
+    drawLine(x + speedW + colW, tableY, x + speedW + colW, tableY + 54, [0.06, 0.09, 0.16], 0.8)
+    drawLine(x + speedW + colW * 2, tableY, x + speedW + colW * 2, tableY + 54, [0.06, 0.09, 0.16], 0.8)
+    drawLine(x, tableY + 24, x + speedW, tableY + 24, [0.06, 0.09, 0.16], 0.8)
+    drawLine(x + speedW / 2, tableY + 24, x + speedW / 2, tableY + 54, [0.06, 0.09, 0.16], 0.8)
+    drawText('Typing Speed', x + 86, tableY + 7, { size: 9.5, bold: true, maxWidth: 120 })
+    drawText('Word', x + speedW + 12, tableY + 7, { size: 9.5, bold: true, maxWidth: colW - 24 })
+    drawText('Excel', x + speedW + colW + 12, tableY + 7, { size: 9.5, bold: true, maxWidth: colW - 24 })
+    drawText('Tally', x + speedW + colW * 2 + 12, tableY + 7, { size: 9.5, bold: true, maxWidth: colW - 24 })
+    drawText('Accuracy', x + 12, tableY + 31, { size: 9, bold: true, maxWidth: 84 })
+    drawText(`${assessment.typingAccuracy || ''} %`, x + 92, tableY + 31, { size: 9.5, bold: true, maxWidth: 58 })
+    drawText('Speed', x + speedW / 2 + 12, tableY + 31, { size: 9, bold: true, maxWidth: 66 })
+    drawText(`${assessment.typingSpeed || ''} WPM`, x + speedW / 2 + 88, tableY + 31, { size: 9.5, bold: true, maxWidth: 80 })
+    drawText(`${assessment.word || ''} %`, x + speedW + 58, tableY + 31, { size: 9.5, bold: true, maxWidth: 72 })
+    drawText(`${assessment.excel || ''} %`, x + speedW + colW + 58, tableY + 31, { size: 9.5, bold: true, maxWidth: 72 })
+    drawText(`${assessment.tally || ''} %`, x + speedW + colW * 2 + 58, tableY + 31, { size: 9.5, bold: true, maxWidth: 72 })
+
+    drawText('Remark:', x, y + 136, { size: 9.5, bold: true, maxWidth: 64 })
+    drawText(assessment.remark || '', x + 64, y + 136, { size: 9, maxWidth: tableW - 70 })
+    y += height + 18
+  }
   const drawQuestions = () => {
     const rows = buildQuestionRows(candidate.interviewForm.questions)
     const result = calculateQuestionMarksResult(candidate.interviewForm.questions, { preserveRows: true })
@@ -496,6 +551,7 @@ const createSuccessRemarkPdf = (candidate) => {
   const panelHeight = drawRatingPanel('Professional Assessment', PROFESSIONAL_RATING_FIELDS, candidate.interviewForm.professionalRatings, margin, y, panelW)
   drawRatingPanel('Personality Assessment', PERSONALITY_RATING_FIELDS, candidate.interviewForm.personalityRatings, margin + panelW + gap, y, panelW)
   y += panelHeight + 20
+  drawComputerCourseAssessment()
   ensureSpace(110)
   y += drawFieldGrid(y) + 12
   drawQuestions()
@@ -541,9 +597,9 @@ const downloadBlob = (blob, fileName) => {
   setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
 }
 
-function Section({ title, icon: Icon, children }) {
+function Section({ title, icon: Icon, children, searchKey = '' }) {
   return (
-    <section className={`${cardClass} space-y-5`}>
+    <section className={`${cardClass} space-y-5`} data-global-field={searchKey || undefined}>
       <div className="flex min-w-0 items-center gap-2 border-b border-slate-100 pb-3">
         {Icon ? (
           <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
@@ -557,9 +613,9 @@ function Section({ title, icon: Icon, children }) {
   )
 }
 
-function Field({ label, required, error, className = '', children }) {
+function Field({ label, required, error, className = '', children, searchKey = '' }) {
   return (
-    <label className={`${labelClass} ${className}`}>
+    <label className={`${labelClass} ${className}`} data-global-field={searchKey || undefined}>
       <span>
         {label}
         {required ? <span className="text-rose-600"> *</span> : null}
@@ -596,18 +652,121 @@ function FormTabButton({ active, label, onClick }) {
   )
 }
 
+function GlobalFieldSearch({ value, results, onChange, onSelect }) {
+  const [open, setOpen] = useState(false)
+  const showResults = open && value.trim()
+
+  return (
+    <div
+      className="relative w-full max-w-3xl"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
+      }}
+    >
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <input
+        type="search"
+        value={value}
+        onFocus={() => setOpen(true)}
+        onChange={(event) => {
+          onChange(event.target.value)
+          setOpen(true)
+        }}
+        placeholder="Search any field, value, document, or interview..."
+        className="h-11 w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-10 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+      />
+      {value ? (
+        <button
+          type="button"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            onChange('')
+            setOpen(false)
+          }}
+          className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Clear global search"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
+      {showResults ? (
+        <div className="absolute left-0 right-0 top-full z-40 mt-2 max-h-80 overflow-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+          {results.length ? (
+            results.map((item) => (
+              <button
+                key={`${item.panel}-${item.targetKey}-${item.label}`}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onSelect(item)
+                  setOpen(false)
+                }}
+                className="block w-full rounded-lg px-3 py-2 text-left hover:bg-indigo-50"
+              >
+                <span className="block text-sm font-bold text-slate-900">{item.label}</span>
+                <span className="mt-0.5 block text-xs font-semibold text-slate-500">
+                  {item.panelLabel}
+                  {item.group ? ` / ${item.group}` : ''}
+                </span>
+                {item.valueText ? <span className="mt-1 block truncate text-xs font-medium text-slate-400">{item.valueText}</span> : null}
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-4 text-center text-sm font-semibold text-slate-500">No field matched.</div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 const candidateDetailRequiredPaths = ['fullName', 'mobile']
 
 const educationSectorOptions = ['', '10th', '12th', 'Graduate', 'PG', 'PHD', 'ITI', 'Diploma', 'Degree', 'Other']
 const higherEducationYearOptions = ['', ...Array.from({ length: 67 }, (_, index) => String(new Date().getFullYear() + 4 - index))]
-const educationBranchOptions = ['', 'Arts', 'Commerce', 'Science', 'Diploma/BE', 'Pharmacy', 'MBA', 'Nursing', 'ITI', 'Computer Application', 'Computer Science', 'Other']
-const computerCourseOptions = ['', 'MS-CIT', 'CCC', 'Advanced Excel', 'PowerPoint', 'Tally', 'AutoCAD', 'Other']
+const educationBranchOptions = ['', 'Arts', 'Commerce', 'Science', 'Diploma/BE', 'Pharmacy', 'MBA', 'Nursing', 'ITI', 'Computer Application', 'Computer Science']
+const computerCourseOptions = ['', 'MS-CIT', 'CCC', 'Advanced Excel', 'PowerPoint', 'Tally', 'AutoCAD', 'Typing', 'Other']
 const certificationCourseOptions = ['', 'Graphic Design', 'C++', 'Java', 'PHP', 'Python', 'Web Development', 'Digital Marketing', 'Data Analytics', 'Other']
-const educationSpecializationOptions = ['', 'Chemistry', 'Microbiology', 'Physics', 'Mathematics', 'Botany', 'Zoology', 'Biotechnology', 'Biochemistry', 'Electronics', 'Mechanical', 'Civil', 'Electrical', 'Computer Science', 'Information Technology', 'Accounting', 'Finance', 'Marketing', 'HR', 'Pharmacy', 'Nursing', 'Other']
+const educationSpecializationByBranch = {
+  Arts: ['History', 'Geography', 'Political Science', 'Economics', 'Sociology', 'Psychology', 'Marathi', 'Hindi', 'English'],
+  Commerce: ['Accounting', 'Finance', 'Banking', 'Taxation', 'Business Administration', 'Economics', 'Costing'],
+  Science: ['Chemistry', 'Microbiology', 'Physics', 'Mathematics', 'Botany', 'Zoology', 'Biotechnology', 'Biochemistry', 'Electronics'],
+  'Diploma/BE': ['Mechanical', 'Civil', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Automobile', 'Production', 'Chemical'],
+  Pharmacy: ['Pharmacy', 'B.Pharm', 'D.Pharm', 'Pharmacology', 'Pharmaceutical Chemistry'],
+  MBA: ['Marketing', 'HR', 'Finance', 'Operations', 'Business Analytics', 'International Business'],
+  Nursing: ['Nursing', 'GNM', 'ANM', 'B.Sc Nursing'],
+  ITI: ['Fitter', 'Electrician', 'Welder', 'Turner', 'Machinist', 'COPA', 'Diesel Mechanic'],
+  'Computer Application': ['BCA', 'MCA', 'Computer Application', 'Information Technology', 'Software Development'],
+  'Computer Science': ['Computer Science', 'Information Technology', 'Data Science', 'Cyber Security', 'Artificial Intelligence']
+}
+const educationSpecializationOptionsForBranch = (branch) => ['', ...(educationSpecializationByBranch[branch] || [])]
 const preferredDepartmentOptions = ['', 'Accounts', 'Sales', 'Quality', 'HR', 'Admin', 'Production', 'Operations', 'Purchase', 'Store', 'Logistics', 'Dispatch', 'Customer Support', 'Marketing', 'Finance', 'IT', 'Design', 'Maintenance', 'Research & Development', 'Safety', 'Front Office', 'Back Office', 'Warehouse', 'Other']
 const preferredIndustryOptions = ['', 'Manufacturing', 'Banking', 'Finance', 'Insurance', 'IT', 'Non IT', 'Services', 'Educational', 'Healthcare', 'Pharmaceutical', 'Automobile', 'FMCG', 'Retail', 'Real Estate', 'Construction', 'Logistics', 'Telecom', 'Hospitality', 'Textile', 'Chemical', 'Food Processing', 'E-commerce', 'Consulting', 'Other']
 const industrySpecializationOptions = ['', 'Manufacturing', 'Food', 'Pharma', 'Polymer', 'FMCG', 'Chemical', 'Cosmetics', 'Plastic', 'Engineering', 'Automobile', 'Any Industry', 'Textile', 'Packaging', 'Electrical', 'Electronics', 'Agriculture', 'Healthcare', 'Construction', 'Logistics', 'Other']
-const referenceSourceOptions = ['Social Media', 'WhatsApp', 'Facebook', 'Instagram', 'LinkedIn', 'Friend', 'Relatives']
+const currentJobLocationTalukaOptions = ['', 'Sinnar', 'Nashik', 'Mumbai', 'Pune', 'Sangamner', 'Ahilyanagar', 'Sambhaji Nagar', 'Other']
+const currentJobLocationMidcAreaOptions = ['', 'Musalgaon', 'Malegaon', 'Ambad', 'Satpur', 'Other']
+const interviewModeOptions = ['', 'Online', 'Offline', 'Face to Face']
+const referenceSourceOptions = ['Social Media', 'WhatsApp', 'Facebook', 'Instagram', 'LinkedIn', 'Friend', 'Relatives', 'Other']
+const siblingCareerProfileOptions = ['', 'Studying', 'Own Business', 'Doing Government Job Preparation', 'Housewife', 'Farmer', 'Doing Government Job', 'Doing Private Job', 'Other']
+const siblingStudyStandardOptions = [
+  '',
+  '1st Standard',
+  '2nd Standard',
+  '3rd Standard',
+  '4th Standard',
+  '5th Standard',
+  '6th Standard',
+  '7th Standard',
+  '8th Standard',
+  '9th Standard',
+  '10th Standard',
+  '11th Standard',
+  '12th Standard',
+  'Diploma',
+  'Graduate',
+  'PG',
+  'Other'
+]
 
 const candidateDetailPanels = [
   {
@@ -622,20 +781,20 @@ const candidateDetailPanels = [
       { path: 'aadhaarNo', label: 'Aadhar Card Number', inputMode: 'numeric', maxLength: 12, digitsOnly: true },
       { path: 'panNo', label: 'PAN Number', maxLength: 10, uppercase: true },
       { path: 'dateOfBirth', label: 'DOB', type: 'date' },
-      { path: 'currentAge', label: 'Current Age', type: 'number' },
+      { path: 'currentAge', label: 'Current Age', type: 'number', readOnly: true },
       { path: 'gender', label: 'Gender', options: ['', 'Male', 'Female', 'Other'] },
       { path: 'marriageStatus', label: 'Marital Status', options: ['', 'Married', 'Unmarried', 'Single', 'Widow'] },
-      { key: 'personal-current-address', kind: 'section', label: 'Current Address' },
-      { path: 'currentAddressVillage', label: 'Current Village' },
-      { path: 'currentAddressTaluka', label: 'Current Taluka' },
-      { path: 'currentAddressDistrict', label: 'Current District' },
-      { path: 'currentAddressState', label: 'Current State' },
       { key: 'personal-permanent-address', kind: 'section', label: 'Permanent Address' },
-      { path: 'sameAsCurrentAddress', label: 'Permanent address same as current address', kind: 'checkbox', full: true },
-      { path: 'permanentAddressVillage', label: 'Permanent Village', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
-      { path: 'permanentAddressTaluka', label: 'Permanent Taluka', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
-      { path: 'permanentAddressDistrict', label: 'Permanent District', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
-      { path: 'permanentAddressState', label: 'Permanent State', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
+      { path: 'permanentAddressVillage', label: 'Permanent Village' },
+      { path: 'permanentAddressTaluka', label: 'Permanent Taluka' },
+      { path: 'permanentAddressDistrict', label: 'Permanent District' },
+      { path: 'permanentAddressState', label: 'Permanent State' },
+      { key: 'personal-current-address', kind: 'section', label: 'Current Address' },
+      { path: 'sameAsCurrentAddress', label: 'Current address same as permanent address', kind: 'checkbox', full: true },
+      { path: 'currentAddressVillage', label: 'Current Village', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
+      { path: 'currentAddressTaluka', label: 'Current Taluka', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
+      { path: 'currentAddressDistrict', label: 'Current District', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
+      { path: 'currentAddressState', label: 'Current State', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
       { key: 'personal-family-details', kind: 'section', label: 'Family Details' },
       { path: 'familyDetails.fatherOrHusbandName', label: 'Father / Husband Name' },
       { path: 'familyDetails.fatherOccupation', label: 'Father Occupation' },
@@ -644,46 +803,45 @@ const candidateDetailPanels = [
       { path: 'familyDetails.motherOccupation', label: 'Mother Occupation' },
       { path: 'familyDetails.motherMobileNumber', label: 'Mother Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
       { path: 'familyDetails.siblingName', label: 'Sibling Name' },
-      { path: 'familyDetails.siblingEducationOccupation', label: 'Sibling Education / Occupation' }
+      { path: 'familyDetails.siblingEducation', label: 'Sibling Education' },
+      { path: 'familyDetails.siblingMobileNumber', label: 'Sibling Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
+      { path: 'familyDetails.siblingDateOfBirth', label: 'Sibling DOB', type: 'date' },
+      { path: 'familyDetails.siblingAge', label: 'Sibling Age', type: 'number', readOnly: true },
+      { path: 'familyDetails.siblingGender', label: 'Sibling Gender', options: ['', 'Male', 'Female', 'Other'] },
+      { path: 'familyDetails.siblingCareerProfile', label: 'Sibling Career Profile', options: siblingCareerProfileOptions },
+      { path: 'familyDetails.siblingStudyStandard', label: 'Sibling Study Standard', options: siblingStudyStandardOptions, showWhen: { path: 'familyDetails.siblingCareerProfile', value: 'Studying' } },
+      { path: 'familyDetails.siblingStudyStandardOther', label: 'Other Study Standard', showWhen: { path: 'familyDetails.siblingStudyStandard', value: 'Other' } },
+      { path: 'familyDetails.siblingCareerProfileOther', label: 'Other Career Profile', showWhen: { path: 'familyDetails.siblingCareerProfile', value: 'Other' } }
     ]
   },
   {
     title: 'Education Details',
     icon: GraduationCap,
     fields: [
-      { key: 'education-highest', kind: 'section', label: 'Highest Education' },
-      { path: 'educationSector', label: 'Highest Education', options: educationSectorOptions },
-      { path: 'yearOfHigherEducation', label: 'Year of Higher Education', options: higherEducationYearOptions },
+      { key: 'education-highest', kind: 'section', label: 'Highest Education Like Graduate, Post Graduate' },
+      { path: 'educationSector', label: 'Highest Education Like Graduate, Post Graduate', options: educationSectorOptions },
+      { path: 'yearOfHigherEducation', label: 'Passing Year of Education', options: higherEducationYearOptions },
       { path: 'educationSectorOther', label: 'Other Highest Education', showWhen: { path: 'educationSector', value: 'Other' } },
       { key: 'education-branch', kind: 'section', label: 'Education Branch' },
       { path: 'educationBranch', label: 'Education Branch', options: educationBranchOptions },
-      { path: 'educationBranchOther', label: 'Other Branch', showWhen: { path: 'educationBranch', value: 'Other' } },
       { key: 'education-specialization', kind: 'section', label: 'Education Specialization' },
-      { path: 'educationSpecialization', label: 'Special Subject / Remark', options: educationSpecializationOptions },
-      { path: 'educationSpecializationOther', label: 'Other Special Subject / Remark', showWhen: { path: 'educationSpecialization', value: 'Other' } },
+      { path: 'educationSpecialization', label: 'Special Subject / Remark', optionsFor: (candidate) => educationSpecializationOptionsForBranch(candidate.educationBranch), disabledWhenEmptyPath: 'educationBranch' },
       { key: 'education-institute-reference', kind: 'section', label: 'Institute Reference Details' },
       { path: 'collegeName', label: 'Institute Name' },
       { path: 'placementReference.professorName', label: 'Institute Representative Name' },
       { path: 'instituteDesignation', label: 'Designation' },
       { path: 'placementReference.professorContactNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
-      { key: 'education-institute-address', kind: 'section', label: 'Institute Address' },
-      { path: 'instituteAddressVillage', label: 'Institute Village' },
-      { path: 'instituteAddressTaluka', label: 'Institute Taluka' },
-      { path: 'instituteAddressDistrict', label: 'Institute District' },
-      { path: 'instituteAddressState', label: 'Institute State' },
-      { key: 'education-college-details', kind: 'section', label: 'Institute / College Details' },
-      { path: 'college12GraduateName', label: '12th / Graduate College Name' },
-      { path: 'postGraduateCollegeName', label: 'Post Graduate College Name' },
+      { key: 'education-institute-address', kind: 'section', label: 'Institute/College Address' },
+      { path: 'instituteAddressVillage', label: 'Institute/College Village' },
+      { path: 'instituteAddressTaluka', label: 'Institute/College Taluka' },
+      { path: 'instituteAddressDistrict', label: 'Institute/College District' },
+      { path: 'instituteAddressState', label: 'Institute/College State' },
+      { key: 'education-college-details', kind: 'section', label: 'Institute Details' },
       { path: 'collegeTeacherName', label: 'Teacher' },
       { path: 'collegeDesignation', label: 'Designation' },
       { path: 'collegeMobileNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
       { path: 'collegeReference', label: 'Reference' },
-      { key: 'education-college-address', kind: 'section', label: 'College Address' },
-      { path: 'collegeAddressVillage', label: 'College Village' },
-      { path: 'collegeAddressTaluka', label: 'College Taluka' },
-      { path: 'collegeAddressDistrict', label: 'College District' },
-      { path: 'collegeAddressState', label: 'College State' },
-      { key: 'education-courses', kind: 'section', label: 'Courses & Certifications' },
+      { key: 'education-courses', kind: 'section', label: 'Other Computer Class Or Certification Details' },
       { path: 'computerCourse', label: 'Computer Courses', options: computerCourseOptions },
       { path: 'certificationCourse', label: 'Other Certification Courses', options: certificationCourseOptions },
       { path: 'computerCourseOther', label: 'Other Computer Course', showWhen: { path: 'computerCourse', value: 'Other' } },
@@ -703,31 +861,38 @@ const candidateDetailPanels = [
       { key: 'professional-industry-specialization', kind: 'section', label: 'Industry Specialization' },
       { path: 'industrySpecialization', label: 'Industry Specialization', options: industrySpecializationOptions },
       { path: 'industrySpecializationOther', label: 'Other Industry Specialization', showWhen: { path: 'industrySpecialization', value: 'Other' } },
-      { key: 'professional-current-salary', kind: 'section', label: 'Current Salary Per Month' },
-      { path: 'netInHandSalary', label: 'NET / In-hand Salary' },
-      { path: 'grossSalaryPerMonth', label: 'Gross Per Month' },
-      { path: 'ctcSalaryPerMonth', label: 'CTC Per Month' },
-      { path: 'currentJobLocation', label: 'Current Job Location' },
-      { path: 'preferredJobLocation', label: 'Preferred Job Location' },
       { key: 'professional-expected-salary', kind: 'section', label: 'Expected Salary Per Month' },
       { path: 'expectedNetInHandSalary', label: 'Expected NET / In-hand Salary' },
       { path: 'expectedGrossSalaryPerMonth', label: 'Expected Gross Per Month' },
       { path: 'expectedCtcSalaryPerMonth', label: 'Expected CTC Per Month' },
+      { key: 'professional-current-salary', kind: 'section', label: 'Current Salary Per Month' },
+      { path: 'netInHandSalary', label: 'NET / In-hand Salary' },
+      { path: 'grossSalaryPerMonth', label: 'Gross Per Month' },
+      { path: 'ctcSalaryPerMonth', label: 'CTC Per Month' },
+      { path: 'currentJobLocation', label: 'Current Job Location (Taluka)', options: currentJobLocationTalukaOptions },
+      { path: 'currentJobLocationOther', label: 'Other Current Job Location (Taluka)', showWhen: { path: 'currentJobLocation', value: 'Other' } },
+      { path: 'currentJobLocationMidcArea', label: 'Current Job Location (MIDC Area)', options: currentJobLocationMidcAreaOptions },
+      { path: 'currentJobLocationMidcAreaOther', label: 'Other MIDC Area', showWhen: { path: 'currentJobLocationMidcArea', value: 'Other' } },
+      { path: 'preferredJobLocation', label: 'Preferred Job Location' },
       { key: 'professional-working-status', kind: 'section', label: 'Job Working Status' },
       { path: 'jobWorkingStatus', label: 'Job Working Status', options: ['', 'Working', 'Jobless'] },
       { key: 'professional-experience', kind: 'section', label: 'Total Years of Experience' },
       { path: 'experienceType', label: 'Total Year of Experience', options: ['', 'Fresher', 'Experience'] },
-      { path: 'totalExperience', label: 'Enter Experience', type: 'number', showWhen: { path: 'experienceType', value: 'Experience' } },
+      { path: 'totalExperience', label: 'Enter Total Year of Experience', type: 'number', showWhen: { path: 'experienceType', value: 'Experience' } },
       { key: 'professional-notice-period', kind: 'section', label: 'Notice Period' },
       { path: 'noticePeriod', label: 'Notice Period', options: ['', 'Immediate Joiner', '15 Days', '30 Days', '45 Days', '60 Days', '90 Days', 'Other'] },
-      { path: 'noticePeriodOther', label: 'Other Notice Period', showWhen: { path: 'noticePeriod', value: 'Other' } },
+      { path: 'noticePeriodOther', label: 'Other Notice Period', placeholder: 'Enter in days or month', showWhen: { path: 'noticePeriod', value: 'Other' } },
+      { key: 'professional-interview-availability', kind: 'section', label: 'Availability for Interview' },
+      { path: 'availabilityInterviewStartDate', label: 'Available From', type: 'date', maxToday: false },
+      { path: 'availabilityInterviewEndDate', label: 'Available To', type: 'date', maxToday: false },
+      { path: 'interviewMode', label: 'Interview Mode', options: interviewModeOptions },
       { key: 'professional-job-change', kind: 'section', label: 'Reason for Job Change' },
       { path: 'reasonForJobChange', label: 'Reason For Job Change', options: ['', 'Looking for financial and personal growth', 'Looking for opportunity in native place', 'Facing challenge in current company', 'Any Other'] },
       { path: 'reasonForJobChangeOther', label: 'Other Reason', showWhen: { path: 'reasonForJobChange', value: 'Any Other' } },
-      { key: 'professional-skills', kind: 'section', label: 'Key Skills / Knowledge' },
-      { path: 'keySkillsKnowledge', label: 'Key skills / knowledge you have, especially for fresher' },
-      { key: 'professional-responsibility', kind: 'section', label: 'Key Job Responsibility' },
-      { path: 'careerJobResponsibilities', label: 'Key job responsibility you handled in your career experience' }
+      { key: 'professional-skills', kind: 'section', label: 'Key Skills You Have' },
+      { path: 'keySkillsKnowledge', label: 'Key skills you have', kind: 'area' },
+      { key: 'professional-responsibility', kind: 'section', label: 'Key Job Responsibility As Per Your Experience' },
+      { path: 'careerJobResponsibilities', label: 'Key job responsibility as per your experience', kind: 'area' }
     ]
   },
   {
@@ -735,20 +900,779 @@ const candidateDetailPanels = [
     icon: Handshake,
     fields: [
       { key: 'reference-details', kind: 'section', label: 'Reference Details' },
-      { path: 'advisorCode', label: 'Business Advisor Code' },
       { path: 'placementReference.referenceBy', label: 'Reference Name' },
       { path: 'placementReference.referenceContactNumber', label: 'Reference Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
       { path: 'referenceProfile', label: 'Reference Profile', options: ['', 'Professional', 'Farmer', 'Student', 'Other'] },
       { path: 'referenceProfileOther', label: 'Other Reference Profile', showWhen: { path: 'referenceProfile', value: 'Other' } },
+      { path: 'advisorCode', label: 'Business Advisor Code' },
       { key: 'reference-source', kind: 'section', label: 'Reference Source' },
-      { path: 'referenceSources', label: 'Reference Source', kind: 'checkboxes', options: referenceSourceOptions, full: true }
+      { path: 'referenceSources', label: 'Reference Source', kind: 'checkboxes', options: referenceSourceOptions, full: true },
+      { path: 'referenceSourceOther', label: 'Other Reference Source', showWhenIncludes: { path: 'referenceSources', value: 'Other' }, full: true }
     ]
   }
+]
+
+const globalSearchPanelLabels = {
+  details: 'Candidate Details',
+  documents: 'Documents',
+  successInfo: 'Success Info For Candidate',
+  assessment: 'Success Interviewer Remark',
+  interviews: 'Company Interviews'
+}
+
+const interviewFieldSearchItems = [
+  { label: 'Name Of Candidate', valuePath: 'fullName', interviewKeys: ['candidateName'] },
+  { label: 'Mobile Number', valuePath: 'mobile' },
+  { label: 'Name Of Company', interviewKeys: ['companyName'] },
+  { label: 'Job Role/Department', interviewKeys: ['jobRole'] },
+  { label: 'Reference', interviewKeys: ['referencePerson'] },
+  { label: 'Date Of Interview', interviewKeys: ['date'] },
+  { label: 'Attend Interview', interviewKeys: ['attendInterview'] },
+  { label: 'Interested For Join', interviewKeys: ['interestedForJoin'] },
+  { label: 'Selection Chances', interviewKeys: ['selectionChances'] },
+  { label: 'Rating For Company (/5)', interviewKeys: ['ratingForCompany'] },
+  { label: 'Not Attend Remark', interviewKeys: ['notAttendRemark'] },
+  { label: 'IF Not Interested Reason', interviewKeys: ['notInterestedReason'] },
+  { label: 'Reply From Company', interviewKeys: ['replyFromCompany'] },
+  { label: 'Positive Feedback', interviewKeys: ['positiveFeedback'] },
+  { label: 'Negative Feedback', interviewKeys: ['negativeFeedback'] },
+  { label: 'Overall Discussion', interviewKeys: ['overallDiscussion'] },
+  { label: 'Note', interviewKeys: ['note'] },
+  { label: 'Update By', interviewKeys: ['updatedBy'] },
+  { label: 'Company-wise Interview Documents', interviewDocumentType: '*' }
+]
+
+const createGlobalSearchItem = ({
+  label,
+  panel,
+  key,
+  group = '',
+  step = null,
+  valuePath = '',
+  documentType = '',
+  interviewDocumentType = '',
+  interviewKeys = []
+}) => ({
+  label,
+  panel,
+  panelLabel: globalSearchPanelLabels[panel] || panel,
+  group,
+  step,
+  valuePath,
+  documentType,
+  interviewDocumentType,
+  interviewKeys,
+  targetKey: globalFieldKey(panel, key || label),
+  searchText: normalizeDocumentSearch([label, globalSearchPanelLabels[panel], group].filter(Boolean).join(' '))
+})
+
+const globalSearchItems = [
+  ...candidateDetailPanels.flatMap((panel, step) =>
+    panel.fields.map((field) =>
+      createGlobalSearchItem({
+        label: field.label,
+        panel: 'details',
+        group: panel.title,
+        step,
+        key: field.kind === 'section' ? `section-${field.label}` : field.path || field.key || field.label,
+        valuePath: field.path || ''
+      })
+    )
+  ),
+  ...candidateDocumentTypes.map((item) => createGlobalSearchItem({ label: item.label, panel: 'documents', group: 'Candidate Documents', key: item.key, documentType: item.key })),
+  ...successDocumentTypes.map((item) => createGlobalSearchItem({ label: item.label, panel: 'documents', group: 'Success Documents', key: item.key, documentType: item.key })),
+  ...interviewDocumentTypes.map((item) =>
+    createGlobalSearchItem({ label: item.label, panel: 'documents', group: 'Company-wise Interview Documents', key: `interview-${item.key}`, interviewDocumentType: item.key })
+  ),
+  ...SUCCESS_INFO_FIELDS.map((field) =>
+    createGlobalSearchItem({
+      label: field.label,
+      panel: 'successInfo',
+      group: field.kind === 'section' ? '' : 'Success Info',
+      key: field.kind === 'section' ? `section-${field.label}` : field.key || field.label,
+      valuePath: field.key ? `successInfo.${field.key}` : ''
+    })
+  ),
+  ...WITNESS_FIELDS.map((field) =>
+    createGlobalSearchItem({
+      label: field.label,
+      panel: 'successInfo',
+      group: 'Witness Details',
+      key: `witness-${field.key}`,
+      valuePath: `successInfo.witnesses.0.${field.key}`
+    })
+  ),
+  ...DIRECTOR_ASSESSMENT_FIELDS.map((field) =>
+    createGlobalSearchItem({ label: field.label, panel: 'assessment', group: 'Director Assessment', key: `Director Assessment-${field.key}`, valuePath: `interviewForm.directorAssessment.${field.key}` })
+  ),
+  createGlobalSearchItem({
+    label: 'Counseling Of Candidate',
+    panel: 'assessment',
+    group: 'Director Assessment',
+    key: 'Director Assessment-counselingOfCandidate',
+    valuePath: 'interviewForm.directorAssessment.counselingOfCandidate'
+  }),
+  createGlobalSearchItem({
+    label: 'Counseling Mode',
+    panel: 'assessment',
+    group: 'Director Assessment',
+    key: 'Director Assessment-counselingOfCandidate',
+    valuePath: 'interviewForm.directorAssessment.counselingMode'
+  }),
+  ...MANAGER_ASSESSMENT_FIELDS.map((field) =>
+    createGlobalSearchItem({ label: field.label, panel: 'assessment', group: 'Manager Assessment', key: `Manager Assessment-${field.key}`, valuePath: `interviewForm.managerAssessment.${field.key}` })
+  ),
+  createGlobalSearchItem({
+    label: 'Counseling Of Candidate',
+    panel: 'assessment',
+    group: 'Manager Assessment',
+    key: 'Manager Assessment-counselingOfCandidate',
+    valuePath: 'interviewForm.managerAssessment.counselingOfCandidate'
+  }),
+  createGlobalSearchItem({
+    label: 'Counseling Mode',
+    panel: 'assessment',
+    group: 'Manager Assessment',
+    key: 'Manager Assessment-counselingOfCandidate',
+    valuePath: 'interviewForm.managerAssessment.counselingMode'
+  }),
+  ...PROFESSIONAL_RATING_FIELDS.map((field) =>
+    createGlobalSearchItem({ label: field.label, panel: 'assessment', group: 'Professional Assessment', key: `Professional Assessment-${field.key}`, valuePath: `interviewForm.professionalRatings.${field.key}` })
+  ),
+  ...PERSONALITY_RATING_FIELDS.map((field) =>
+    createGlobalSearchItem({ label: field.label, panel: 'assessment', group: 'Personality Assessment', key: `Personality Assessment-${field.key}`, valuePath: `interviewForm.personalityRatings.${field.key}` })
+  ),
+  createGlobalSearchItem({ label: 'Computer Courses', panel: 'assessment', group: 'Computer Courses Assessment', key: 'Computer Courses Assessment-courses', valuePath: 'interviewForm.computerCourseAssessment.courses' }),
+  ...[
+    { label: 'Typing Accuracy', valuePath: 'interviewForm.computerCourseAssessment.typingAccuracy' },
+    { label: 'Typing Speed', valuePath: 'interviewForm.computerCourseAssessment.typingSpeed' },
+    { label: 'Word', valuePath: 'interviewForm.computerCourseAssessment.word' },
+    { label: 'Excel', valuePath: 'interviewForm.computerCourseAssessment.excel' },
+    { label: 'Tally', valuePath: 'interviewForm.computerCourseAssessment.tally' },
+    { label: 'Computer Course Remark', valuePath: 'interviewForm.computerCourseAssessment.remark' }
+  ].map((item) => createGlobalSearchItem({ ...item, panel: 'assessment', group: 'Computer Courses Assessment', key: `Computer Courses Assessment-${item.label}` })),
+  ...[
+    { label: 'Suitable Industry', valuePath: 'interviewForm.suitableIndustry' },
+    { label: 'Suitable Department', valuePath: 'interviewForm.suitableDepartment' },
+    { label: 'HR Interviewer', valuePath: 'interviewForm.hrInterviewer' },
+    { label: 'Remark', valuePath: 'interviewForm.remark' }
+  ].map((item) => createGlobalSearchItem({ ...item, panel: 'assessment', group: 'Success Interviewer Remark', key: item.label })),
+  ...interviewFieldSearchItems.map((item) => createGlobalSearchItem({ ...item, panel: 'interviews', group: 'Interview Update', key: item.label }))
 ]
 
 const getCandidatePathValue = (candidate, path) => {
   if (!path) return ''
   return path.split('.').reduce((acc, key) => (acc == null ? '' : acc[key]), candidate) ?? ''
+}
+
+const compactSearchValue = (value) => {
+  if (Array.isArray(value)) return value.map(compactSearchValue).filter(Boolean).join(' ')
+  if (value && typeof value === 'object') return Object.values(value).map(compactSearchValue).filter(Boolean).join(' ')
+  return String(value ?? '').replace(/\s+/g, ' ').trim()
+}
+
+const previewSearchValue = (value) => {
+  const compact = compactSearchValue(value)
+  return compact.length > 96 ? `${compact.slice(0, 93)}...` : compact
+}
+
+const getGlobalSearchValueText = (item, candidate, visibleInterviews = []) => {
+  const values = []
+
+  if (item.valuePath) values.push(getCandidatePathValue(candidate, item.valuePath))
+
+  if (item.documentType) {
+    values.push(
+      ...(candidate.documents || [])
+        .filter((doc) => resolveDocumentType(doc) === item.documentType)
+        .flatMap((doc) => [doc.documentLabel, doc.fileName])
+    )
+  }
+
+  if (item.interviewDocumentType) {
+    visibleInterviews.forEach((interview) => {
+      ;(interview.documents || []).forEach((doc) => {
+        const documentType = String(doc?.documentType || '')
+        if (item.interviewDocumentType !== '*' && documentType !== item.interviewDocumentType) return
+        values.push(interview.companyName, interviewDocumentLabelByKey[documentType], doc.documentLabel, doc.fileName)
+      })
+    })
+  }
+
+  if (item.interviewKeys?.length) {
+    visibleInterviews.forEach((interview) => {
+      item.interviewKeys.forEach((key) => values.push(interview?.[key]))
+    })
+  }
+
+  return compactSearchValue(values)
+}
+
+const scrollToGlobalField = (targetKey) => {
+  window.setTimeout(() => {
+    const target = document.querySelector(`[data-global-field="${targetKey}"]`)
+    if (!target) return false
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+    const previousBoxShadow = target.style.boxShadow
+    const previousBackground = target.style.backgroundColor
+    const previousTransition = target.style.transition
+    target.style.transition = 'box-shadow 160ms ease, background-color 160ms ease'
+    target.style.boxShadow = '0 0 0 3px rgba(79, 70, 229, 0.28)'
+    target.style.backgroundColor = 'rgba(238, 242, 255, 0.72)'
+
+    const focusable = target.querySelector?.('input:not([type="hidden"]), select, textarea, button')
+    focusable?.focus?.({ preventScroll: true })
+
+    window.setTimeout(() => {
+      target.style.boxShadow = previousBoxShadow
+      target.style.backgroundColor = previousBackground
+      target.style.transition = previousTransition
+    }, 1700)
+
+    return true
+  }, 80)
+}
+
+const excelText = (value) => {
+  if (Array.isArray(value)) return value.map(excelText).filter(Boolean).join(', ')
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (value && typeof value === 'object') {
+    return Object.entries(value)
+      .map(([key, item]) => {
+        const text = excelText(item)
+        return text ? `${key}: ${text}` : ''
+      })
+      .filter(Boolean)
+      .join(', ')
+  }
+  return String(value ?? '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+}
+
+const excelValue = (value) => excelText(value) || '-'
+
+const escapeXml = (value) =>
+  excelValue(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+
+const excelSheetName = (value) =>
+  String(value || 'Sheet')
+    .replace(/[\\/?*[\]:]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 31) || 'Sheet'
+
+const excelDateTime = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const excelCell = (value, style = 'Body', mergeAcross = 0) =>
+  `<Cell ss:StyleID="${style}"${mergeAcross ? ` ss:MergeAcross="${mergeAcross}"` : ''}><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`
+
+const excelRow = (cells = [], defaultStyle = 'Body') =>
+  `<Row>${cells
+    .map((cell) => {
+      if (cell && typeof cell === 'object' && !Array.isArray(cell)) {
+        return excelCell(cell.value, cell.style || defaultStyle, cell.mergeAcross || 0)
+      }
+      return excelCell(cell, defaultStyle)
+    })
+    .join('')}</Row>`
+
+const excelBlankRow = () => '<Row/>'
+
+const excelWorksheet = ({ name, columns = [], rows = [], freezeRows = 0 }) => `
+  <Worksheet ss:Name="${escapeXml(excelSheetName(name))}">
+    <Table>
+      ${columns.map((width) => `<Column ss:AutoFitWidth="0" ss:Width="${width}"/>`).join('')}
+      ${rows.join('\n')}
+    </Table>
+    ${
+      freezeRows
+        ? `<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+      <FreezePanes/>
+      <FrozenNoSplit/>
+      <SplitHorizontal>${freezeRows}</SplitHorizontal>
+      <TopRowBottomPane>${freezeRows}</TopRowBottomPane>
+      <ActivePane>2</ActivePane>
+    </WorksheetOptions>`
+        : ''
+    }
+  </Worksheet>`
+
+const isExportFieldVisible = (field, candidate) => {
+  if (field.showWhen && getCandidatePathValue(candidate, field.showWhen.path) !== field.showWhen.value) return false
+  if (field.showWhenIncludes) {
+    const value = getCandidatePathValue(candidate, field.showWhenIncludes.path)
+    if (!Array.isArray(value) || !value.includes(field.showWhenIncludes.value)) return false
+  }
+  if (field.hideWhen && getCandidatePathValue(candidate, field.hideWhen.path) === field.hideWhen.value) return false
+  return true
+}
+
+const fieldExportValue = (candidate, field) => {
+  if (!field.path) return ''
+  return excelValue(getCandidatePathValue(candidate, field.path))
+}
+
+const candidateDetailExportRows = (candidate) => {
+  const rows = []
+  candidateDetailPanels.forEach((panel) => {
+    let section = panel.title
+    panel.fields.forEach((field) => {
+      if (field.kind === 'section') {
+        section = field.label
+        return
+      }
+      if (!isExportFieldVisible(field, candidate)) return
+      rows.push({
+        panel: panel.title,
+        section,
+        field: field.label,
+        value: fieldExportValue(candidate, field)
+      })
+    })
+  })
+  return rows
+}
+
+const successInfoExportRows = (candidate) => {
+  const rows = []
+  const witnesses = Array.isArray(candidate.successInfo?.witnesses) && candidate.successInfo.witnesses.length
+    ? candidate.successInfo.witnesses
+    : [candidate.successInfo || {}]
+  witnesses.forEach((witness, index) => {
+    WITNESS_FIELDS.forEach((field) => {
+      if (field.showWhen && witness?.[field.showWhen.key] !== field.showWhen.value) return
+      rows.push({
+        panel: 'Success Info For Candidate',
+        section: `Witness ${index + 1}`,
+        field: field.label,
+        value: excelValue(witness?.[field.key])
+      })
+    })
+  })
+  let section = 'Other Details'
+  SUCCESS_INFO_FIELDS.forEach((field) => {
+    if (field.kind === 'section') {
+      section = field.label
+      return
+    }
+    if (field.showWhen && candidate.successInfo?.[field.showWhen.key] !== field.showWhen.value) return
+    rows.push({
+      panel: 'Success Info For Candidate',
+      section,
+      field: field.label,
+      value: excelValue(candidate.successInfo?.[field.key])
+    })
+  })
+  return rows
+}
+
+const selectedExportValue = (value) => excelValue(Array.isArray(value) ? value.join(', ') : value)
+
+const assessmentExportRows = (candidate) => {
+  const form = candidate.interviewForm || {}
+  const computerAssessment = form.computerCourseAssessment || {}
+  const rows = [
+    ...DIRECTOR_ASSESSMENT_FIELDS.map((field) => ({
+      category: 'Director Assessment',
+      parameter: field.label,
+      selected: selectedExportValue(form.directorAssessment?.[field.key]),
+      scale: DIRECTOR_RATING_VALUES.join(' / ')
+    })),
+    {
+      category: 'Director Assessment',
+      parameter: 'Counseling Of Candidate',
+      selected: selectedExportValue(form.directorAssessment?.counselingOfCandidate),
+      scale: DIRECTOR_YES_NO_VALUES.join(' / ')
+    },
+    {
+      category: 'Director Assessment',
+      parameter: 'Counseling Mode',
+      selected: selectedExportValue(form.directorAssessment?.counselingMode),
+      scale: DIRECTOR_MODE_VALUES.join(' / ')
+    },
+    ...MANAGER_ASSESSMENT_FIELDS.map((field) => ({
+      category: 'Manager Assessment',
+      parameter: field.label,
+      selected: selectedExportValue(form.managerAssessment?.[field.key]),
+      scale: DIRECTOR_RATING_VALUES.join(' / ')
+    })),
+    {
+      category: 'Manager Assessment',
+      parameter: 'Counseling Of Candidate',
+      selected: selectedExportValue(form.managerAssessment?.counselingOfCandidate),
+      scale: DIRECTOR_YES_NO_VALUES.join(' / ')
+    },
+    {
+      category: 'Manager Assessment',
+      parameter: 'Counseling Mode',
+      selected: selectedExportValue(form.managerAssessment?.counselingMode),
+      scale: DIRECTOR_MODE_VALUES.join(' / ')
+    },
+    ...PROFESSIONAL_RATING_FIELDS.map((field) => ({
+      category: 'Professional Assessment',
+      parameter: field.label,
+      selected: selectedExportValue(form.professionalRatings?.[field.key]),
+      scale: RATING_VALUES.join(' / ')
+    })),
+    ...PERSONALITY_RATING_FIELDS.map((field) => ({
+      category: 'Personality Assessment',
+      parameter: field.label,
+      selected: selectedExportValue(form.personalityRatings?.[field.key]),
+      scale: RATING_VALUES.join(' / ')
+    })),
+    { category: 'Computer Courses Assessment', parameter: 'Computer Courses', selected: selectedExportValue(computerAssessment.courses), scale: COMPUTER_COURSE_ASSESSMENT_COURSES.join(' / ') },
+    { category: 'Computer Courses Assessment', parameter: 'Typing Accuracy', selected: excelValue(computerAssessment.typingAccuracy), scale: '%' },
+    { category: 'Computer Courses Assessment', parameter: 'Typing Speed', selected: excelValue(computerAssessment.typingSpeed), scale: 'WPM' },
+    { category: 'Computer Courses Assessment', parameter: 'Word', selected: excelValue(computerAssessment.word), scale: '%' },
+    { category: 'Computer Courses Assessment', parameter: 'Excel', selected: excelValue(computerAssessment.excel), scale: '%' },
+    { category: 'Computer Courses Assessment', parameter: 'Tally', selected: excelValue(computerAssessment.tally), scale: '%' },
+    { category: 'Computer Courses Assessment', parameter: 'Remark', selected: excelValue(computerAssessment.remark), scale: '' },
+    { category: 'Success Interviewer Remark', parameter: 'Suitable Industry', selected: excelValue(form.suitableIndustry), scale: '' },
+    { category: 'Success Interviewer Remark', parameter: 'Suitable Department', selected: excelValue(form.suitableDepartment), scale: '' },
+    { category: 'Success Interviewer Remark', parameter: 'HR Interviewer', selected: excelValue(form.hrInterviewer), scale: '' },
+    { category: 'Success Interviewer Remark', parameter: 'Remark', selected: excelValue(form.remark), scale: '' }
+  ]
+
+  return rows
+}
+
+const documentExportRows = (candidate) => {
+  const rows = []
+  const documentsByTypeList = documentsGroupedByType(candidate.documents)
+  const pushDocumentType = (category, item) => {
+    const docs = documentsByTypeList[item.key] || []
+    rows.push({
+      category,
+      document: item.label,
+      status: docs.length ? 'Uploaded' : 'Pending',
+      count: docs.length || 0,
+      latestUploaded: docs[0]?.uploadedAt ? excelDateTime(docs[0].uploadedAt) : '',
+      files: docs.map((doc) => doc.fileName || doc.documentLabel || doc.fileUrl).filter(Boolean).join('\n'),
+      links: docs.map((doc) => doc.fileUrl).filter(Boolean).join('\n')
+    })
+  }
+
+  candidateDocumentTypes.forEach((item) => pushDocumentType('Candidate Documents', item))
+  successDocumentTypes.forEach((item) => pushDocumentType('Success Documents', item))
+
+  unmatchedDocuments(candidate.documents).forEach((doc) => {
+    rows.push({
+      category: 'Other Uploaded Documents',
+      document: doc.documentLabel || doc.documentType || 'Other Document',
+      status: 'Uploaded',
+      count: 1,
+      latestUploaded: excelDateTime(doc.uploadedAt),
+      files: doc.fileName || doc.documentLabel || '',
+      links: doc.fileUrl || ''
+    })
+  })
+
+  ;(candidate.interviews || []).filter(interviewHasContent).forEach((interview, index) => {
+    const grouped = groupInterviewDocumentsByType(interview.documents)
+    interviewDocumentTypes.forEach((item) => {
+      const docs = grouped[item.key] || []
+      rows.push({
+        category: `Interview ${index + 1}: ${interview.companyName || 'Company'}`,
+        document: item.label,
+        status: docs.length ? 'Uploaded' : 'Pending',
+        count: docs.length || 0,
+        latestUploaded: docs[0]?.uploadedAt ? excelDateTime(docs[0].uploadedAt) : '',
+        files: docs.map((doc) => doc.fileName || doc.documentLabel || doc.fileUrl).filter(Boolean).join('\n'),
+        links: docs.map((doc) => doc.fileUrl).filter(Boolean).join('\n')
+      })
+    })
+  })
+
+  return rows
+}
+
+const interviewDocumentExportSummary = (documents = []) =>
+  (Array.isArray(documents) ? documents : [])
+    .map((doc) => {
+      const label = interviewDocumentLabelByKey[doc?.documentType] || doc?.documentLabel || doc?.documentType || 'Document'
+      return `${label}: ${doc?.fileName || doc?.fileUrl || 'Uploaded'}`
+    })
+    .join('\n')
+
+const flatExportPairs = (candidate) => {
+  const pairs = [
+    ['Candidate ID', candidate.candidateCode],
+    ['Exported At', excelDateTime(new Date())]
+  ]
+
+  candidateDetailExportRows(candidate).forEach((row) => {
+    pairs.push([`${row.panel} / ${row.section} / ${row.field}`, row.value])
+  })
+
+  successInfoExportRows(candidate).forEach((row) => {
+    pairs.push([`${row.panel} / ${row.section} / ${row.field}`, row.value])
+  })
+
+  assessmentExportRows(candidate).forEach((row) => {
+    pairs.push([`${row.category} / ${row.parameter}`, row.selected])
+  })
+
+  documentExportRows(candidate).forEach((row) => {
+    pairs.push([`Documents / ${row.category} / ${row.document}`, `${row.status}${row.count ? ` (${row.count})` : ''}${row.files ? ` - ${row.files.replace(/\n/g, '; ')}` : ''}`])
+  })
+
+  ;(candidate.interviews || []).filter(interviewHasContent).forEach((row, index) => {
+    const prefix = `Interview ${index + 1}`
+    ;[
+      ['Name Of Candidate', row.candidateName || candidate.fullName],
+      ['Mobile Number', candidate.mobile],
+      ['Name Of Company', row.companyName],
+      ['Job Role/Department', row.jobRole],
+      ['Reference', row.referencePerson],
+      ['Date Of Interview', row.date],
+      ['Attend Interview', row.attendInterview],
+      ['Interested For Join', row.interestedForJoin],
+      ['Selection Chances', row.selectionChances],
+      ['Rating For Company (/5)', row.ratingForCompany],
+      ['Not Attend Remark', row.notAttendRemark],
+      ['IF Not Interested Reason', row.notInterestedReason],
+      ['Reply From Company', row.replyFromCompany],
+      ['Positive Feedback', row.positiveFeedback],
+      ['Negative Feedback', row.negativeFeedback],
+      ['Overall Discussion', row.overallDiscussion],
+      ['Note', row.note],
+      ['Update By', row.updatedBy],
+      ['Documents', interviewDocumentExportSummary(row.documents)]
+    ].forEach(([label, value]) => pairs.push([`${prefix} / ${label}`, value]))
+  })
+
+  return pairs
+}
+
+const createCandidateExcelWorkbook = (candidate) => {
+  const exportedAt = excelDateTime(new Date())
+  const title = `Candidate Complete Export - ${candidate.fullName || candidate.candidateCode || 'Candidate'}`
+  const flatPairs = flatExportPairs(candidate)
+  const detailRows = candidateDetailExportRows(candidate)
+  const successRows = successInfoExportRows(candidate)
+  const documentRows = documentExportRows(candidate)
+  const assessmentRows = assessmentExportRows(candidate)
+  const questionRows = buildQuestionRows(candidate.interviewForm?.questions)
+  const questionResult = calculateQuestionMarksResult(candidate.interviewForm?.questions, { preserveRows: true })
+  const interviews = (candidate.interviews || []).filter(interviewHasContent)
+
+  const sheets = [
+    excelWorksheet({
+      name: 'Flat Export',
+      freezeRows: 4,
+      columns: Array.from({ length: Math.max(flatPairs.length, 1) }, () => 155),
+      rows: [
+        excelRow([{ value: title, style: 'Title', mergeAcross: Math.max(flatPairs.length - 1, 0) }]),
+        excelRow([{ value: `Candidate ID: ${candidate.candidateCode || '-'} | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: Math.max(flatPairs.length - 1, 0) }]),
+        excelBlankRow(),
+        excelRow(flatPairs.map(([label]) => label), 'Header'),
+        excelRow(flatPairs.map(([, value]) => excelValue(value)), 'Body')
+      ]
+    }),
+    excelWorksheet({
+      name: 'Candidate Details',
+      freezeRows: 4,
+      columns: [155, 170, 210, 360],
+      rows: [
+        excelRow([{ value: 'Candidate Details', style: 'Title', mergeAcross: 3 }]),
+        excelRow([{ value: `Candidate ID: ${candidate.candidateCode || '-'} | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: 3 }]),
+        excelBlankRow(),
+        excelRow(['Panel', 'Section', 'Field', 'Value'], 'Header'),
+        ...detailRows.map((row) => excelRow([row.panel, row.section, row.field, row.value]))
+      ]
+    }),
+    excelWorksheet({
+      name: 'Documents',
+      freezeRows: 4,
+      columns: [190, 235, 90, 70, 145, 320, 360],
+      rows: [
+        excelRow([{ value: 'Documents', style: 'Title', mergeAcross: 6 }]),
+        excelRow([{ value: `Uploaded and pending documents across all panels | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: 6 }]),
+        excelBlankRow(),
+        excelRow(['Category', 'Document', 'Status', 'Count', 'Latest Uploaded', 'File Names', 'Links'], 'Header'),
+        ...documentRows.map((row) => excelRow([row.category, row.document, row.status, row.count, row.latestUploaded, row.files, row.links], row.status === 'Uploaded' ? 'Body' : 'Muted'))
+      ]
+    }),
+    excelWorksheet({
+      name: 'Success Info',
+      freezeRows: 4,
+      columns: [180, 230, 390],
+      rows: [
+        excelRow([{ value: 'Success Info For Candidate', style: 'Title', mergeAcross: 2 }]),
+        excelRow([{ value: `Candidate: ${candidate.fullName || '-'} | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: 2 }]),
+        excelBlankRow(),
+        excelRow(['Section', 'Field', 'Value'], 'Header'),
+        ...successRows.map((row) => excelRow([row.section, row.field, row.value]))
+      ]
+    }),
+    excelWorksheet({
+      name: 'Assessment',
+      freezeRows: 4,
+      columns: [205, 245, 150, 145],
+      rows: [
+        excelRow([{ value: 'Success Interviewer Remark', style: 'Title', mergeAcross: 3 }]),
+        excelRow([{ value: `Assessment and ratings | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: 3 }]),
+        excelBlankRow(),
+        excelRow(['Category', 'Parameter', 'Selected / Value', 'Scale'], 'Header'),
+        ...assessmentRows.map((row) => excelRow([row.category, row.parameter, row.selected, row.scale]))
+      ]
+    }),
+    excelWorksheet({
+      name: 'Questions',
+      freezeRows: 5,
+      columns: [55, 430, 120, 110],
+      rows: [
+        excelRow([{ value: 'Interview Questions and Marks', style: 'Title', mergeAcross: 3 }]),
+        excelRow([{ value: `Total: ${questionResult.total}/${questionResult.maxTotal} (${questionResult.percentageLabel})`, style: 'Subtitle', mergeAcross: 3 }]),
+        excelBlankRow(),
+        excelRow(['Sr.', 'Question', 'Choices', 'Marks'], 'Header'),
+        ...questionRows.map((row, index) => excelRow([index + 1, row.question, excelValue(row.choices), row.marks ? `${row.marks}/10` : ''])),
+        excelBlankRow(),
+        excelRow(['', '', 'Total', `${questionResult.total}/${questionResult.maxTotal} (${questionResult.percentageLabel})`], 'Header')
+      ]
+    }),
+    excelWorksheet({
+      name: 'Company Interviews',
+      freezeRows: 4,
+      columns: [55, 180, 120, 180, 175, 150, 115, 110, 125, 135, 125, 220, 220, 220, 220, 220, 220, 220, 120, 320],
+      rows: [
+        excelRow([{ value: 'Company Interviews', style: 'Title', mergeAcross: 19 }]),
+        excelRow([{ value: `${interviews.length} interview record${interviews.length === 1 ? '' : 's'} | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: 19 }]),
+        excelBlankRow(),
+        excelRow(
+          [
+            'Sr.',
+            'Name Of Candidate',
+            'Mobile Number',
+            'Name Of Company',
+            'Job Role/Department',
+            'Reference',
+            'Date Of Interview',
+            'Attend Interview',
+            'Interested For Join',
+            'Selection Chances',
+            'Rating (/5)',
+            'Not Attend Remark',
+            'IF Not Interested Reason',
+            'Reply From Company',
+            'Positive Feedback',
+            'Negative Feedback',
+            'Overall Discussion',
+            'Note',
+            'Update By',
+            'Documents'
+          ],
+          'Header'
+        ),
+        ...interviews.map((row, index) =>
+          excelRow([
+            index + 1,
+            row.candidateName || candidate.fullName,
+            candidate.mobile,
+            row.companyName,
+            row.jobRole,
+            row.referencePerson,
+            row.date,
+            row.attendInterview,
+            row.interestedForJoin,
+            row.selectionChances,
+            row.ratingForCompany,
+            row.notAttendRemark,
+            row.notInterestedReason,
+            row.replyFromCompany,
+            row.positiveFeedback,
+            row.negativeFeedback,
+            row.overallDiscussion,
+            row.note,
+            row.updatedBy,
+            interviewDocumentExportSummary(row.documents)
+          ])
+        )
+      ]
+    })
+  ]
+
+  const workbook = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:x="urn:schemas-microsoft-com:office:excel"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:html="http://www.w3.org/TR/REC-html40">
+  <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+    <Author>Success HR Solutions</Author>
+    <Created>${new Date().toISOString()}</Created>
+  </DocumentProperties>
+  <Styles>
+    <Style ss:ID="Default" ss:Name="Normal">
+      <Alignment ss:Vertical="Top" ss:WrapText="1"/>
+      <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#0F172A"/>
+    </Style>
+    <Style ss:ID="Title">
+      <Alignment ss:Vertical="Center" ss:WrapText="1"/>
+      <Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#0F172A"/>
+      <Interior ss:Color="#DBEAFE" ss:Pattern="Solid"/>
+      <Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#2563EB"/></Borders>
+    </Style>
+    <Style ss:ID="Subtitle">
+      <Alignment ss:Vertical="Center" ss:WrapText="1"/>
+      <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#475569"/>
+      <Interior ss:Color="#F8FAFC" ss:Pattern="Solid"/>
+    </Style>
+    <Style ss:ID="Header">
+      <Alignment ss:Vertical="Center" ss:WrapText="1"/>
+      <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+      <Interior ss:Color="#1D4ED8" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#1E40AF"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#93C5FD"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#93C5FD"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#93C5FD"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="Body">
+      <Alignment ss:Vertical="Top" ss:WrapText="1"/>
+      <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#0F172A"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="Muted">
+      <Alignment ss:Vertical="Top" ss:WrapText="1"/>
+      <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#64748B"/>
+      <Interior ss:Color="#F8FAFC" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
+  </Styles>
+  ${sheets.join('\n')}
+</Workbook>`
+
+  return new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8' })
 }
 
 const createCandidateDetailsPdf = (candidate) => {
@@ -1024,9 +1948,54 @@ const createSuccessInfoPdf = (candidate) => {
   drawText('Success Information', margin + 10, y + 14, { size: 11, bold: true, fill: [0.02, 0.23, 0.42], maxWidth: pageWidth - margin * 2 - 20 })
   y += 42
 
+  const witnesses = Array.isArray(candidate.successInfo?.witnesses) && candidate.successInfo.witnesses.length
+    ? candidate.successInfo.witnesses
+    : [candidate.successInfo || {}]
+  witnesses.forEach((witness, index) => {
+    if (col !== 0) {
+      y += rowHeight + 8
+      col = 0
+      rowHeight = 0
+    }
+    ensureSpace(24)
+    drawText(`Witness ${index + 1}`, margin, y, { size: 11, bold: true, maxWidth: 260 })
+    y += 22
+    WITNESS_FIELDS.forEach((field) => {
+      if (field.showWhen && witness?.[field.showWhen.key] !== field.showWhen.value) return
+      const value = String(witness?.[field.key] ?? '').trim() || '-'
+      const height = fieldHeight(field.label, value)
+      if (col === 0) ensureSpace(height + 8)
+      drawField(field.label, value, margin + col * (fieldWidth + gap), y, height)
+      rowHeight = Math.max(rowHeight, height)
+      col += 1
+      if (col === 2) {
+        y += rowHeight + 8
+        col = 0
+        rowHeight = 0
+      }
+    })
+  })
+  if (col !== 0) {
+    y += rowHeight + 8
+    col = 0
+    rowHeight = 0
+  }
+
   col = 0
   rowHeight = 0
   SUCCESS_INFO_FIELDS.forEach((field) => {
+    if (field.kind === 'section') {
+      if (col !== 0) {
+        y += rowHeight + 8
+        col = 0
+        rowHeight = 0
+      }
+      ensureSpace(24)
+      drawText(field.label, margin, y, { size: 11, bold: true, maxWidth: 260 })
+      y += 22
+      return
+    }
+    if (field.showWhen && candidate.successInfo?.[field.showWhen.key] !== field.showWhen.value) return
     const value = String(candidate.successInfo?.[field.key] ?? '').trim() || '-'
     const height = fieldHeight(field.label, value)
     if (col === 0) ensureSpace(height + 8)
@@ -1201,7 +2170,6 @@ const createCompanyInterviewPdf = (candidate, interview) => {
     ['Attend Interview', interview.attendInterview],
     ['Interested For Join', interview.interestedForJoin],
     ['Selection Chances', interview.selectionChances],
-    ['Selection Status', interview.status],
     ['Rating For Company (/5)', interview.ratingForCompany],
     ['Update By', interview.updatedBy]
   ])
@@ -1265,26 +2233,56 @@ const normalizeApplicationFieldValue = (field, value) => {
   return next
 }
 
+const dateInputToday = () => {
+  const today = new Date()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${today.getFullYear()}-${month}-${day}`
+}
+
+const calculateAgeFromDate = (value) => {
+  const [year, month, day] = String(value || '').split('-').map(Number)
+  if (!year || !month || !day) return ''
+
+  const birthDate = new Date(year, month - 1, day)
+  if (birthDate.getFullYear() !== year || birthDate.getMonth() !== month - 1 || birthDate.getDate() !== day) return ''
+
+  const today = new Date()
+  if (birthDate > today) return ''
+
+  let age = today.getFullYear() - year
+  const birthdayThisYear = new Date(today.getFullYear(), month - 1, day)
+  if (today < birthdayThisYear) age -= 1
+
+  return age >= 0 ? String(age) : ''
+}
+
 function CandidateApplicationField({ field, candidate, errors, onPathChange }) {
   if (field.showWhen && getCandidatePathValue(candidate, field.showWhen.path) !== field.showWhen.value) return null
+  if (field.showWhenIncludes) {
+    const includesValue = getCandidatePathValue(candidate, field.showWhenIncludes.path)
+    if (!Array.isArray(includesValue) || !includesValue.includes(field.showWhenIncludes.value)) return null
+  }
   if (field.hideWhen && getCandidatePathValue(candidate, field.hideWhen.path) === field.hideWhen.value) return null
 
   if (field.kind === 'section') {
     return (
-      <div className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0 md:col-span-2 xl:col-span-3">
+      <div className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0 md:col-span-2 xl:col-span-3" data-global-field={globalFieldKey('details', `section-${field.label}`)}>
         <h3 className="text-sm font-bold text-slate-800">{field.label}</h3>
       </div>
     )
   }
 
   const value = getCandidatePathValue(candidate, field.path)
+  const options = field.optionsFor ? field.optionsFor(candidate) : field.options
+  const disabled = field.disabledWhenEmptyPath ? !getCandidatePathValue(candidate, field.disabledWhenEmptyPath) : false
   const className = field.full ? 'md:col-span-2 xl:col-span-3' : field.kind === 'area' ? 'md:col-span-2' : ''
   const error = field.errorKey ? errors[field.errorKey] : ''
 
-  return (
-    <Field label={field.label} required={field.required} error={error} className={className}>
-      {field.kind === 'checkbox' ? (
-        <label className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+  if (field.kind === 'checkbox') {
+    return (
+      <div className={className} data-global-field={globalFieldKey('details', field.path || field.key || field.label)}>
+        <label className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
           <input
             type="checkbox"
             checked={Boolean(value)}
@@ -1293,9 +2291,16 @@ function CandidateApplicationField({ field, candidate, errors, onPathChange }) {
           />
           {field.label}
         </label>
-      ) : field.kind === 'checkboxes' ? (
+        {error ? <p className="mt-1 text-xs font-semibold text-rose-600">{error}</p> : null}
+      </div>
+    )
+  }
+
+  return (
+    <Field label={field.label} required={field.required} error={error} className={className} searchKey={globalFieldKey('details', field.path || field.key || field.label)}>
+      {field.kind === 'checkboxes' ? (
         <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {(field.options || []).map((option) => {
+          {(options || []).map((option) => {
             const checked = Array.isArray(value) && value.includes(option)
             return (
               <label key={option} className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
@@ -1313,13 +2318,14 @@ function CandidateApplicationField({ field, candidate, errors, onPathChange }) {
             )
           })}
         </div>
-      ) : field.options ? (
+      ) : options ? (
         <select
           value={value || ''}
+          disabled={disabled}
           onChange={(event) => onPathChange(field.path, normalizeApplicationFieldValue(field, event.target.value))}
-          className={inputClass}
+          className={`${inputClass} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`}
         >
-          {field.options.map((option) => (
+          {options.map((option) => (
             <option key={option || 'empty'} value={option}>
               {option || 'Select'}
             </option>
@@ -1337,10 +2343,13 @@ function CandidateApplicationField({ field, candidate, errors, onPathChange }) {
           type={field.type || 'text'}
           value={value || ''}
           min={field.type === 'number' ? '0' : undefined}
+          max={field.type === 'date' && field.maxToday !== false ? dateInputToday() : undefined}
           inputMode={field.inputMode}
           maxLength={field.maxLength}
+          placeholder={field.placeholder}
+          readOnly={field.readOnly}
           onChange={(event) => onPathChange(field.path, normalizeApplicationFieldValue(field, event.target.value))}
-          className={`${inputClass} ${error ? 'border-rose-400' : ''}`}
+          className={`${inputClass} ${field.readOnly ? 'bg-slate-50 text-slate-600' : ''} ${error ? 'border-rose-400' : ''}`}
         />
       )}
     </Field>
@@ -1457,7 +2466,7 @@ function CandidateDetailsApplicationPanel({ candidate, errors, currentStep, onSt
           </header>
           <div className="space-y-6 px-4 py-5 sm:px-6">
             {panelGroups.map((group) => (
-              <section key={group.title} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0">
+              <section key={group.title} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0" data-global-field={globalFieldKey('details', `section-${group.title}`)}>
                 <h3 className="text-sm font-bold text-slate-900">{group.title}</h3>
                 <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {group.fields.map((field) => (
@@ -1486,15 +2495,16 @@ function CandidateDetailsApplicationPanel({ candidate, errors, currentStep, onSt
               <ChevronLeft className="h-4 w-4" />
               Back
             </button>
-            <button
-              type="button"
-              onClick={() => onStep(Math.min(currentStep + 1, candidateDetailPanels.length - 1))}
-              disabled={isLast}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-40"
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </button>
+            {!isLast ? (
+              <button
+                type="button"
+                onClick={() => onStep(Math.min(currentStep + 1, candidateDetailPanels.length - 1))}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 sm:w-auto sm:min-w-40"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -1698,7 +2708,7 @@ function CandidateDocumentUploadCard({
   }
 
   return (
-    <div className={`rounded-lg border border-slate-200 p-2.5 ${className}`}>
+    <div className={`rounded-lg border border-slate-200 p-2.5 ${className}`} data-global-field={globalFieldKey('documents', item.key)}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[15px] font-bold leading-5 text-slate-900">{label || item.label}</p>
@@ -1880,7 +2890,7 @@ function InterviewDocumentsPanel({
           const uploading = uploadingDocumentType === item.key
 
           return (
-            <div key={item.key} className="rounded-lg border border-slate-200 bg-white p-3">
+            <div key={item.key} className="rounded-lg border border-slate-200 bg-white p-3" data-global-field={globalFieldKey('documents', `interview-${item.key}`)}>
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-bold text-slate-900">{item.label}</p>
@@ -1999,7 +3009,7 @@ function RatingGrid({ title, fields, ratings, onToggle }) {
             {fields.map((field, index) => {
               const selected = ratings?.[field.key] || []
               return (
-                <tr key={field.key} className="odd:bg-white even:bg-slate-50">
+                <tr key={field.key} className="odd:bg-white even:bg-slate-50" data-global-field={globalFieldKey('assessment', `${title}-${field.key}`)}>
                   <td className="px-4 py-3 text-slate-500">{index + 1}</td>
                   <td className="px-4 py-3 font-semibold text-slate-800">{field.label}</td>
                   {RATING_VALUES.map((value) => (
@@ -2019,6 +3029,106 @@ function RatingGrid({ title, fields, ratings, onToggle }) {
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  )
+}
+
+function ComputerCourseAssessmentSection({ assessment = {}, onCourseToggle, onChange }) {
+  const courses = Array.isArray(assessment.courses) ? assessment.courses : []
+  const scoreFields = [
+    { key: 'typingAccuracy', label: 'Typing Accuracy', suffix: '%' },
+    { key: 'typingSpeed', label: 'Typing Speed', suffix: 'WPM' },
+    { key: 'word', label: 'Word', suffix: '%' },
+    { key: 'excel', label: 'Excel', suffix: '%' },
+    { key: 'tally', label: 'Tally', suffix: '%' }
+  ]
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200" data-global-field={globalFieldKey('assessment', 'Computer Courses Assessment')}>
+      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <h3 className="text-sm font-bold text-slate-900">Computer Courses Assessment</h3>
+        <p className="mt-1 text-xs text-slate-500">Record computer course selection, typing speed, software scores, and final remark.</p>
+      </div>
+
+      <div className="space-y-4 p-4">
+        <div>
+          <p className="text-xs font-bold uppercase text-slate-500">Computer Courses</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {COMPUTER_COURSE_ASSESSMENT_COURSES.map((course) => (
+              <label key={course} className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700" data-global-field={globalFieldKey('assessment', `Computer Courses Assessment-${course}`)}>
+                <input
+                  type="checkbox"
+                  checked={courses.includes(course)}
+                  onChange={() => onCourseToggle(course)}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                />
+                {course}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-[760px] w-full table-fixed overflow-hidden rounded-lg border border-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+              <tr>
+                <th className="w-72 px-4 py-3">Typing Speed</th>
+                <th className="px-4 py-3">Word</th>
+                <th className="px-4 py-3">Excel</th>
+                <th className="px-4 py-3">Tally</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              <tr className="bg-white">
+                <td className="px-4 py-3">
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-4">
+                    {scoreFields.slice(0, 2).map((field) => (
+                      <label key={field.key} className="block" data-global-field={globalFieldKey('assessment', `Computer Courses Assessment-${field.label}`)}>
+                        <span className="text-xs font-bold text-slate-500">{field.label.replace('Typing ', '')}</span>
+                        <div className="mt-1 flex items-center gap-2">
+                          <input
+                            value={assessment[field.key] || ''}
+                            inputMode="decimal"
+                            aria-label={field.label}
+                            onChange={(event) => onChange(field.key, event.target.value)}
+                            className="h-10 w-full min-w-0 flex-1 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                          />
+                          <span className="shrink-0 text-xs font-bold text-slate-500">{field.suffix}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </td>
+                {scoreFields.slice(2).map((field) => (
+                  <td key={field.key} className="px-4 py-3" data-global-field={globalFieldKey('assessment', `Computer Courses Assessment-${field.label}`)}>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={assessment[field.key] || ''}
+                        inputMode="decimal"
+                        aria-label={field.label}
+                        onChange={(event) => onChange(field.key, event.target.value)}
+                        className="h-10 min-w-0 flex-1 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      />
+                      <span className="shrink-0 text-xs font-bold text-slate-500">{field.suffix}</span>
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <label className="block text-sm font-semibold text-slate-700" data-global-field={globalFieldKey('assessment', 'Computer Courses Assessment-Remark')}>
+          Remark
+          <textarea
+            className={textAreaClass}
+            rows={3}
+            value={assessment.remark || ''}
+            onChange={(event) => onChange('remark', event.target.value)}
+            placeholder="Computer course assessment remark"
+          />
+        </label>
       </div>
     </div>
   )
@@ -2071,7 +3181,7 @@ function AssessmentForm({ title, fields, assessment, onToggle, locked = false, u
             <p className="mt-1 text-xs text-slate-500">Class and priority use Low / Medium / High. Counseling uses Yes / No and Online / Offline.</p>
             {locked ? (
               <p className="mt-2 text-xs font-semibold text-amber-700">
-                Locked. Enter super admin credentials before changing these marks.
+                Locked. Enter super admin password before changing these marks.
               </p>
             ) : null}
           </div>
@@ -2118,7 +3228,7 @@ function AssessmentForm({ title, fields, assessment, onToggle, locked = false, u
             {fields.map((field, index) => {
               const selected = assessment?.[field.key] || []
               return (
-                <tr key={field.key} className="odd:bg-white even:bg-slate-50">
+                <tr key={field.key} className="odd:bg-white even:bg-slate-50" data-global-field={globalFieldKey('assessment', `${title}-${field.key}`)}>
                   <td className="px-4 py-3 text-slate-500">{index + 1}</td>
                   <td className="px-4 py-3 font-semibold text-slate-800">{field.label}</td>
                   {DIRECTOR_RATING_VALUES.map((value) => (
@@ -2139,7 +3249,7 @@ function AssessmentForm({ title, fields, assessment, onToggle, locked = false, u
                 </tr>
               )
             })}
-            <tr className="odd:bg-white even:bg-slate-50">
+            <tr className="odd:bg-white even:bg-slate-50" data-global-field={globalFieldKey('assessment', `${title}-counselingOfCandidate`)}>
               <td className="px-4 py-3 text-slate-500">3</td>
               <td className="px-4 py-3 font-semibold text-slate-800">Counseling Of Candidate</td>
               <td colSpan={3} className="px-4 py-3 text-center text-xs font-semibold text-slate-400">
@@ -2194,21 +3304,12 @@ function DirectorUnlockDialog({ open, credentials, loading, onChange, onSubmit, 
       >
         <h3 className="text-lg font-bold text-slate-950">Unlock Director Assessment</h3>
         <p className="mt-2 text-sm text-slate-600">
-          Enter super admin credentials to allow Director Assessment changes for this candidate.
+          Enter the super admin password to allow Director Assessment changes for this candidate.
         </p>
         <label className="mt-4 block text-sm font-semibold text-slate-700">
-          Super admin email
+          Super admin password
           <input
             autoFocus
-            type="email"
-            value={credentials.email}
-            onChange={(event) => onChange('email', event.target.value)}
-            className="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-          />
-        </label>
-        <label className="mt-3 block text-sm font-semibold text-slate-700">
-          Password
-          <input
             type="password"
             value={credentials.password}
             onChange={(event) => onChange('password', event.target.value)}
@@ -2296,17 +3397,19 @@ function InterviewQuestionsForm({ questions, onQuestionChange, onMarksChange, on
 }
 
 const interviewChoiceValues = ['Yes', 'No', 'Pending']
-const interviewStatusValues = ['Pending', 'Selected', 'Rejected', 'On Hold']
-const interviewStatusColors = {
-  Pending: 'bg-amber-50 text-amber-700 ring-amber-200',
+const interviewSelectionChanceValues = ['Selected', 'Rejected', 'High', 'Medium', 'Low']
+const interviewSelectionChanceColors = {
+  '': 'bg-slate-50 text-slate-500 ring-slate-200',
   Selected: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
   Rejected: 'bg-rose-50 text-rose-700 ring-rose-200',
-  'On Hold': 'bg-slate-50 text-slate-700 ring-slate-200'
+  High: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  Medium: 'bg-amber-50 text-amber-700 ring-amber-200',
+  Low: 'bg-rose-50 text-rose-700 ring-rose-200'
 }
 
-function InterviewInput({ label, value, onChange, readOnly = false, type = 'text', className = '', placeholder, min, max, step }) {
+function InterviewInput({ label, value, onChange, readOnly = false, type = 'text', className = '', placeholder, min, max, step, searchKey = '' }) {
   return (
-    <label className={`block text-sm font-semibold text-slate-700 ${className}`}>
+    <label className={`block text-sm font-semibold text-slate-700 ${className}`} data-global-field={searchKey || undefined}>
       {label}
       <input
         type={type}
@@ -2323,9 +3426,9 @@ function InterviewInput({ label, value, onChange, readOnly = false, type = 'text
   )
 }
 
-function InterviewTextarea({ label, value, onChange, readOnly = false, className = '', placeholder }) {
+function InterviewTextarea({ label, value, onChange, readOnly = false, className = '', placeholder, searchKey = '' }) {
   return (
-    <label className={`block text-sm font-semibold text-slate-700 ${className}`}>
+    <label className={`block text-sm font-semibold text-slate-700 ${className}`} data-global-field={searchKey || undefined}>
       {label}
       <textarea
         rows={3}
@@ -2339,9 +3442,9 @@ function InterviewTextarea({ label, value, onChange, readOnly = false, className
   )
 }
 
-function InterviewChoice({ label, value, onChange, readOnly = false }) {
+function InterviewChoice({ label, value, onChange, readOnly = false, searchKey = '' }) {
   return (
-    <div className="text-sm font-semibold text-slate-700">
+    <div className="text-sm font-semibold text-slate-700" data-global-field={searchKey || undefined}>
       <span>{label}</span>
       <div className="mt-1 grid grid-cols-3 overflow-hidden rounded-lg border border-slate-300 bg-white">
         {interviewChoiceValues.map((choice) => {
@@ -2365,19 +3468,23 @@ function InterviewChoice({ label, value, onChange, readOnly = false }) {
   )
 }
 
-function InterviewStatusSelect({ value, onChange, readOnly = false }) {
+function InterviewSelectionChanceSelect({ value, onChange, readOnly = false, searchKey = '' }) {
+  const customValue = value && !interviewSelectionChanceValues.includes(value) ? value : ''
+
   return (
-    <label className="block text-sm font-semibold text-slate-700">
-      Selection Status
+    <label className="block text-sm font-semibold text-slate-700" data-global-field={searchKey || undefined}>
+      Selection Chances
       <select
-        value={value || 'Pending'}
+        value={value || ''}
         disabled={readOnly}
         onChange={(event) => onChange?.(event.target.value)}
         className={`${inputClass} ${readOnly ? 'cursor-default bg-slate-50' : ''}`}
       >
-        {interviewStatusValues.map((status) => (
-          <option key={status} value={status}>
-            {status}
+        <option value="">Select</option>
+        {customValue ? <option value={customValue}>{customValue}</option> : null}
+        {interviewSelectionChanceValues.map((option) => (
+          <option key={option} value={option}>
+            {option}
           </option>
         ))}
       </select>
@@ -2385,18 +3492,18 @@ function InterviewStatusSelect({ value, onChange, readOnly = false }) {
   )
 }
 
-function InterviewStatusBadge({ status }) {
-  const value = status || 'Pending'
+function InterviewSelectionChanceBadge({ value }) {
+  const displayValue = value || '-'
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${interviewStatusColors[value] || interviewStatusColors.Pending}`}>
-      {value}
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${interviewSelectionChanceColors[value || ''] || interviewSelectionChanceColors['']}`}>
+      {displayValue}
     </span>
   )
 }
 
-function InterviewReferenceSelect({ value, options, onChange, readOnly = false }) {
+function InterviewReferenceSelect({ value, options, onChange, readOnly = false, searchKey = '' }) {
   return (
-    <label className="block text-sm font-semibold text-slate-700">
+    <label className="block text-sm font-semibold text-slate-700" data-global-field={searchKey || undefined}>
       Reference
       <select
         value={value || ''}
@@ -2460,14 +3567,15 @@ function InterviewUpdatePanel({
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <InterviewInput label="Name Of Candidate" value={draft.candidateName || candidateName} readOnly />
-          <InterviewInput label="Mobile Number" value={candidateMobile} readOnly />
+          <InterviewInput label="Name Of Candidate" value={draft.candidateName || candidateName} readOnly searchKey={globalFieldKey('interviews', 'Name Of Candidate')} />
+          <InterviewInput label="Mobile Number" value={candidateMobile} readOnly searchKey={globalFieldKey('interviews', 'Mobile Number')} />
           <InterviewInput
             label="Name Of Company"
             value={draft.companyName}
             readOnly={readOnly}
             placeholder="Enter company name"
             onChange={(value) => onChange('companyName', value)}
+            searchKey={globalFieldKey('interviews', 'Name Of Company')}
           />
           <InterviewInput
             label="Job Role/Department"
@@ -2475,12 +3583,14 @@ function InterviewUpdatePanel({
             readOnly={readOnly}
             placeholder="Enter job role"
             onChange={(value) => onChange('jobRole', value)}
+            searchKey={globalFieldKey('interviews', 'Job Role/Department')}
           />
           <InterviewReferenceSelect
             value={draft.referencePerson}
             readOnly={readOnly}
             options={referenceOptions}
             onChange={(value) => onChange('referencePerson', value)}
+            searchKey={globalFieldKey('interviews', 'Reference')}
           />
           <InterviewInput
             label="Date Of Interview"
@@ -2488,17 +3598,17 @@ function InterviewUpdatePanel({
             value={draft.date}
             readOnly={readOnly}
             onChange={(value) => onChange('date', value)}
+            searchKey={globalFieldKey('interviews', 'Date Of Interview')}
           />
-          <InterviewChoice label="Attend Interview" value={draft.attendInterview} readOnly={readOnly} onChange={(value) => onChange('attendInterview', value)} />
-          <InterviewChoice label="Interested For Join" value={draft.interestedForJoin} readOnly={readOnly} onChange={(value) => onChange('interestedForJoin', value)} />
-          <InterviewInput
-            label="Selection Chances"
-            value={draft.selectionChances}
+          <InterviewChoice label="Attend Interview" value={draft.attendInterview} readOnly={readOnly} onChange={(value) => onChange('attendInterview', value)} searchKey={globalFieldKey('interviews', 'Attend Interview')} />
+          <InterviewChoice
+            label="Interested For Join"
+            value={draft.interestedForJoin}
             readOnly={readOnly}
-            placeholder="High / Medium / Low"
-            onChange={(value) => onChange('selectionChances', value)}
+            onChange={(value) => onChange('interestedForJoin', value)}
+            searchKey={globalFieldKey('interviews', 'Interested For Join')}
           />
-          <InterviewStatusSelect value={draft.status} readOnly={readOnly} onChange={(value) => onChange('status', value)} />
+          <InterviewSelectionChanceSelect value={draft.selectionChances} readOnly={readOnly} onChange={(value) => onChange('selectionChances', value)} searchKey={globalFieldKey('interviews', 'Selection Chances')} />
           <InterviewInput
             label="Rating For Company (/5)"
             type="number"
@@ -2509,6 +3619,7 @@ function InterviewUpdatePanel({
             readOnly={readOnly}
             placeholder="0 to 5"
             onChange={(value) => onChange('ratingForCompany', value)}
+            searchKey={globalFieldKey('interviews', 'Rating For Company (/5)')}
           />
           <InterviewTextarea
             label="Not Attend Remark"
@@ -2516,6 +3627,7 @@ function InterviewUpdatePanel({
             readOnly={readOnly}
             placeholder="Remark if candidate did not attend"
             onChange={(value) => onChange('notAttendRemark', value)}
+            searchKey={globalFieldKey('interviews', 'Not Attend Remark')}
           />
           <InterviewTextarea
             label="IF Not Interested Reason"
@@ -2523,6 +3635,7 @@ function InterviewUpdatePanel({
             readOnly={readOnly}
             placeholder="Reason if candidate is not interested"
             onChange={(value) => onChange('notInterestedReason', value)}
+            searchKey={globalFieldKey('interviews', 'IF Not Interested Reason')}
           />
           <InterviewTextarea
             label="Reply From Company"
@@ -2530,6 +3643,7 @@ function InterviewUpdatePanel({
             readOnly={readOnly}
             placeholder="Company response"
             onChange={(value) => onChange('replyFromCompany', value)}
+            searchKey={globalFieldKey('interviews', 'Reply From Company')}
           />
           <InterviewTextarea
             label="Positive Feedback"
@@ -2537,6 +3651,7 @@ function InterviewUpdatePanel({
             readOnly={readOnly}
             placeholder="Positive feedback"
             onChange={(value) => onChange('positiveFeedback', value)}
+            searchKey={globalFieldKey('interviews', 'Positive Feedback')}
           />
           <InterviewTextarea
             label="Negative Feedback"
@@ -2544,6 +3659,7 @@ function InterviewUpdatePanel({
             readOnly={readOnly}
             placeholder="Negative feedback"
             onChange={(value) => onChange('negativeFeedback', value)}
+            searchKey={globalFieldKey('interviews', 'Negative Feedback')}
           />
           <InterviewTextarea
             label="Overall Discussion"
@@ -2551,18 +3667,20 @@ function InterviewUpdatePanel({
             readOnly={readOnly}
             placeholder="Overall discussion"
             onChange={(value) => onChange('overallDiscussion', value)}
+            searchKey={globalFieldKey('interviews', 'Overall Discussion')}
           />
-          <InterviewTextarea label="Note" value={draft.note} readOnly={readOnly} placeholder="Additional note" onChange={(value) => onChange('note', value)} />
+          <InterviewTextarea label="Note" value={draft.note} readOnly={readOnly} placeholder="Additional note" onChange={(value) => onChange('note', value)} searchKey={globalFieldKey('interviews', 'Note')} />
           <InterviewInput
             label="Update By"
             value={draft.updatedBy}
             readOnly={readOnly}
             placeholder="SJP HR"
             onChange={(value) => onChange('updatedBy', value)}
+            searchKey={globalFieldKey('interviews', 'Update By')}
           />
         </div>
 
-        <div className="mt-6 border-t border-slate-200 pt-4">
+        <div className="mt-6 border-t border-slate-200 pt-4" data-global-field={globalFieldKey('interviews', 'Company-wise Interview Documents')}>
           <div className="mb-3">
             <h4 className="text-sm font-bold text-slate-900">Company-wise Interview Documents</h4>
             <p className="mt-1 text-xs font-semibold text-slate-500">
@@ -2637,6 +3755,7 @@ export default function AddCandidate() {
   const [deletingInterviewDocumentId, setDeletingInterviewDocumentId] = useState('')
   const [pendingInterviewFiles, setPendingInterviewFiles] = useState({})
   const [documentInterviewId, setDocumentInterviewId] = useState('')
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   const [interviewSearchTerm, setInterviewSearchTerm] = useState('')
   const [deleteDocumentPrompt, setDeleteDocumentPrompt] = useState({ open: false, type: '', docId: '', interviewId: '', label: '' })
   const [autoSaveStatus, setAutoSaveStatus] = useState('')
@@ -2773,15 +3892,66 @@ export default function AddCandidate() {
       })
       target[keys[keys.length - 1]] = value
 
-      if (path === 'sameAsCurrentAddress' && value) {
-        next.permanentAddressVillage = current.currentAddressVillage
-        next.permanentAddressTaluka = current.currentAddressTaluka
-        next.permanentAddressDistrict = current.currentAddressDistrict
-        next.permanentAddressState = current.currentAddressState
+      if (path === 'dateOfBirth') {
+        next.currentAge = calculateAgeFromDate(value)
       }
 
-      if (current.sameAsCurrentAddress && path.startsWith('currentAddress')) {
-        next[path.replace('currentAddress', 'permanentAddress')] = value
+      if (path === 'familyDetails.siblingDateOfBirth') {
+        next.familyDetails = {
+          ...next.familyDetails,
+          siblingAge: calculateAgeFromDate(value)
+        }
+      }
+
+      if (path === 'familyDetails.siblingCareerProfile') {
+        next.familyDetails = {
+          ...next.familyDetails,
+          ...(value !== 'Studying' ? { siblingStudyStandard: '', siblingStudyStandardOther: '' } : {}),
+          ...(value !== 'Other' ? { siblingCareerProfileOther: '' } : {})
+        }
+      }
+
+      if (path === 'familyDetails.siblingStudyStandard' && value !== 'Other') {
+        next.familyDetails = {
+          ...next.familyDetails,
+          siblingStudyStandardOther: ''
+        }
+      }
+
+      if (path === 'educationBranch') {
+        const specializationOptions = educationSpecializationOptionsForBranch(value)
+        next.educationBranchOther = ''
+        if (!specializationOptions.includes(current.educationSpecialization)) {
+          next.educationSpecialization = ''
+          next.educationSpecializationOther = ''
+        }
+      }
+
+      if (path === 'educationSpecialization') {
+        next.educationSpecializationOther = ''
+      }
+
+      if (path === 'currentJobLocation' && value !== 'Other') {
+        next.currentJobLocationOther = ''
+      }
+
+      if (path === 'currentJobLocationMidcArea' && value !== 'Other') {
+        next.currentJobLocationMidcAreaOther = ''
+      }
+
+      if (path === 'referenceSources' && (!Array.isArray(value) || !value.includes('Other'))) {
+        next.referenceSourceOther = ''
+      }
+
+      if (path === 'sameAsCurrentAddress' && value) {
+        next.currentAddressVillage = current.permanentAddressVillage
+        next.currentAddressTaluka = current.permanentAddressTaluka
+        next.currentAddressDistrict = current.permanentAddressDistrict
+        next.currentAddressState = current.permanentAddressState
+      }
+
+      if (current.sameAsCurrentAddress && path.startsWith('permanentAddress')) {
+        next[path.replace('permanentAddress', 'currentAddress')] = value
       }
 
       return next
@@ -2805,11 +3975,99 @@ export default function AddCandidate() {
       interviewForm: { ...current.interviewForm, [key]: value }
     }))
 
+  const updateComputerCourseAssessment = (key, value) =>
+    setCandidate((current) => ({
+      ...current,
+      interviewForm: {
+        ...current.interviewForm,
+        computerCourseAssessment: {
+          ...(current.interviewForm.computerCourseAssessment || {}),
+          [key]: value
+        }
+      }
+    }))
+
+  const toggleComputerCourseAssessmentCourse = (course) =>
+    setCandidate((current) => {
+      const currentAssessment = current.interviewForm.computerCourseAssessment || {}
+      const currentCourses = Array.isArray(currentAssessment.courses) ? currentAssessment.courses : []
+      const nextCourses = currentCourses.includes(course)
+        ? currentCourses.filter((item) => item !== course)
+        : [...currentCourses, course]
+
+      return {
+        ...current,
+        interviewForm: {
+          ...current.interviewForm,
+          computerCourseAssessment: {
+            ...currentAssessment,
+            courses: nextCourses
+          }
+        }
+      }
+    })
+
   const updateSuccessInfo = (key, value) =>
     setCandidate((current) => ({
       ...current,
-      successInfo: { ...(current.successInfo || {}), [key]: value }
+      successInfo: {
+        ...(current.successInfo || {}),
+        [key]: value
+      }
     }))
+
+  const updateWitness = (index, key, value) =>
+    setCandidate((current) => {
+      const witnesses = Array.isArray(current.successInfo?.witnesses) && current.successInfo.witnesses.length
+        ? [...current.successInfo.witnesses]
+        : [emptyWitnessDetails()]
+      const nextWitness = {
+        ...emptyWitnessDetails(),
+        ...(witnesses[index] || {}),
+        [key]: value,
+        ...(key === 'witnessRelation' && value !== 'Other' ? { witnessRelationOther: '' } : {})
+      }
+      witnesses[index] = nextWitness
+      const firstWitness = witnesses[0] || emptyWitnessDetails()
+
+      return {
+        ...current,
+        successInfo: {
+          ...(current.successInfo || {}),
+          witnesses,
+          ...firstWitness
+        }
+      }
+    })
+
+  const addWitness = () =>
+    setCandidate((current) => ({
+      ...current,
+      successInfo: {
+        ...(current.successInfo || {}),
+        witnesses: [
+          ...(Array.isArray(current.successInfo?.witnesses) && current.successInfo.witnesses.length ? current.successInfo.witnesses : [emptyWitnessDetails()]),
+          emptyWitnessDetails()
+        ]
+      }
+    }))
+
+  const removeWitness = (index) =>
+    setCandidate((current) => {
+      const witnesses = (Array.isArray(current.successInfo?.witnesses) && current.successInfo.witnesses.length ? current.successInfo.witnesses : [emptyWitnessDetails()])
+        .filter((_, witnessIndex) => witnessIndex !== index)
+      const nextWitnesses = witnesses.length ? witnesses : [emptyWitnessDetails()]
+      const firstWitness = nextWitnesses[0] || emptyWitnessDetails()
+
+      return {
+        ...current,
+        successInfo: {
+          ...(current.successInfo || {}),
+          witnesses: nextWitnesses,
+          ...firstWitness
+        }
+      }
+    })
 
   const requestDirectorUnlock = () => {
     if (authUser?.role === 'superAdmin') {
@@ -2845,8 +4103,8 @@ export default function AddCandidate() {
   const submitDirectorUnlock = async (event) => {
     event.preventDefault()
 
-    if (!directorUnlockCredentials.email.trim() || !directorUnlockCredentials.password) {
-      toast.error('Enter super admin email and password')
+    if (!directorUnlockCredentials.password) {
+      toast.error('Enter super admin password')
       return
     }
 
@@ -2868,7 +4126,7 @@ export default function AddCandidate() {
   const ensureDirectorAssessmentUnlocked = () => {
     if (directorAssessmentUnlocked) return true
     setDirectorUnlockOpen(true)
-    toast.error('Enter super admin credentials before changing Director Assessment')
+    toast.error('Enter super admin password before changing Director Assessment')
     return false
   }
 
@@ -2969,7 +4227,6 @@ export default function AddCandidate() {
           row.jobRole,
           row.referencePerson,
           row.date,
-          row.status,
           row.selectionChances,
           row.ratingForCompany,
           row.baId,
@@ -2979,6 +4236,20 @@ export default function AddCandidate() {
       ).includes(normalizedInterviewSearchTerm)
     })
   const selectedDocumentInterview = visibleInterviews.find((row) => String(row.id) === String(documentInterviewId)) || visibleInterviews[0] || null
+  const normalizedGlobalSearchTerm = normalizeDocumentSearch(globalSearchTerm)
+  const globalSearchResults = normalizedGlobalSearchTerm
+    ? globalSearchItems
+        .map((item) => {
+          const fullValueText = getGlobalSearchValueText(item, candidate, visibleInterviews)
+          return {
+            ...item,
+            valueText: previewSearchValue(fullValueText),
+            searchText: normalizeDocumentSearch([item.searchText, fullValueText].filter(Boolean).join(' '))
+          }
+        })
+        .filter((item) => item.searchText.includes(normalizedGlobalSearchTerm))
+        .slice(0, 18)
+    : []
 
   const clearInterviewDocumentState = () => {
     setUploadingInterviewDocumentType('')
@@ -3015,6 +4286,39 @@ export default function AddCandidate() {
       ...row,
       candidateName: row.candidateName || candidate.fullName
     })
+  }
+
+  const openPanelForGlobalSearch = (panel) => {
+    if (panel !== 'details' && !validateCandidateIdentity()) return false
+
+    setActivePanel(panel)
+    if (isEdit) {
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.set('panel', panel)
+      if (panel !== 'interviews') nextParams.delete('interview')
+      setSearchParams(nextParams, { replace: true })
+    }
+    return true
+  }
+
+  const handleGlobalFieldSelect = (item) => {
+    if (!openPanelForGlobalSearch(item.panel)) return
+
+    if (item.panel === 'details' && Number.isInteger(item.step)) {
+      if (item.step > 0 && !validateCandidateIdentity()) return
+      setCandidateDetailsStep(item.step)
+    }
+
+    if (item.panel === 'interviews' && !interviewDraft) {
+      if (visibleInterviews[0]) {
+        startUpdateInterview(visibleInterviews[0])
+      } else {
+        startAddInterview()
+      }
+    }
+
+    setGlobalSearchTerm(item.label)
+    scrollToGlobalField(item.targetKey)
   }
 
   const closeInterviewPanel = () => {
@@ -3499,10 +4803,10 @@ export default function AddCandidate() {
     }
   }
 
-  const exportCandidateDetailsPdf = () => {
+  const exportCandidateExcel = () => {
     const candidateName = safeFileName(candidate.fullName || candidate.candidateCode || id || 'candidate')
-    downloadBlob(createCandidateDetailsPdf(candidate), `${candidateName}-Candidate-Details.pdf`)
-    toast.success('Candidate details PDF downloaded')
+    downloadBlob(createCandidateExcelWorkbook(candidate), `${candidateName}-Complete-Candidate-Export.xls`)
+    toast.success('Candidate Excel downloaded')
   }
 
   const exportSuccessInfoPdf = () => {
@@ -3549,6 +4853,9 @@ export default function AddCandidate() {
   const autoSaveStatusClass =
     autoSaveStatus === 'error' ? 'text-rose-600' : autoSaveStatus === 'saved' ? 'text-emerald-600' : 'text-slate-500'
   const showCandidateSave = !isEdit || (activePanel !== 'interviews' && activePanel !== 'documents')
+  const successInfoWitnesses = Array.isArray(candidate.successInfo?.witnesses) && candidate.successInfo.witnesses.length
+    ? candidate.successInfo.witnesses
+    : [emptyWitnessDetails()]
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -3570,11 +4877,11 @@ export default function AddCandidate() {
           {activePanel === 'details' ? (
             <button
               type="button"
-              onClick={exportCandidateDetailsPdf}
+              onClick={exportCandidateExcel}
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 sm:w-auto"
             >
               <Download className="h-4 w-4" />
-              Export Details PDF
+              Export Full Excel
             </button>
           ) : null}
           {isEdit && activePanel === 'successInfo' ? (
@@ -3619,6 +4926,10 @@ export default function AddCandidate() {
             </button>
           ) : null}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <GlobalFieldSearch value={globalSearchTerm} results={globalSearchResults} onChange={setGlobalSearchTerm} onSelect={handleGlobalFieldSelect} />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -3701,13 +5012,89 @@ export default function AddCandidate() {
       ) : null}
 
       {activePanel === 'successInfo' ? (
-        <Section title="Success Info For Candidate" icon={ClipboardList}>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <Section title="Success Info For Candidate" icon={ClipboardList} searchKey={globalFieldKey('successInfo', 'section-Success Info For Candidate')}>
+          <div className="space-y-5">
+            <div className="space-y-4" data-global-field={globalFieldKey('successInfo', 'section-Witness Details')}>
+              <div className="flex flex-col gap-3 border-b border-slate-200 pb-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-sm font-bold text-slate-800">Witness Details</h3>
+                <button
+                  type="button"
+                  onClick={addWitness}
+                  className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700 sm:w-auto"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Witness
+                </button>
+              </div>
+
+              {successInfoWitnesses.map((witness, witnessIndex) => (
+                <div key={witnessIndex} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h4 className="text-sm font-bold text-slate-700">Witness {witnessIndex + 1}</h4>
+                    {successInfoWitnesses.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => removeWitness(witnessIndex)}
+                        className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {WITNESS_FIELDS.map((field) => {
+                      if (field.showWhen && witness?.[field.showWhen.key] !== field.showWhen.value) return null
+
+                      return (
+                        <Field key={field.key} label={field.label} searchKey={globalFieldKey('successInfo', `witness-${witnessIndex}-${field.key}`)}>
+                          {field.options ? (
+                            <select
+                              className={inputClass}
+                              value={witness?.[field.key] || ''}
+                              onChange={(event) => updateWitness(witnessIndex, field.key, event.target.value)}
+                            >
+                              {field.options.map((option) => (
+                                <option key={option || 'empty'} value={option}>
+                                  {option || 'Select'}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              className={inputClass}
+                              value={witness?.[field.key] || ''}
+                              placeholder={field.label}
+                              inputMode={field.inputMode}
+                              maxLength={field.maxLength}
+                              onChange={(event) => {
+                                const rawValue = field.digitsOnly ? event.target.value.replace(/\D/g, '') : event.target.value
+                                updateWitness(witnessIndex, field.key, field.maxLength ? rawValue.slice(0, field.maxLength) : rawValue)
+                              }}
+                            />
+                          )}
+                        </Field>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {SUCCESS_INFO_FIELDS.map((field) => {
+              if (field.kind === 'section') {
+                return (
+                  <div key={field.label} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0 md:col-span-2 xl:col-span-3" data-global-field={globalFieldKey('successInfo', `section-${field.label}`)}>
+                    <h3 className="text-sm font-bold text-slate-800">{field.label}</h3>
+                  </div>
+                )
+              }
+              if (field.showWhen && candidate.successInfo?.[field.showWhen.key] !== field.showWhen.value) return null
               const multiline = ['candidateDataSource', 'hrContactDetails'].includes(field.key)
 
               return (
-                <Field key={field.key} label={field.label} className={multiline ? 'xl:col-span-3' : ''}>
+                <Field key={field.key} label={field.label} className={multiline ? 'xl:col-span-3' : ''} searchKey={globalFieldKey('successInfo', field.key || field.label)}>
                   {field.options ? (
                     <select
                       className={inputClass}
@@ -3733,12 +5120,18 @@ export default function AddCandidate() {
                       className={inputClass}
                       value={candidate.successInfo?.[field.key] || ''}
                       placeholder={field.label}
-                      onChange={(event) => updateSuccessInfo(field.key, event.target.value)}
+                      inputMode={field.inputMode}
+                      maxLength={field.maxLength}
+                      onChange={(event) => {
+                        const rawValue = field.digitsOnly ? event.target.value.replace(/\D/g, '') : event.target.value
+                        updateSuccessInfo(field.key, field.maxLength ? rawValue.slice(0, field.maxLength) : rawValue)
+                      }}
                     />
                   )}
                 </Field>
               )
             })}
+            </div>
           </div>
         </Section>
       ) : null}
@@ -3778,17 +5171,23 @@ export default function AddCandidate() {
             />
           </div>
 
+          <ComputerCourseAssessmentSection
+            assessment={candidate.interviewForm.computerCourseAssessment}
+            onCourseToggle={toggleComputerCourseAssessmentCourse}
+            onChange={updateComputerCourseAssessment}
+          />
+
           <FieldGroup title="Success Interviewer Remark">
-            <Field label="Suitable Industry">
+            <Field label="Suitable Industry" searchKey={globalFieldKey('assessment', 'Suitable Industry')}>
               <input className={inputClass} value={candidate.interviewForm.suitableIndustry} onChange={(event) => updateInterviewForm('suitableIndustry', event.target.value)} />
             </Field>
-            <Field label="Suitable Department">
+            <Field label="Suitable Department" searchKey={globalFieldKey('assessment', 'Suitable Department')}>
               <input className={inputClass} value={candidate.interviewForm.suitableDepartment} onChange={(event) => updateInterviewForm('suitableDepartment', event.target.value)} />
             </Field>
-            <Field label="HR Interviewer">
+            <Field label="HR Interviewer" searchKey={globalFieldKey('assessment', 'HR Interviewer')}>
               <input className={inputClass} value={candidate.interviewForm.hrInterviewer} onChange={(event) => updateInterviewForm('hrInterviewer', event.target.value)} />
             </Field>
-            <Field label="Remark">
+            <Field label="Remark" searchKey={globalFieldKey('assessment', 'Remark')}>
               <input className={inputClass} value={candidate.interviewForm.remark} onChange={(event) => updateInterviewForm('remark', event.target.value)} />
             </Field>
           </FieldGroup>
@@ -3836,7 +5235,7 @@ export default function AddCandidate() {
                     <th className="px-4 py-3">Company Name</th>
                     <th className="w-40 px-4 py-3">Job Role/Department</th>
                     <th className="w-36 px-4 py-3">Interview Date</th>
-                    <th className="w-36 px-4 py-3">Selection Status</th>
+                    <th className="w-36 px-4 py-3">Selection Chances</th>
                     <th className="w-72 px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -3848,7 +5247,7 @@ export default function AddCandidate() {
                       <td className="truncate px-4 py-3 text-slate-700">{row.jobRole || '-'}</td>
                       <td className="px-4 py-3 text-slate-700">{row.date || '-'}</td>
                       <td className="px-4 py-3">
-                        <InterviewStatusBadge status={row.status} />
+                        <InterviewSelectionChanceBadge value={row.selectionChances} />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">

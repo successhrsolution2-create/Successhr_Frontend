@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Copy, Eye, Pencil, Plus, Search, Trash2, UploadCloud, X } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
@@ -658,6 +658,8 @@ function ModalField({ label, value, onChange, type = 'text', required = false, r
 }
 
 function FileField({ label, file, existingUrl, accept, onChange, readOnly = false }) {
+  const inputRef = useRef(null)
+
   return (
     <div className="min-w-0 rounded-lg border border-slate-200 p-3">
       <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
@@ -673,11 +675,26 @@ function FileField({ label, file, existingUrl, accept, onChange, readOnly = fals
           {existingUrl ? 'Uploaded file available' : 'No file uploaded'}
         </div>
       ) : (
-        <label className="flex min-h-10 min-w-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-slate-600 hover:border-cyan-400 hover:bg-sky-50">
-          <UploadCloud className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 truncate">{file ? file.name : 'Choose file'}</span>
-          <input type="file" className="sr-only" accept={accept} onChange={(event) => onChange(event.target.files?.[0] || null)} />
-        </label>
+        <>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="flex min-h-10 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-slate-600 hover:border-cyan-400 hover:bg-sky-50"
+          >
+            <UploadCloud className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 truncate">{file ? file.name : 'Choose file'}</span>
+          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            className="hidden"
+            accept={accept}
+            onChange={(event) => {
+              onChange(event.target.files?.[0] || null)
+              event.target.value = ''
+            }}
+          />
+        </>
       )}
       {file && !readOnly ? (
         <p className="mt-2 min-w-0 truncate text-xs font-medium text-slate-500" title={file.name}>

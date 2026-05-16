@@ -6,6 +6,7 @@ export const DIRECTOR_MODE_VALUES = ['Online', 'Offline']
 export const QUESTION_CHOICES = ['A', 'B', 'C']
 export const INTERVIEW_QUESTION_COUNT = 10
 export const QUESTION_MARK_MAX = 10
+export const COMPUTER_COURSE_ASSESSMENT_COURSES = ['MSCIT', 'Tally', 'Typing-E', 'M', 'DTP', 'CCC', 'Advance Excel', 'MS-Office']
 
 export const PROFESSIONAL_RATING_FIELDS = [
   { key: 'qualification', label: 'Qualification' },
@@ -39,12 +40,21 @@ export const MANAGER_ASSESSMENT_FIELDS = [
   { key: 'priorityOfCandidate', label: 'Priority Of Candidate' }
 ]
 
+export const WITNESS_FIELDS = [
+  { key: 'witnessName', label: 'Witness Name' },
+  { key: 'witnessMobileNumber', label: 'Witness Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
+  { key: 'witnessEducation', label: 'Witness Education' },
+  { key: 'witnessCareerProfile', label: 'Witness Career Profile', options: ['', 'Business', 'Professional', 'Government Job', 'Private Job', 'Farmer'] },
+  { key: 'witnessRelation', label: 'Witness Relation', options: ['', 'Mother', 'Father', 'Brother', 'Sister', 'Relative', 'Other'] },
+  { key: 'witnessRelationOther', label: 'Mention Other Relation', showWhen: { key: 'witnessRelation', value: 'Other' } }
+]
+
 export const SUCCESS_INFO_FIELDS = [
+  { kind: 'section', label: 'Other Details' },
   { key: 'numberSave', label: 'Number Save', options: ['', 'Yes', 'No'] },
   { key: 'groupJoin', label: 'Group Join', options: ['', 'Yes', 'No'] },
   { key: 'byWhichStaff', label: 'By Which Staff' },
   { key: 'candidateClass', label: 'Class Of Candidate' },
-  { key: 'relation', label: 'Relation' },
   { key: 'reference', label: 'Reference' },
   { key: 'referenceMobileNo', label: 'Reference Mobile No' },
   { key: 'whatsappChannelCommunity', label: 'WhatsApp Channel / Community', options: ['', 'Yes', 'No'] },
@@ -118,6 +128,14 @@ const optionValue = (value, otherValue) => {
   return text(otherValue).trim() || selected
 }
 
+const currentJobLocationTalukaOptions = ['', 'Sinnar', 'Nashik', 'Mumbai', 'Pune', 'Sangamner', 'Ahilyanagar', 'Sambhaji Nagar', 'Other']
+
+const optionOrOther = (value, options) => {
+  const selected = text(value)
+  if (!selected || options.includes(selected)) return { value: selected, other: '' }
+  return { value: 'Other', other: selected }
+}
+
 const splitList = (value) =>
   text(value)
     .split(',')
@@ -158,11 +176,58 @@ const normalizeRatings = (ratings, fields, allowed = RATING_VALUES) =>
     return acc
   }, {})
 
-const normalizeSuccessInfo = (successInfo = {}) =>
-  SUCCESS_INFO_FIELDS.reduce((acc, field) => {
+export const emptyWitnessDetails = () =>
+  WITNESS_FIELDS.reduce((acc, field) => {
+    acc[field.key] = ''
+    return acc
+  }, {})
+
+const normalizeWitnessDetails = (witness = {}) => ({
+  ...emptyWitnessDetails(),
+  witnessName: text(witness?.witnessName),
+  witnessMobileNumber: text(witness?.witnessMobileNumber),
+  witnessEducation: text(witness?.witnessEducation),
+  witnessCareerProfile: text(witness?.witnessCareerProfile),
+  witnessRelation: text(witness?.witnessRelation),
+  witnessRelationOther: text(witness?.witnessRelationOther)
+})
+
+const witnessHasContent = (witness = {}) =>
+  WITNESS_FIELDS.some((field) => text(witness?.[field.key]).trim())
+
+const legacyWitnessFromSuccessInfo = (successInfo = {}) =>
+  normalizeWitnessDetails({
+    witnessName: successInfo?.witnessName,
+    witnessMobileNumber: successInfo?.witnessMobileNumber,
+    witnessEducation: successInfo?.witnessEducation,
+    witnessCareerProfile: successInfo?.witnessCareerProfile,
+    witnessRelation: successInfo?.witnessRelation,
+    witnessRelationOther: successInfo?.witnessRelationOther
+  })
+
+const normalizeSuccessInfo = (successInfo = {}) => {
+  const base = SUCCESS_INFO_FIELDS.reduce((acc, field) => {
+    if (!field.key) return acc
     acc[field.key] = text(successInfo?.[field.key])
     return acc
   }, {})
+  const normalizedWitnesses = Array.isArray(successInfo?.witnesses)
+    ? successInfo.witnesses.map(normalizeWitnessDetails).filter(witnessHasContent)
+    : []
+  const legacyWitness = legacyWitnessFromSuccessInfo(successInfo)
+  const witnesses = normalizedWitnesses.length
+    ? normalizedWitnesses
+    : witnessHasContent(legacyWitness)
+      ? [legacyWitness]
+      : [emptyWitnessDetails()]
+  const firstWitness = witnesses[0] || emptyWitnessDetails()
+
+  return {
+    ...base,
+    witnesses,
+    ...firstWitness
+  }
+}
 
 const emptyDirectorAssessment = () => ({
   classOfCandidate: [],
@@ -192,6 +257,29 @@ const emptyManagerAssessment = () => ({
 })
 
 const normalizeManagerAssessment = normalizeAssessment
+
+export const emptyComputerCourseAssessment = () => ({
+  courses: [],
+  typingAccuracy: '',
+  typingSpeed: '',
+  word: '',
+  excel: '',
+  tally: '',
+  remark: ''
+})
+
+const normalizeComputerCourseAssessment = (assessment = {}) => ({
+  ...emptyComputerCourseAssessment(),
+  courses: Array.isArray(assessment?.courses)
+    ? COMPUTER_COURSE_ASSESSMENT_COURSES.filter((course) => assessment.courses.some((item) => String(item) === course))
+    : [],
+  typingAccuracy: text(assessment?.typingAccuracy),
+  typingSpeed: text(assessment?.typingSpeed),
+  word: text(assessment?.word),
+  excel: text(assessment?.excel),
+  tally: text(assessment?.tally),
+  remark: text(assessment?.remark)
+})
 
 export const normalizeQuestionMarks = (value) => {
   const raw = text(value).trim()
@@ -350,6 +438,9 @@ export const emptyCandidateForm = () => ({
   industrySpecializationOther: '',
   preferredJobLocation: '',
   availabilityForInterview: '',
+  availabilityInterviewStartDate: '',
+  availabilityInterviewEndDate: '',
+  interviewMode: '',
   totalExperience: '',
   experienceType: '',
   experienceDepartment: '',
@@ -370,11 +461,15 @@ export const emptyCandidateForm = () => ({
   noticePeriodOther: '',
   careerSummary: '',
   currentJobLocation: '',
+  currentJobLocationOther: '',
+  currentJobLocationMidcArea: '',
+  currentJobLocationMidcAreaOther: '',
   reasonForJobChange: '',
   reasonForJobChangeOther: '',
   referenceProfile: '',
   referenceProfileOther: '',
   referenceSources: [],
+  referenceSourceOther: '',
   placementReference: {
     professorName: '',
     professorContactNumber: '',
@@ -389,7 +484,15 @@ export const emptyCandidateForm = () => ({
     motherOccupation: '',
     motherMobileNumber: '',
     siblingName: '',
-    siblingEducationOccupation: '',
+    siblingEducation: '',
+    siblingMobileNumber: '',
+    siblingDateOfBirth: '',
+    siblingAge: '',
+    siblingGender: '',
+    siblingStudyStandard: '',
+    siblingStudyStandardOther: '',
+    siblingCareerProfile: '',
+    siblingCareerProfileOther: '',
     brotherOccupation: '',
     sisterOccupation: ''
   },
@@ -407,6 +510,7 @@ export const emptyCandidateForm = () => ({
     personalityRatings: emptyRatings(PERSONALITY_RATING_FIELDS),
     directorAssessment: emptyDirectorAssessment(),
     managerAssessment: emptyManagerAssessment(),
+    computerCourseAssessment: emptyComputerCourseAssessment(),
     iqSelections: [],
     tqSelections: [],
     grade: '',
@@ -453,6 +557,12 @@ export const mapApiToCandidateForm = (payload) => {
   const permanentAddressParts = parseAddressParts(personal.permanentAddress || candidate?.permanentAddress)
   const instituteAddressParts = parseAddressParts(educationDetails.instituteReference?.address)
   const collegeAddressParts = parseAddressParts(educationDetails.instituteCollege?.address)
+  const instituteCollegeAddressParts = {
+    village: instituteAddressParts.village || collegeAddressParts.village,
+    taluka: instituteAddressParts.taluka || collegeAddressParts.taluka,
+    district: instituteAddressParts.district || collegeAddressParts.district,
+    state: instituteAddressParts.state || collegeAddressParts.state
+  }
   const interviewForm = candidate?.interviewForm || {}
 
   return {
@@ -504,20 +614,20 @@ export const mapApiToCandidateForm = (payload) => {
     certificationCourseOther: text(educationDetails.certificationCourseOther),
     computerCourses: text(candidate?.computerCourses),
     instituteDesignation: text(educationDetails.instituteReference?.designation),
-    instituteAddressVillage: instituteAddressParts.village,
-    instituteAddressTaluka: instituteAddressParts.taluka,
-    instituteAddressDistrict: instituteAddressParts.district,
-    instituteAddressState: instituteAddressParts.state,
+    instituteAddressVillage: instituteCollegeAddressParts.village,
+    instituteAddressTaluka: instituteCollegeAddressParts.taluka,
+    instituteAddressDistrict: instituteCollegeAddressParts.district,
+    instituteAddressState: instituteCollegeAddressParts.state,
     college12GraduateName: text(educationDetails.instituteCollege?.college12GraduateName),
     postGraduateCollegeName: text(educationDetails.instituteCollege?.postGraduateCollegeName),
     collegeTeacherName: text(educationDetails.instituteCollege?.teacherName),
     collegeDesignation: text(educationDetails.instituteCollege?.designation),
     collegeMobileNumber: text(educationDetails.instituteCollege?.mobileNumber),
     collegeReference: text(educationDetails.instituteCollege?.reference),
-    collegeAddressVillage: collegeAddressParts.village,
-    collegeAddressTaluka: collegeAddressParts.taluka,
-    collegeAddressDistrict: collegeAddressParts.district,
-    collegeAddressState: collegeAddressParts.state,
+    collegeAddressVillage: instituteCollegeAddressParts.village,
+    collegeAddressTaluka: instituteCollegeAddressParts.taluka,
+    collegeAddressDistrict: instituteCollegeAddressParts.district,
+    collegeAddressState: instituteCollegeAddressParts.state,
     otherAchievements: text(candidate?.otherAchievements),
     appliedFor: text(candidate?.appliedFor || candidate?.currentDesignation),
     interestedDepartment: text(professional.preferredDepartmentRaw || professional.preferredDepartment || candidate?.interestedDepartment || candidate?.specialization),
@@ -528,7 +638,10 @@ export const mapApiToCandidateForm = (payload) => {
     industrySpecialization: text(professional.industrySpecializationRaw || professional.industrySpecialization),
     industrySpecializationOther: text(professional.industrySpecializationOther),
     preferredJobLocation: text(professional.preferredJobLocation || candidate?.preferredJobLocation || candidate?.preferredLocation),
-    availabilityForInterview: text(candidate?.availabilityForInterview),
+    availabilityForInterview: text(professional.availabilityForInterview || candidate?.availabilityForInterview),
+    availabilityInterviewStartDate: text(professional.availabilityInterviewStartDate),
+    availabilityInterviewEndDate: text(professional.availabilityInterviewEndDate),
+    interviewMode: text(professional.interviewMode || candidate?.interviewMode),
     totalExperience: professional.totalExperience ?? candidate?.totalExperience ?? '',
     experienceType: text(professional.experienceType) || (candidate?.totalExperience ? 'Experience' : ''),
     experienceDepartment: text(candidate?.experienceDepartment),
@@ -548,12 +661,20 @@ export const mapApiToCandidateForm = (payload) => {
     noticePeriod: text(professional.noticePeriodRaw || professional.noticePeriod || candidate?.noticePeriod),
     noticePeriodOther: text(professional.noticePeriodOther),
     careerSummary: text(candidate?.careerSummary),
-    currentJobLocation: text(professional.currentJobLocation || candidate?.currentJobLocation),
+    currentJobLocation: optionOrOther(professional.currentJobLocation || candidate?.currentJobLocation, currentJobLocationTalukaOptions).value,
+    currentJobLocationOther: text(
+      professional.currentJobLocationOther ||
+      candidate?.currentJobLocationOther ||
+      optionOrOther(professional.currentJobLocation || candidate?.currentJobLocation, currentJobLocationTalukaOptions).other
+    ),
+    currentJobLocationMidcArea: text(professional.currentJobLocationMidcArea || candidate?.currentJobLocationMidcArea),
+    currentJobLocationMidcAreaOther: text(professional.currentJobLocationMidcAreaOther || candidate?.currentJobLocationMidcAreaOther),
     reasonForJobChange: text(professional.reasonForJobChangeRaw || professional.reasonForJobChange || candidate?.reasonForJobChange),
     reasonForJobChangeOther: text(professional.reasonForJobChangeOther),
     referenceProfile: text(referenceSuccess.referenceProfileRaw || referenceSuccess.referenceProfile),
     referenceProfileOther: text(referenceSuccess.referenceProfileOther),
     referenceSources: Array.isArray(referenceSuccess.referenceSources) ? referenceSuccess.referenceSources : [],
+    referenceSourceOther: text(referenceSuccess.referenceSourceOther),
     placementReference: {
       professorName: text(educationDetails.instituteReference?.representativeName || candidate?.placementReference?.professorName),
       professorContactNumber: text(educationDetails.instituteReference?.mobileNumber || candidate?.placementReference?.professorContactNumber),
@@ -568,7 +689,15 @@ export const mapApiToCandidateForm = (payload) => {
       motherOccupation: text(personal.familyDetails?.motherOccupation || candidate?.familyDetails?.motherOccupation),
       motherMobileNumber: text(personal.familyDetails?.motherMobileNumber || candidate?.familyDetails?.motherMobileNumber),
       siblingName: text(personal.familyDetails?.siblingName || candidate?.familyDetails?.siblingName),
-      siblingEducationOccupation: text(personal.familyDetails?.siblingEducationOccupation || candidate?.familyDetails?.siblingEducationOccupation),
+      siblingEducation: text(personal.familyDetails?.siblingEducation || candidate?.familyDetails?.siblingEducation || personal.familyDetails?.siblingEducationOccupation || candidate?.familyDetails?.siblingEducationOccupation),
+      siblingMobileNumber: text(personal.familyDetails?.siblingMobileNumber || candidate?.familyDetails?.siblingMobileNumber),
+      siblingDateOfBirth: dateInput(personal.familyDetails?.siblingDateOfBirth || candidate?.familyDetails?.siblingDateOfBirth),
+      siblingAge: personal.familyDetails?.siblingAge ?? candidate?.familyDetails?.siblingAge ?? '',
+      siblingGender: text(personal.familyDetails?.siblingGender || candidate?.familyDetails?.siblingGender),
+      siblingStudyStandard: text(personal.familyDetails?.siblingStudyStandard || candidate?.familyDetails?.siblingStudyStandard),
+      siblingStudyStandardOther: text(personal.familyDetails?.siblingStudyStandardOther || candidate?.familyDetails?.siblingStudyStandardOther),
+      siblingCareerProfile: text(personal.familyDetails?.siblingCareerProfile || candidate?.familyDetails?.siblingCareerProfile),
+      siblingCareerProfileOther: text(personal.familyDetails?.siblingCareerProfileOther || candidate?.familyDetails?.siblingCareerProfileOther),
       brotherOccupation: text(candidate?.familyDetails?.brotherOccupation),
       sisterOccupation: text(candidate?.familyDetails?.sisterOccupation)
     },
@@ -586,6 +715,7 @@ export const mapApiToCandidateForm = (payload) => {
       personalityRatings: normalizeRatings(interviewForm?.personalityRatings, PERSONALITY_RATING_FIELDS),
       directorAssessment: normalizeDirectorAssessment(interviewForm?.directorAssessment),
       managerAssessment: normalizeManagerAssessment(interviewForm?.managerAssessment),
+      computerCourseAssessment: normalizeComputerCourseAssessment(interviewForm?.computerCourseAssessment),
       iqSelections: normalizeSelections(interviewForm?.iqSelections, IQ_TQ_VALUES),
       tqSelections: normalizeSelections(interviewForm?.tqSelections, IQ_TQ_VALUES),
       grade: text(interviewForm?.grade),
@@ -631,12 +761,7 @@ const instituteAddressObject = (form) => ({
   state: text(form?.instituteAddressState)
 })
 
-const collegeAddressObject = (form) => ({
-  village: text(form?.collegeAddressVillage),
-  taluka: text(form?.collegeAddressTaluka),
-  district: text(form?.collegeAddressDistrict),
-  state: text(form?.collegeAddressState)
-})
+const collegeAddressObject = instituteAddressObject
 
 const formatCurrentSalaryDetails = (form) =>
   [
@@ -650,6 +775,13 @@ const formatExpectedSalaryDetails = (form) =>
     text(form?.expectedNetInHandSalary) ? `Expected NET / In-hand Salary: ${text(form.expectedNetInHandSalary)}` : '',
     text(form?.expectedGrossSalaryPerMonth) ? `Expected Gross Per Month: ${text(form.expectedGrossSalaryPerMonth)}` : '',
     text(form?.expectedCtcSalaryPerMonth) ? `Expected CTC Per Month: ${text(form.expectedCtcSalaryPerMonth)}` : ''
+  ].filter(Boolean).join('\n')
+
+const formatInterviewAvailability = (form) =>
+  [
+    text(form?.availabilityInterviewStartDate) ? `Available From: ${text(form.availabilityInterviewStartDate)}` : '',
+    text(form?.availabilityInterviewEndDate) ? `Available To: ${text(form.availabilityInterviewEndDate)}` : '',
+    text(form?.interviewMode) ? `Interview Mode: ${text(form.interviewMode)}` : ''
   ].filter(Boolean).join('\n')
 
 const formatComputerCourses = (form) => {
@@ -668,8 +800,8 @@ const formatEducationDetails = (form) => {
   const specialization = optionValue(form?.educationSpecialization, form?.educationSpecializationOther)
 
   return [
-    highestEducation ? `Highest Education: ${highestEducation}` : '',
-    text(form?.yearOfHigherEducation) ? `Year of Higher Education: ${text(form.yearOfHigherEducation)}` : '',
+    highestEducation ? `Highest Education Like Graduate, Post Graduate: ${highestEducation}` : '',
+    text(form?.yearOfHigherEducation) ? `Passing Year of Education: ${text(form.yearOfHigherEducation)}` : '',
     branch ? `Education Branch: ${branch}` : '',
     specialization ? `Education Specialization: ${specialization}` : ''
   ].filter(Boolean).join('\n')
@@ -682,20 +814,16 @@ const formatInstituteReferenceDetails = (form) => {
     text(form?.placementReference?.professorName) ? `Institute Representative Name: ${text(form.placementReference.professorName)}` : '',
     text(form?.instituteDesignation) ? `Designation: ${text(form.instituteDesignation)}` : '',
     text(form?.placementReference?.professorContactNumber) ? `Institute Mobile Number: ${text(form.placementReference.professorContactNumber)}` : '',
-    address ? `Institute Address: ${address}` : ''
+    address ? `Institute/College Address: ${address}` : ''
   ].filter(Boolean).join('\n')
 }
 
 const formatInstituteCollegeDetails = (form) => {
-  const address = formatAddressParts(form, 'collegeAddress')
   return [
-    text(form?.college12GraduateName) ? `12th / Graduate College Name: ${text(form.college12GraduateName)}` : '',
-    text(form?.postGraduateCollegeName) ? `Post Graduate College Name: ${text(form.postGraduateCollegeName)}` : '',
     text(form?.collegeTeacherName) ? `Teacher: ${text(form.collegeTeacherName)}` : '',
     text(form?.collegeDesignation) ? `Designation: ${text(form.collegeDesignation)}` : '',
     text(form?.collegeMobileNumber) ? `College Mobile Number: ${text(form.collegeMobileNumber)}` : '',
-    text(form?.collegeReference) ? `Reference: ${text(form.collegeReference)}` : '',
-    address ? `College Address: ${address}` : ''
+    text(form?.collegeReference) ? `Reference: ${text(form.collegeReference)}` : ''
   ].filter(Boolean).join('\n')
 }
 
@@ -722,8 +850,8 @@ const applicationDetailsFromForm = (form) => {
       aadhaarNo: text(form?.aadhaarNo).replace(/\D/g, ''),
       panNo: text(form?.panNo).trim().toUpperCase(),
       dateOfBirth: form?.dateOfBirth || '',
-      currentAddress: currentAddressObject(form),
-      permanentAddress: form?.sameAsCurrentAddress ? currentAddressObject(form) : permanentAddressObject(form),
+      currentAddress: form?.sameAsCurrentAddress ? permanentAddressObject(form) : currentAddressObject(form),
+      permanentAddress: permanentAddressObject(form),
       sameAsCurrentAddress: Boolean(form?.sameAsCurrentAddress),
       familyDetails: {
         fatherOrHusbandName: text(form?.familyDetails?.fatherOrHusbandName),
@@ -733,7 +861,15 @@ const applicationDetailsFromForm = (form) => {
         motherOccupation: text(form?.familyDetails?.motherOccupation),
         motherMobileNumber: text(form?.familyDetails?.motherMobileNumber).replace(/\D/g, ''),
         siblingName: text(form?.familyDetails?.siblingName),
-        siblingEducationOccupation: text(form?.familyDetails?.siblingEducationOccupation)
+        siblingEducation: text(form?.familyDetails?.siblingEducation),
+        siblingMobileNumber: text(form?.familyDetails?.siblingMobileNumber).replace(/\D/g, ''),
+        siblingDateOfBirth: form?.familyDetails?.siblingDateOfBirth || '',
+        siblingAge: text(form?.familyDetails?.siblingAge),
+        siblingGender: text(form?.familyDetails?.siblingGender),
+        siblingCareerProfile: text(form?.familyDetails?.siblingCareerProfile),
+        siblingStudyStandard: form?.familyDetails?.siblingCareerProfile === 'Studying' ? text(form?.familyDetails?.siblingStudyStandard) : '',
+        siblingStudyStandardOther: form?.familyDetails?.siblingCareerProfile === 'Studying' && form?.familyDetails?.siblingStudyStandard === 'Other' ? text(form?.familyDetails?.siblingStudyStandardOther) : '',
+        siblingCareerProfileOther: form?.familyDetails?.siblingCareerProfile === 'Other' ? text(form?.familyDetails?.siblingCareerProfileOther) : ''
       }
     },
     education: {
@@ -789,6 +925,9 @@ const applicationDetailsFromForm = (form) => {
         ctcPerMonth: text(form?.expectedCtcSalaryPerMonth)
       },
       currentJobLocation: text(form?.currentJobLocation),
+      currentJobLocationOther: form?.currentJobLocation === 'Other' ? text(form?.currentJobLocationOther) : '',
+      currentJobLocationMidcArea: text(form?.currentJobLocationMidcArea),
+      currentJobLocationMidcAreaOther: form?.currentJobLocationMidcArea === 'Other' ? text(form?.currentJobLocationMidcAreaOther) : '',
       preferredJobLocation: text(form?.preferredJobLocation),
       jobWorkingStatus: text(form?.jobWorkingStatus),
       experienceType: text(form?.experienceType),
@@ -796,6 +935,10 @@ const applicationDetailsFromForm = (form) => {
       noticePeriod,
       noticePeriodRaw: text(form?.noticePeriod),
       noticePeriodOther: text(form?.noticePeriodOther),
+      availabilityForInterview: formatInterviewAvailability(form) || text(form?.availabilityForInterview),
+      availabilityInterviewStartDate: text(form?.availabilityInterviewStartDate),
+      availabilityInterviewEndDate: text(form?.availabilityInterviewEndDate),
+      interviewMode: text(form?.interviewMode),
       reasonForJobChange,
       reasonForJobChangeRaw: text(form?.reasonForJobChange),
       reasonForJobChangeOther: text(form?.reasonForJobChangeOther),
@@ -809,7 +952,8 @@ const applicationDetailsFromForm = (form) => {
       referenceProfile,
       referenceProfileRaw: text(form?.referenceProfile),
       referenceProfileOther: text(form?.referenceProfileOther),
-      referenceSources: Array.isArray(form?.referenceSources) ? form.referenceSources : []
+      referenceSources: Array.isArray(form?.referenceSources) ? form.referenceSources : [],
+      referenceSourceOther: Array.isArray(form?.referenceSources) && form.referenceSources.includes('Other') ? text(form?.referenceSourceOther) : ''
     }
   }
 }
@@ -831,10 +975,10 @@ export const mapCandidateFormToApi = (form) => ({
   dateOfBirth: form?.dateOfBirth || null,
   aadhaarNo: text(form?.aadhaarNo).replace(/\D/g, ''),
   panNo: text(form?.panNo).trim().toUpperCase(),
-  currentAddress: formatAddressParts(form, 'currentAddress', form?.currentAddress),
-  permanentAddress: form?.sameAsCurrentAddress
-    ? formatAddressParts(form, 'currentAddress', form?.currentAddress)
-    : formatAddressParts(form, 'permanentAddress', form?.permanentAddress),
+  currentAddress: form?.sameAsCurrentAddress
+    ? formatAddressParts(form, 'permanentAddress', form?.permanentAddress)
+    : formatAddressParts(form, 'currentAddress', form?.currentAddress),
+  permanentAddress: formatAddressParts(form, 'permanentAddress', form?.permanentAddress),
   whatsappNo: text(form?.whatsappNo),
   emailId: text(form?.email),
   education: formatEducationDetails(form) || text(form?.education),
@@ -848,7 +992,8 @@ export const mapCandidateFormToApi = (form) => ({
   preferredIndustry: optionValue(form?.preferredIndustry, form?.preferredIndustryOther),
   preferredJobLocation: text(form?.preferredJobLocation),
   preferredLocation: text(form?.preferredJobLocation),
-  availabilityForInterview: text(form?.availabilityForInterview),
+  availabilityForInterview: formatInterviewAvailability(form) || text(form?.availabilityForInterview),
+  interviewMode: text(form?.interviewMode),
   totalExperience: text(form?.experienceType) === 'Fresher' ? 0 : numberOrUndefined(form?.totalExperience),
   experienceDepartment: text(form?.experienceDepartment),
   currentCompany: text(form?.currentCompany),
@@ -862,9 +1007,13 @@ export const mapCandidateFormToApi = (form) => ({
     text(form?.jobWorkingStatus) ? `Job Working Status: ${text(form.jobWorkingStatus)}` : '',
     text(form?.experienceType) ? `Total Experience Type: ${text(form.experienceType)}` : '',
     optionValue(form?.noticePeriod, form?.noticePeriodOther) ? `Notice Period: ${optionValue(form?.noticePeriod, form?.noticePeriodOther)}` : '',
+    formatInterviewAvailability(form) ? `Availability for Interview:\n${formatInterviewAvailability(form)}` : '',
     text(form?.careerSummary)
   ].filter(Boolean).join('\n'),
   currentJobLocation: text(form?.currentJobLocation),
+  currentJobLocationOther: form?.currentJobLocation === 'Other' ? text(form?.currentJobLocationOther) : '',
+  currentJobLocationMidcArea: text(form?.currentJobLocationMidcArea),
+  currentJobLocationMidcAreaOther: form?.currentJobLocationMidcArea === 'Other' ? text(form?.currentJobLocationMidcAreaOther) : '',
   reasonForJobChange: optionValue(form?.reasonForJobChange, form?.reasonForJobChangeOther) || text(form?.reasonForJobChange),
   placementReference: {
     professorName: text(form?.placementReference?.professorName),
@@ -880,7 +1029,15 @@ export const mapCandidateFormToApi = (form) => ({
     motherOccupation: text(form?.familyDetails?.motherOccupation),
     motherMobileNumber: text(form?.familyDetails?.motherMobileNumber).replace(/\D/g, ''),
     siblingName: text(form?.familyDetails?.siblingName),
-    siblingEducationOccupation: text(form?.familyDetails?.siblingEducationOccupation),
+    siblingEducation: text(form?.familyDetails?.siblingEducation),
+    siblingMobileNumber: text(form?.familyDetails?.siblingMobileNumber).replace(/\D/g, ''),
+    siblingDateOfBirth: form?.familyDetails?.siblingDateOfBirth || null,
+    siblingAge: numberOrNull(form?.familyDetails?.siblingAge),
+    siblingGender: form?.familyDetails?.siblingGender || null,
+    siblingCareerProfile: text(form?.familyDetails?.siblingCareerProfile),
+    siblingStudyStandard: form?.familyDetails?.siblingCareerProfile === 'Studying' ? text(form?.familyDetails?.siblingStudyStandard) : '',
+    siblingStudyStandardOther: form?.familyDetails?.siblingCareerProfile === 'Studying' && form?.familyDetails?.siblingStudyStandard === 'Other' ? text(form?.familyDetails?.siblingStudyStandardOther) : '',
+    siblingCareerProfileOther: form?.familyDetails?.siblingCareerProfile === 'Other' ? text(form?.familyDetails?.siblingCareerProfileOther) : '',
     brotherOccupation: text(form?.familyDetails?.brotherOccupation),
     sisterOccupation: text(form?.familyDetails?.sisterOccupation)
   },
@@ -898,6 +1055,7 @@ export const mapCandidateFormToApi = (form) => ({
     personalityRatings: normalizeRatings(form?.interviewForm?.personalityRatings, PERSONALITY_RATING_FIELDS),
     directorAssessment: normalizeDirectorAssessment(form?.interviewForm?.directorAssessment),
     managerAssessment: normalizeManagerAssessment(form?.interviewForm?.managerAssessment),
+    computerCourseAssessment: normalizeComputerCourseAssessment(form?.interviewForm?.computerCourseAssessment),
     iqSelections: normalizeSelections(form?.interviewForm?.iqSelections, IQ_TQ_VALUES),
     tqSelections: normalizeSelections(form?.interviewForm?.tqSelections, IQ_TQ_VALUES),
     grade: text(form?.interviewForm?.grade),

@@ -25,6 +25,13 @@ const dateKey = (value) => {
   return `${year}-${month}-${day}`
 }
 
+const displayDate = (value) => {
+  const key = dateKey(value)
+  if (!key) return ''
+  const [year, month, day] = key.split('-')
+  return `${day}-${month}-${year}`
+}
+
 const avatarPalette = [
   'bg-violet-100 text-violet-600',
   'bg-blue-100 text-blue-600',
@@ -39,6 +46,7 @@ const visibleInterviews = (rows) =>
       String(row?.companyName || '').trim() ||
         String(row?.jobRole || '').trim() ||
         String(row?.referencePerson || row?.reference || '').trim() ||
+        String(row?.selectionChances || '').trim() ||
         String(row?.remark || '').trim() ||
         String(row?.date || row?.interviewDate || '').trim()
     )
@@ -46,7 +54,13 @@ const visibleInterviews = (rows) =>
     return hasContent || status !== 'Pending'
   })
 
-const interviewStatus = (row) => row?.status || row?.result || 'Pending'
+const interviewDateValue = (row) => row?.date || row?.interviewDate || ''
+
+const interviewTimeValue = (row) => {
+  const value = interviewDateValue(row) || row?.updatedAt || row?.createdAt || ''
+  const date = value ? new Date(value) : null
+  return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0
+}
 
 const educationText = (candidate = {}) => {
   const educationDetails = candidate.applicationDetails?.education || {}
@@ -63,27 +77,20 @@ const educationText = (candidate = {}) => {
   return parts.find(Boolean) || ''
 }
 
-const aggregateSelectionStatus = (interviews) => {
-  const statuses = (Array.isArray(interviews) ? interviews : []).map(interviewStatus)
-  if (!statuses.length) return '-'
-  if (statuses.includes('Selected')) return 'Selected'
-  if (statuses.every((status) => status === 'Rejected')) return 'Rejected'
-  if (statuses.includes('On Hold')) return 'On Hold'
-  return 'In Process'
-}
-
-const selectionStatusTone = {
+const selectionChanceTone = {
   Selected: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
   Rejected: 'bg-rose-50 text-rose-700 ring-rose-200',
-  'On Hold': 'bg-slate-50 text-slate-700 ring-slate-200',
-  'In Process': 'bg-amber-50 text-amber-700 ring-amber-200',
+  High: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  Medium: 'bg-amber-50 text-amber-700 ring-amber-200',
+  Low: 'bg-rose-50 text-rose-700 ring-rose-200',
   '-': 'bg-slate-50 text-slate-500 ring-slate-200'
 }
 
-function SelectionStatusBadge({ status }) {
+function SelectionChanceBadge({ value }) {
+  const displayValue = value || '-'
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${selectionStatusTone[status] || selectionStatusTone['In Process']}`}>
-      {status}
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${selectionChanceTone[displayValue] || selectionChanceTone['-']}`}>
+      {displayValue}
     </span>
   )
 }
@@ -110,11 +117,13 @@ function StatTile({ icon: Icon, label, value, tone }) {
 }
 
 const toInterviewCandidate = (candidate, interviewsRaw = []) => {
-  const interviews = visibleInterviews(interviewsRaw)
+  const interviews = visibleInterviews(interviewsRaw).sort((a, b) => interviewTimeValue(b) - interviewTimeValue(a))
+  const latestInterview = interviews[0] || {}
   const interviewDates = interviews
-    .map((row) => String(row?.date || row?.interviewDate || '').slice(0, 10))
+    .map((row) => String(interviewDateValue(row)).slice(0, 10))
     .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value))
   const latestJobRole = interviews.find((row) => String(row?.jobRole || '').trim())?.jobRole || ''
+  const companyNames = [...new Set(interviews.map((row) => String(row?.companyName || '').trim()).filter(Boolean))]
 
   return {
     id: candidate._id,
@@ -124,12 +133,15 @@ const toInterviewCandidate = (candidate, interviewsRaw = []) => {
     email: candidate.emailId || '',
     education: educationText(candidate),
     jobRole: latestJobRole || candidate.appliedFor || candidate.currentDesignation || '',
+    latestCompanyName: latestInterview.companyName || companyNames[0] || '',
+    companyNames,
+    latestInterviewDate: interviewDateValue(latestInterview),
     referenceSource:
       candidate.referenceName ||
       candidate.advisor?.name ||
       (candidate.intakeType === 'advisor' ? 'Advisor' : candidate.intakeType === 'walkin' ? 'Walk-in' : 'Walk-in'),
     count: Number(candidate.interviewCount || interviews.length || 0),
-    selectionStatus: aggregateSelectionStatus(interviews),
+    selectionChances: latestInterview.selectionChances || '-',
     interviewDates,
     createdAt: candidate.createdAt,
     registeredDate: dateKey(candidate.createdAt)
@@ -140,7 +152,9 @@ export default function InterviewList() {
   const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [dateFilter, setDateFilter] = useState('')
+  const [dateInput, setDateInput] = useState('')
   const [exportOpen, setExportOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -184,15 +198,17 @@ export default function InterviewList() {
           candidate.mobile,
           candidate.email,
           candidate.education,
+          candidate.latestCompanyName,
+          (candidate.companyNames || []).join(' '),
           candidate.jobRole,
           candidate.referenceSource,
-          candidate.selectionStatus
+          candidate.selectionChances
         ]
         return fields.some((value) => String(value || '').toLowerCase().includes(query))
       })
       .filter((candidate) => {
         if (!dateFilter) return true
-        return candidate.registeredDate === dateFilter
+        return (candidate.interviewDates || []).includes(dateFilter)
       })
   }, [items, search, dateFilter])
 
@@ -215,6 +231,16 @@ export default function InterviewList() {
   }, [rows, page, pageSize])
 
   const applyFilters = () => {
+    setSearch(searchInput)
+    setDateFilter(dateInput)
+    setPage(1)
+  }
+
+  const clearFilters = () => {
+    setSearchInput('')
+    setDateInput('')
+    setSearch('')
+    setDateFilter('')
     setPage(1)
   }
 
@@ -249,7 +275,7 @@ export default function InterviewList() {
         return true
       }
 
-      const headers = ['ID', 'Registered At', 'Name', 'Mobile', 'Email', 'Education', 'Job Role/Department', 'Reference', 'Interview Count', 'Selection Status', 'Interview Dates']
+      const headers = ['ID', 'Registered At', 'Name', 'Mobile', 'Email', 'Education', 'Latest Company', 'Latest Interview Date', 'Job Role/Department', 'Reference', 'Interview Count', 'Selection Chances', 'Interview Dates']
       const dataRows = items.filter(withinRange).map((item) => [
         item.code,
         item.createdAt ? String(item.createdAt).slice(0, 10) : '',
@@ -257,10 +283,12 @@ export default function InterviewList() {
         item.mobile,
         item.email,
         item.education,
+        item.latestCompanyName,
+        dateKey(item.latestInterviewDate),
         item.jobRole,
         item.referenceSource,
         item.count,
-        item.selectionStatus,
+        item.selectionChances,
         (item.interviewDates || []).join(' | ')
       ])
       const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
@@ -295,20 +323,23 @@ export default function InterviewList() {
       </div>
 
       <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
-        <div className="grid gap-2 lg:grid-cols-[minmax(0,180px)_1fr_auto_auto]">
+        <div className="grid gap-2 lg:grid-cols-[minmax(0,180px)_1fr_auto_auto_auto]">
           <input
             type="date"
-            value={dateFilter}
-            onChange={(event) => setDateFilter(event.target.value)}
+            value={dateInput}
+            onChange={(event) => setDateInput(event.target.value)}
             className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
-            aria-label="Filter registered candidates by date"
+            aria-label="Filter by interview date"
           />
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by id, name, mobile, email..."
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') applyFilters()
+              }}
+              placeholder="Search by id, name, mobile, email, company, education..."
               className="h-10 w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
             />
           </div>
@@ -320,6 +351,15 @@ export default function InterviewList() {
             <Filter className="h-4 w-4" />
             Filter
           </button>
+          {search || dateFilter ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-500 hover:bg-slate-50 lg:w-auto"
+            >
+              Clear
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => setExportOpen(true)}
@@ -333,16 +373,17 @@ export default function InterviewList() {
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="overflow-x-auto">
-          <table className="min-w-[900px] w-full table-fixed text-sm">
+          <table className="min-w-[980px] w-full table-fixed text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
               <tr>
                 <th className="w-24 px-3 py-3">ID</th>
                 <th className="w-44 px-3 py-3">Name</th>
                 <th className="w-28 px-3 py-3">Mobile</th>
-                <th className="w-40 px-3 py-3">Education</th>
+                <th className="w-36 px-3 py-3">Latest Company</th>
+                <th className="w-32 px-3 py-3">Interview Date</th>
                 <th className="w-44 px-3 py-3">Job Role/Department</th>
-                <th className="w-32 px-3 py-3">Selection Status</th>
-                <th className="w-24 px-3 py-3 text-right">Actions</th>
+                <th className="w-32 px-3 py-3">Selection Chances</th>
+                <th className="w-40 px-3 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -359,33 +400,38 @@ export default function InterviewList() {
                   </td>
                   <td className="truncate px-3 py-3 text-slate-800" title={candidate.mobile}>{candidate.mobile}</td>
                   <td className="px-3 py-3 text-slate-800">
-                    <p className="truncate" title={candidate.education || '-'}>{candidate.education || '-'}</p>
+                    <p className="truncate" title={candidate.latestCompanyName || '-'}>{candidate.latestCompanyName || '-'}</p>
+                  </td>
+                  <td className="truncate px-3 py-3 text-slate-800" title={displayDate(candidate.latestInterviewDate) || '-'}>
+                    {displayDate(candidate.latestInterviewDate) || '-'}
                   </td>
                   <td className="px-3 py-3 text-slate-800">
                     <p className="truncate" title={candidate.jobRole || '-'}>{candidate.jobRole || '-'}</p>
                   </td>
                   <td className="px-3 py-3 text-slate-800">
-                    <SelectionStatusBadge status={candidate.selectionStatus} />
+                    <SelectionChanceBadge value={candidate.selectionChances} />
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex justify-end gap-1.5">
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/cms/interviews/${candidate.id}`)}
-                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 text-violet-600 hover:bg-violet-100"
+                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 text-xs font-semibold text-violet-600 hover:bg-violet-100"
                         aria-label="View interviews"
                         title="View"
                       >
                         <Eye className="h-4 w-4" />
+                        View
                       </button>
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/cms/candidates/${candidate.id}/edit?panel=interviews`)}
-                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1890d8] text-white hover:bg-[#0f82c8]"
+                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#1890d8] px-3 text-xs font-semibold text-white hover:bg-[#0f82c8]"
                         aria-label="Update interviews"
                         title="Update"
                       >
                         <Pencil className="h-4 w-4" />
+                        Update
                       </button>
                     </div>
                   </td>
@@ -393,7 +439,7 @@ export default function InterviewList() {
               ))}
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
+                  <td colSpan={8} className="px-5 py-12 text-center text-slate-500">
                     No interviews found.
                   </td>
                 </tr>

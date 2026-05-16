@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Copy, Eye, KeyRound, Pencil, Plus, Trash2, UploadCloud, X } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
@@ -568,6 +568,8 @@ function ModalField({ label, value, onChange, type = 'text', required = false })
 }
 
 function FileField({ label, file, existingUrl, accept, onChange }) {
+  const inputRef = useRef(null)
+
   return (
     <div className="rounded-lg border border-slate-200 p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -578,11 +580,24 @@ function FileField({ label, file, existingUrl, accept, onChange }) {
           </a>
         )}
       </div>
-      <label className="flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-slate-600 hover:border-cyan-400 hover:bg-sky-50">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-slate-600 hover:border-cyan-400 hover:bg-sky-50"
+      >
         <UploadCloud className="h-4 w-4" />
         {file ? file.name : 'Choose file'}
-        <input type="file" className="sr-only" accept={accept} onChange={(event) => onChange(event.target.files?.[0] || null)} />
-      </label>
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        accept={accept}
+        onChange={(event) => {
+          onChange(event.target.files?.[0] || null)
+          event.target.value = ''
+        }}
+      />
     </div>
   )
 }

@@ -21,7 +21,10 @@ const labels = {
   expectedSalary: 'Expected Salary',
   noticePeriod: 'Notice Period',
   reasonForJobChange: 'Reason For Job Change',
-  currentJobLocation: 'Current Job Location',
+  currentJobLocation: 'Current Job Location (Taluka)',
+  currentJobLocationOther: 'Other Current Job Location (Taluka)',
+  currentJobLocationMidcArea: 'Current Job Location (MIDC Area)',
+  currentJobLocationMidcAreaOther: 'Other MIDC Area',
   availabilityForInterview: 'Availability For Interview',
   marriageStatus: 'Marriage Status',
   companyName: 'Company Name',
@@ -164,7 +167,10 @@ const studentDetailPanels = [
       ['lookingForField', 'Looking For Jobs In Which Field?'],
       ['preferredIndustry', 'Preferred Industry'],
       ['preferredJobLocation', 'Preferred Job Location'],
-      ['currentJobLocation', 'Current Job Location'],
+      ['currentJobLocation', 'Current Job Location (Taluka)'],
+      ['currentJobLocationOther', 'Other Current Job Location (Taluka)'],
+      ['currentJobLocationMidcArea', 'Current Job Location (MIDC Area)'],
+      ['currentJobLocationMidcAreaOther', 'Other MIDC Area'],
       ['availabilityForInterview', 'Availability For Interview']
     ]
   },
@@ -192,7 +198,15 @@ const studentDetailPanels = [
       ['familyDetails.motherOccupation', 'Mother Occupation'],
       ['familyDetails.motherMobileNumber', 'Mother Mobile Number'],
       ['familyDetails.siblingName', 'Sibling Name'],
-      ['familyDetails.siblingEducationOccupation', 'Sibling Education / Occupation']
+      ['familyDetails.siblingEducation', 'Sibling Education'],
+      ['familyDetails.siblingMobileNumber', 'Sibling Mobile Number'],
+      ['familyDetails.siblingDateOfBirth', 'Sibling DOB'],
+      ['familyDetails.siblingAge', 'Sibling Age'],
+      ['familyDetails.siblingGender', 'Sibling Gender'],
+      ['familyDetails.siblingCareerProfile', 'Sibling Career Profile'],
+      ['familyDetails.siblingStudyStandard', 'Sibling Study Standard'],
+      ['familyDetails.siblingStudyStandardOther', 'Other Study Standard'],
+      ['familyDetails.siblingCareerProfileOther', 'Other Career Profile']
     ]
   },
   {
@@ -435,7 +449,10 @@ export default function DetailDrawer({
                     <InputField label="Current Salary" value={item.currentSalary || ''} onChange={(value) => updateField('currentSalary', value)} />
                     <InputField label="Expected Salary" value={item.expectedSalary || ''} onChange={(value) => updateField('expectedSalary', value)} />
                     <InputField label="Notice Period" type="number" value={item.noticePeriod ?? ''} onChange={(value) => updateField('noticePeriod', value === '' ? undefined : Number(value))} />
-                    <InputField label="Current Job Location" value={item.currentJobLocation || ''} onChange={(value) => updateField('currentJobLocation', value)} />
+                    <InputField label="Current Job Location (Taluka)" value={item.currentJobLocation || ''} onChange={(value) => updateField('currentJobLocation', value)} />
+                    <InputField label="Other Current Job Location (Taluka)" value={item.currentJobLocationOther || ''} onChange={(value) => updateField('currentJobLocationOther', value)} />
+                    <InputField label="Current Job Location (MIDC Area)" value={item.currentJobLocationMidcArea || ''} onChange={(value) => updateField('currentJobLocationMidcArea', value)} />
+                    <InputField label="Other MIDC Area" value={item.currentJobLocationMidcAreaOther || ''} onChange={(value) => updateField('currentJobLocationMidcAreaOther', value)} />
                     <InputField label="Availability For Interview" value={item.availabilityForInterview || ''} onChange={(value) => updateField('availabilityForInterview', value)} />
                     <SelectField
                       label="Marriage Status"
@@ -527,6 +544,9 @@ export default function DetailDrawer({
                       'noticePeriod',
                       'reasonForJobChange',
                       'currentJobLocation',
+                      'currentJobLocationOther',
+                      'currentJobLocationMidcArea',
+                      'currentJobLocationMidcAreaOther',
                       'availabilityForInterview',
                       'marriageStatus'
                     ]}

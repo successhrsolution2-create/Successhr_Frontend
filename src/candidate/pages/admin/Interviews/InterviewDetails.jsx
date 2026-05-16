@@ -10,6 +10,7 @@ const cardClass = 'bg-white rounded-xl shadow-sm border border-gray-100'
 const rowReference = (row) => row?.referencePerson || row?.reference || ''
 const rowDate = (row) => row?.date || (row?.interviewDate ? String(row.interviewDate).slice(0, 10) : '')
 const rowStatus = (row) => row?.status || row?.result || 'Pending'
+const rowSelectionChances = (row) => row?.selectionChances || ''
 
 const visibleInterviews = (rows) =>
   (Array.isArray(rows) ? rows : []).filter((row) => {
@@ -17,6 +18,7 @@ const visibleInterviews = (rows) =>
       String(row?.companyName || '').trim() ||
         String(row?.jobRole || '').trim() ||
         String(rowReference(row)).trim() ||
+        String(rowSelectionChances(row)).trim() ||
         String(row?.remark || '').trim() ||
         String(rowDate(row)).trim()
     )
@@ -24,10 +26,11 @@ const visibleInterviews = (rows) =>
     return hasContent || status !== 'Pending'
   })
 
-const statusBadge = (status) => {
-  if (status === 'Selected') return 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200'
-  if (status === 'Rejected') return 'bg-rose-100 text-rose-700 ring-1 ring-rose-200'
-  return 'bg-amber-100 text-amber-700 ring-1 ring-amber-200'
+const selectionChanceBadge = (value) => {
+  if (value === 'Selected' || value === 'High') return 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200'
+  if (value === 'Rejected' || value === 'Low') return 'bg-rose-100 text-rose-700 ring-1 ring-rose-200'
+  if (value === 'Medium') return 'bg-amber-100 text-amber-700 ring-1 ring-amber-200'
+  return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
 }
 
 const interviewDetailFields = [
@@ -36,7 +39,6 @@ const interviewDetailFields = [
   ['referencePerson', 'Reference Person'],
   ['remark', 'Remark'],
   ['date', 'Date'],
-  ['status', 'Status'],
   ['attendInterview', 'Attend Interview'],
   ['selectionChances', 'Selection Chances'],
   ['ratingForCompany', 'Rating For Company'],
@@ -70,7 +72,7 @@ function InterviewDetailsPanel({ row, onClose }) {
   const fieldValue = (key) => {
     if (key === 'referencePerson') return rowReference(row)
     if (key === 'date') return rowDate(row)
-    if (key === 'status') return rowStatus(row)
+    if (key === 'selectionChances') return rowSelectionChances(row)
     if (key === 'ratingForCompany' && row[key] !== '' && row[key] !== undefined && row[key] !== null) return `${row[key]}/5`
     return row[key]
   }
@@ -181,7 +183,7 @@ export default function InterviewDetails() {
                 <th className="px-4 py-3">Company Name</th>
                 <th className="px-4 py-3">Job Role/Department</th>
                 <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Selection Chances</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -193,7 +195,7 @@ export default function InterviewDetails() {
                   <td className="px-4 py-3">{row.jobRole || '-'}</td>
                   <td className="px-4 py-3">{rowDate(row) || '-'}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${statusBadge(rowStatus(row))}`}>{rowStatus(row)}</span>
+                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${selectionChanceBadge(rowSelectionChances(row))}`}>{rowSelectionChances(row) || '-'}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">

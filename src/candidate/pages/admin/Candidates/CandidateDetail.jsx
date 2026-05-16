@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { ArrowLeft, BriefcaseBusiness, ClipboardList, ExternalLink, Eye, FileImage, MapPin, Pencil, Trash2, Upload, UserRound, Users, X } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, ClipboardList, ExternalLink, Eye, FileImage, MapPin, Pencil, Search, Trash2, Upload, UserRound, Users, X } from 'lucide-react'
 import api, { assetUrl } from '../../../api/axios'
 import { ConfirmDialog } from '../../../components/ActionDialogs'
 import {
@@ -19,6 +19,7 @@ import {
   PROFESSIONAL_RATING_FIELDS,
   RATING_VALUES,
   SUCCESS_INFO_FIELDS,
+  WITNESS_FIELDS,
   calculateQuestionMarksResult,
   interviewHasContent,
   mapApiToCandidateForm
@@ -102,6 +103,9 @@ const resolveCandidateDocumentType = (doc = {}) => {
     catia: 'catiaCertificate',
     computercoursescertificate: 'computerCourseCertificate',
     computercoursecertificate: 'computerCourseCertificate',
+    othercertificationcertificate: 'otherCertificationCertificate',
+    othercertificationcoursecertificate: 'otherCertificationCertificate',
+    certificationcoursecertificate: 'otherCertificationCertificate',
     aadharcard: 'aadharCard',
     aadhaarcard: 'aadharCard',
     pancard: 'panCard',
@@ -159,9 +163,206 @@ const formatDocumentDate = (value) => {
   return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function Section({ title, icon: Icon, children }) {
+const normalizeGlobalSearch = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
+const globalFieldKey = (panel, key) => `view-global-${panel}-${normalizeDocToken(key) || 'field'}`
+
+const pathValue = (source, path) => {
+  if (!path) return ''
+  return path.split('.').reduce((acc, key) => (acc == null ? '' : acc[key]), source) ?? ''
+}
+
+const compactSearchValue = (value) => {
+  if (Array.isArray(value)) return value.map(compactSearchValue).filter(Boolean).join(' ')
+  if (value && typeof value === 'object') return Object.values(value).map(compactSearchValue).filter(Boolean).join(' ')
+  return String(value ?? '').replace(/\s+/g, ' ').trim()
+}
+
+const previewSearchValue = (value) => {
+  const compact = compactSearchValue(value)
+  return compact.length > 96 ? `${compact.slice(0, 93)}...` : compact
+}
+
+const scrollToGlobalField = (targetKey) => {
+  window.setTimeout(() => {
+    const target = document.querySelector(`[data-global-field="${targetKey}"]`)
+    if (!target) return
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+    const previousBoxShadow = target.style.boxShadow
+    const previousBackground = target.style.backgroundColor
+    const previousTransition = target.style.transition
+    target.style.transition = 'box-shadow 160ms ease, background-color 160ms ease'
+    target.style.boxShadow = '0 0 0 3px rgba(79, 70, 229, 0.28)'
+    target.style.backgroundColor = 'rgba(238, 242, 255, 0.72)'
+
+    const focusable = target.querySelector?.('input, textarea, button, select')
+    focusable?.focus?.({ preventScroll: true })
+
+    window.setTimeout(() => {
+      target.style.boxShadow = previousBoxShadow
+      target.style.backgroundColor = previousBackground
+      target.style.transition = previousTransition
+    }, 1700)
+  }, 90)
+}
+
+const detailSearchFields = [
+  ['Candidate Name', 'fullName'],
+  ['Mobile No', 'mobile'],
+  ['WhatsApp No', 'whatsappNo'],
+  ['Email ID', 'email'],
+  ['Aadhar Card Number', 'aadhaarNo'],
+  ['PAN Number', 'panNo'],
+  ['DOB', 'dateOfBirth'],
+  ['Current Age', 'currentAge'],
+  ['Gender', 'gender'],
+  ['Marital Status', 'marriageStatus'],
+  ['Current Village', 'currentAddressVillage'],
+  ['Current Taluka', 'currentAddressTaluka'],
+  ['Current District', 'currentAddressDistrict'],
+  ['Current State', 'currentAddressState'],
+  ['Permanent Village', 'permanentAddressVillage'],
+  ['Permanent Taluka', 'permanentAddressTaluka'],
+  ['Permanent District', 'permanentAddressDistrict'],
+  ['Permanent State', 'permanentAddressState'],
+  ['Father / Husband Name', 'familyDetails.fatherOrHusbandName'],
+  ['Father Occupation', 'familyDetails.fatherOccupation'],
+  ['Father Mobile Number', 'familyDetails.fatherMobileNumber'],
+  ['Mother / Wife Name', 'familyDetails.motherOrWifeName'],
+  ['Mother Occupation', 'familyDetails.motherOccupation'],
+  ['Mother Mobile Number', 'familyDetails.motherMobileNumber'],
+  ['Sibling Name', 'familyDetails.siblingName'],
+  ['Sibling Education', 'familyDetails.siblingEducation'],
+  ['Sibling Mobile Number', 'familyDetails.siblingMobileNumber'],
+  ['Sibling DOB', 'familyDetails.siblingDateOfBirth'],
+  ['Sibling Age', 'familyDetails.siblingAge'],
+  ['Sibling Gender', 'familyDetails.siblingGender'],
+  ['Sibling Career Profile', 'familyDetails.siblingCareerProfile'],
+  ['Sibling Study Standard', 'familyDetails.siblingStudyStandard'],
+  ['Other Study Standard', 'familyDetails.siblingStudyStandardOther'],
+  ['Other Career Profile', 'familyDetails.siblingCareerProfileOther'],
+  ['Highest Education Like Graduate, Post Graduate', 'educationSector'],
+  ['Passing Year of Education', 'yearOfHigherEducation'],
+  ['Education Branch', 'educationBranch'],
+  ['Special Subject / Remark', 'educationSpecialization'],
+  ['Computer Courses', 'computerCourse'],
+  ['Other Certification Courses', 'certificationCourse'],
+  ['Institute Name', 'collegeName'],
+  ['Institute Representative Name', 'placementReference.professorName'],
+  ['Designation', 'instituteDesignation'],
+  ['Mobile Number', 'placementReference.professorContactNumber'],
+  ['Institute/College Village', 'instituteAddressVillage'],
+  ['Institute/College Taluka', 'instituteAddressTaluka'],
+  ['Institute/College District', 'instituteAddressDistrict'],
+  ['Institute/College State', 'instituteAddressState'],
+  ['Teacher', 'collegeTeacherName'],
+  ['Designation', 'collegeDesignation'],
+  ['Mobile Number', 'collegeMobileNumber'],
+  ['Reference', 'collegeReference'],
+  ['Preferred Department', 'interestedDepartment'],
+  ['Preferred Industry', 'preferredIndustry'],
+  ['Industry Specialization', 'industrySpecialization'],
+  ['Expected NET / In-hand Salary', 'expectedNetInHandSalary'],
+  ['Expected Gross Per Month', 'expectedGrossSalaryPerMonth'],
+  ['Expected CTC Per Month', 'expectedCtcSalaryPerMonth'],
+  ['NET / In-hand Salary', 'netInHandSalary'],
+  ['Gross Per Month', 'grossSalaryPerMonth'],
+  ['CTC Per Month', 'ctcSalaryPerMonth'],
+  ['Current Job Location (Taluka)', 'currentJobLocation'],
+  ['Other Current Job Location (Taluka)', 'currentJobLocationOther'],
+  ['Current Job Location (MIDC Area)', 'currentJobLocationMidcArea'],
+  ['Other MIDC Area', 'currentJobLocationMidcAreaOther'],
+  ['Preferred Job Location', 'preferredJobLocation'],
+  ['Job Working Status', 'jobWorkingStatus'],
+  ['Total Year of Experience', 'experienceType'],
+  ['Enter Total Year of Experience', 'totalExperience'],
+  ['Notice Period', 'noticePeriod'],
+  ['Availability for Interview', 'availabilityForInterview'],
+  ['Interview Mode', 'interviewMode'],
+  ['Reason For Job Change', 'reasonForJobChange'],
+  ['Key Skills You Have', 'keySkillsKnowledge'],
+  ['Key Job Responsibility As Per Your Experience', 'careerJobResponsibilities'],
+  ['Business Advisor Code', 'advisorCode'],
+  ['Reference Name', 'placementReference.referenceBy'],
+  ['Reference Mobile Number', 'placementReference.referenceContactNumber'],
+  ['Reference Profile', 'referenceProfile'],
+  ['Reference Source', 'referenceSources'],
+  ['Other Reference Source', 'referenceSourceOther']
+]
+
+function CandidateGlobalSearch({ value, results, onChange, onSelect }) {
+  const [open, setOpen] = useState(false)
+  const showResults = open && value.trim()
+
   return (
-    <section className={`${cardClass} space-y-5`}>
+    <div
+      className="relative w-full max-w-3xl"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
+      }}
+    >
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <input
+        type="search"
+        value={value}
+        onFocus={() => setOpen(true)}
+        onChange={(event) => {
+          onChange(event.target.value)
+          setOpen(true)
+        }}
+        placeholder="Search any field, value, document, or interview..."
+        className="h-11 w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-10 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+      />
+      {value ? (
+        <button
+          type="button"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            onChange('')
+            setOpen(false)
+          }}
+          className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Clear global search"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
+      {showResults ? (
+        <div className="absolute left-0 right-0 top-full z-40 mt-2 max-h-80 overflow-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+          {results.length ? (
+            results.map((item) => (
+              <button
+                key={`${item.panel}-${item.targetKey}-${item.label}-${item.group}`}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onSelect(item)
+                  setOpen(false)
+                }}
+                className="block w-full rounded-lg px-3 py-2 text-left hover:bg-indigo-50"
+              >
+                <span className="block text-sm font-bold text-slate-900">{item.label}</span>
+                <span className="mt-0.5 block text-xs font-semibold text-slate-500">
+                  {item.panelLabel}
+                  {item.group ? ` / ${item.group}` : ''}
+                </span>
+                {item.valueText ? <span className="mt-1 block truncate text-xs font-medium text-slate-400">{item.valueText}</span> : null}
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-4 text-center text-sm font-semibold text-slate-500">No field matched.</div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function Section({ title, icon: Icon, children, searchKey = '' }) {
+  return (
+    <section className={`${cardClass} space-y-5`} data-global-field={searchKey || globalFieldKey('section', title)}>
       <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
         {Icon ? (
           <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
@@ -175,9 +376,9 @@ function Section({ title, icon: Icon, children }) {
   )
 }
 
-function Field({ label, className = '', children }) {
+function Field({ label, className = '', children, searchKey = '' }) {
   return (
-    <label className={`${labelClass} ${className}`}>
+    <label className={`${labelClass} ${className}`} data-global-field={searchKey || globalFieldKey('field', label)}>
       <span>{label}</span>
       {children}
     </label>
@@ -227,7 +428,7 @@ function ReadOnlyTextArea({ value, rows = 4, onEditHint }) {
   return <textarea className={`${textAreaClass} cursor-pointer`} rows={rows} value={fieldValue(value)} readOnly onClick={onEditHint} />
 }
 
-function DocumentCard({ doc }) {
+function DocumentCard({ doc, searchKey = '' }) {
   const url = assetUrl(doc.fileUrl)
   const uploadedAt = formatDocumentDate(doc.uploadedAt)
   const canPreview = isImageDocument(doc) && Boolean(url)
@@ -235,6 +436,7 @@ function DocumentCard({ doc }) {
   return (
     <button
       type="button"
+      data-global-field={searchKey || undefined}
       onClick={() => {
         if (canPreview) {
           const event = new CustomEvent('candidate-doc-preview', {
@@ -270,9 +472,9 @@ function DocumentCard({ doc }) {
   )
 }
 
-function DocumentTypeCard({ item, docs = [], label }) {
+function DocumentTypeCard({ item, docs = [], label, searchKey = '' }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3">
+    <div className="rounded-lg border border-slate-200 bg-white p-3" data-global-field={searchKey || globalFieldKey('document', item?.key || label)}>
       <div className="min-w-0">
         <p className="text-[15px] font-bold leading-5 text-slate-900">{label || item.label}</p>
         {item.description ? <p className="mt-0.5 text-[11px] font-semibold leading-4 text-slate-500">{item.description}</p> : null}
@@ -315,7 +517,7 @@ function RatingGrid({ title, fields, ratings, onEditHint }) {
             {fields.map((field, index) => {
               const selected = ratings?.[field.key] || []
               return (
-                <tr key={field.key} className="odd:bg-white even:bg-slate-50">
+                <tr key={field.key} className="odd:bg-white even:bg-slate-50" data-global-field={globalFieldKey('assessment', `${title}-${field.key}`)}>
                   <td className="px-4 py-3 text-slate-500">{index + 1}</td>
                   <td className="px-4 py-3 font-semibold text-slate-800">{field.label}</td>
                   {RATING_VALUES.map((value) => (
@@ -377,7 +579,7 @@ function AssessmentView({ title, fields, assessment, onEditHint }) {
             {fields.map((field, index) => {
               const selected = assessment?.[field.key] || []
               return (
-                <tr key={field.key} className="odd:bg-white even:bg-slate-50">
+                <tr key={field.key} className="odd:bg-white even:bg-slate-50" data-global-field={globalFieldKey('assessment', `${title}-${field.key}`)}>
                   <td className="px-4 py-3 text-slate-500">{index + 1}</td>
                   <td className="px-4 py-3 font-semibold text-slate-800">{field.label}</td>
                   {DIRECTOR_RATING_VALUES.map((value) => (
@@ -399,7 +601,7 @@ function AssessmentView({ title, fields, assessment, onEditHint }) {
                 </tr>
               )
             })}
-            <tr className="odd:bg-white even:bg-slate-50">
+            <tr className="odd:bg-white even:bg-slate-50" data-global-field={globalFieldKey('assessment', `${title}-counselingOfCandidate`)}>
               <td className="px-4 py-3 text-slate-500">3</td>
               <td className="px-4 py-3 font-semibold text-slate-800">Counseling Of Candidate</td>
               <td colSpan={3} className="px-4 py-3 text-center text-xs font-semibold text-slate-400">
@@ -456,7 +658,7 @@ function InterviewQuestionsView({ questions, onEditHint }) {
 
       <div className="mt-6 space-y-3">
         {(questions || []).map((row, index) => (
-          <div key={index} className="grid gap-2 md:grid-cols-[44px_minmax(0,1fr)_140px] md:items-center">
+          <div key={index} className="grid gap-2 md:grid-cols-[44px_minmax(0,1fr)_140px] md:items-center" data-global-field={globalFieldKey('question', index + 1)}>
             <div className="text-sm font-bold text-slate-950 sm:text-base">{index + 1}.</div>
             <input
               value={fieldValue(row.question)}
@@ -509,6 +711,242 @@ const interviewDetailFields = [
   ['updatedBy', 'Update By']
 ]
 
+const viewPanelLabels = {
+  details: 'Candidate Details',
+  documents: 'Documents',
+  successInfo: 'Success Info For Candidate',
+  assessment: 'Success Interviewer Remark',
+  interviews: 'Company Interviews'
+}
+
+const createSearchItem = ({ label, panel, group = '', value = '', targetKey = '', interviewId = '', documentInterviewId = '' }) => {
+  const valueText = previewSearchValue(value)
+  return {
+    label,
+    panel,
+    group,
+    valueText,
+    interviewId,
+    documentInterviewId,
+    panelLabel: viewPanelLabels[panel] || panel,
+    targetKey: targetKey || globalFieldKey('field', label),
+    searchText: normalizeGlobalSearch([label, viewPanelLabels[panel], group, compactSearchValue(value)].filter(Boolean).join(' '))
+  }
+}
+
+const buildViewSearchItems = (candidate, visibleInterviews = []) => {
+  const items = [
+    createSearchItem({
+      label: 'Candidate Details',
+      panel: 'details',
+      group: 'Panel',
+      value: candidate.fullName,
+      targetKey: globalFieldKey('section', 'Personal Details')
+    })
+  ]
+
+  detailSearchFields.forEach(([label, path]) => {
+    const value = path === 'familyDetails.siblingEducation' ? pathValue(candidate, path) || pathValue(candidate, 'familyDetails.siblingEducationOccupation') : pathValue(candidate, path)
+    items.push(createSearchItem({ label, panel: 'details', group: 'Candidate Details', value }))
+  })
+
+  const candidateDocumentsByType = groupCandidateDocumentsByType(candidate.documents)
+  candidateDocumentTypes.forEach((item) => {
+    const docs = candidateDocumentsByType[item.key] || []
+    items.push(
+      createSearchItem({
+        label: item.label,
+        panel: 'documents',
+        group: 'Candidate Documents',
+        value: docs.flatMap((doc) => [doc.documentLabel, doc.fileName, doc.fileUrl]),
+        targetKey: globalFieldKey('document', item.key)
+      })
+    )
+  })
+
+  successDocumentTypes.forEach((item) => {
+    const docs = candidateDocumentsByType[item.key] || []
+    items.push(
+      createSearchItem({
+        label: item.label,
+        panel: 'documents',
+        group: 'Success Documents',
+        value: docs.flatMap((doc) => [doc.documentLabel, doc.fileName, doc.fileUrl]),
+        targetKey: globalFieldKey('document', item.key)
+      })
+    )
+  })
+
+  unmatchedCandidateDocuments(candidate.documents).forEach((doc, index) => {
+    items.push(
+      createSearchItem({
+        label: doc.documentLabel || doc.fileName || `Other Document ${index + 1}`,
+        panel: 'documents',
+        group: 'Other Uploaded Documents',
+        value: [doc.documentType, doc.fileName, doc.fileUrl],
+        targetKey: globalFieldKey('document', doc._id || doc.fileUrl || `other-${index}`)
+      })
+    )
+  })
+
+  visibleInterviews.forEach((row, index) => {
+    const interviewLabel = `Interview ${index + 1}: ${row.companyName || 'Company Interview'}`
+    items.push(
+      createSearchItem({
+        label: interviewLabel,
+        panel: 'interviews',
+        group: 'Company Interviews',
+        value: [
+          row.companyName,
+          row.jobRole,
+          row.date,
+          row.selectionChances,
+          row.status,
+          row.referencePerson,
+          row.note,
+          ...(row.documents || []).flatMap((doc) => [doc.documentLabel, doc.fileName])
+        ],
+        targetKey: globalFieldKey('interviewRow', row.id || index),
+        interviewId: row.id
+      })
+    )
+
+    interviewDetailFields.forEach(([key, label]) => {
+      const value = key === 'candidateName' ? row.candidateName || candidate.fullName : row[key]
+      items.push(
+        createSearchItem({
+          label,
+          panel: 'interviews',
+          group: interviewLabel,
+          value,
+          targetKey: globalFieldKey('interviewRow', row.id || index),
+          interviewId: row.id
+        })
+      )
+    })
+
+    const groupedInterviewDocs = groupInterviewDocumentsByType(row.documents)
+    interviewDocumentTypes.forEach((item) => {
+      const docs = groupedInterviewDocs[item.key] || []
+      items.push(
+        createSearchItem({
+          label: item.label,
+          panel: 'documents',
+          group: interviewLabel,
+          value: docs.flatMap((doc) => [doc.documentLabel, doc.fileName, doc.fileUrl]),
+          targetKey: globalFieldKey('document', item.key),
+          documentInterviewId: row.id
+        })
+      )
+    })
+  })
+
+  SUCCESS_INFO_FIELDS.forEach((field) => {
+    if (field.kind === 'section') {
+      items.push(
+        createSearchItem({
+          label: field.label,
+          panel: 'successInfo',
+          group: 'Section',
+          value: '',
+          targetKey: globalFieldKey('section', field.label)
+        })
+      )
+      return
+    }
+    if (field.showWhen && candidate.successInfo?.[field.showWhen.key] !== field.showWhen.value) return
+    items.push(createSearchItem({ label: field.label, panel: 'successInfo', group: 'Success Info', value: candidate.successInfo?.[field.key] }))
+  })
+  WITNESS_FIELDS.forEach((field) => {
+    items.push(createSearchItem({ label: field.label, panel: 'successInfo', group: 'Witness Details', value: candidate.successInfo?.witnesses?.[0]?.[field.key] || candidate.successInfo?.[field.key] }))
+  })
+
+  DIRECTOR_ASSESSMENT_FIELDS.forEach((field) => {
+    items.push(
+      createSearchItem({
+        label: field.label,
+        panel: 'assessment',
+        group: 'Director Assessment',
+        value: candidate.interviewForm.directorAssessment?.[field.key],
+        targetKey: globalFieldKey('assessment', `Director Assessment-${field.key}`)
+      })
+    )
+  })
+  MANAGER_ASSESSMENT_FIELDS.forEach((field) => {
+    items.push(
+      createSearchItem({
+        label: field.label,
+        panel: 'assessment',
+        group: 'Manager Assessment',
+        value: candidate.interviewForm.managerAssessment?.[field.key],
+        targetKey: globalFieldKey('assessment', `Manager Assessment-${field.key}`)
+      })
+    )
+  })
+  ;[
+    ['Counseling Of Candidate', 'directorAssessment'],
+    ['Counseling Mode', 'directorAssessment'],
+    ['Counseling Of Candidate', 'managerAssessment'],
+    ['Counseling Mode', 'managerAssessment']
+  ].forEach(([label, bucket]) => {
+    const group = bucket === 'directorAssessment' ? 'Director Assessment' : 'Manager Assessment'
+    const key = label === 'Counseling Mode' ? 'counselingMode' : 'counselingOfCandidate'
+    items.push(
+      createSearchItem({
+        label,
+        panel: 'assessment',
+        group,
+        value: candidate.interviewForm?.[bucket]?.[key],
+        targetKey: globalFieldKey('assessment', `${group}-counselingOfCandidate`)
+      })
+    )
+  })
+
+  PROFESSIONAL_RATING_FIELDS.forEach((field) => {
+    items.push(
+      createSearchItem({
+        label: field.label,
+        panel: 'assessment',
+        group: 'Professional Assessment',
+        value: candidate.interviewForm.professionalRatings?.[field.key],
+        targetKey: globalFieldKey('assessment', `Professional Assessment-${field.key}`)
+      })
+    )
+  })
+  PERSONALITY_RATING_FIELDS.forEach((field) => {
+    items.push(
+      createSearchItem({
+        label: field.label,
+        panel: 'assessment',
+        group: 'Personality Assessment',
+        value: candidate.interviewForm.personalityRatings?.[field.key],
+        targetKey: globalFieldKey('assessment', `Personality Assessment-${field.key}`)
+      })
+    )
+  })
+  ;[
+    ['Suitable Industry', candidate.interviewForm.suitableIndustry],
+    ['Suitable Department', candidate.interviewForm.suitableDepartment],
+    ['HR Interviewer', candidate.interviewForm.hrInterviewer],
+    ['Remark', candidate.interviewForm.remark]
+  ].forEach(([label, value]) => {
+    items.push(createSearchItem({ label, panel: 'assessment', group: 'Success Interviewer Remark', value }))
+  })
+  ;(candidate.interviewForm.questions || []).forEach((row, index) => {
+    items.push(
+      createSearchItem({
+        label: `Question ${index + 1}`,
+        panel: 'assessment',
+        group: 'Interview Questions',
+        value: [row.question, row.marks],
+        targetKey: globalFieldKey('question', index + 1)
+      })
+    )
+  })
+
+  return items
+}
+
 function InterviewDetailsPanel({ row, candidateName, onClose }) {
   if (!row) return null
 
@@ -533,7 +971,7 @@ function InterviewDetailsPanel({ row, candidateName, onClose }) {
           const rawValue = key === 'candidateName' ? row.candidateName || candidateName : row[key]
           const value = key === 'ratingForCompany' && rawValue !== '' && rawValue !== undefined ? `${rawValue}/5` : rawValue
           return (
-            <div key={key} className="rounded-lg bg-white p-3 ring-1 ring-slate-200">
+            <div key={key} className="rounded-lg bg-white p-3 ring-1 ring-slate-200" data-global-field={globalFieldKey('field', label)}>
               <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
               <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold text-slate-900">{value || '-'}</p>
             </div>
@@ -553,6 +991,7 @@ export default function CandidateDetail() {
   const [selectedInterview, setSelectedInterview] = useState(null)
   const [deletingInterview, setDeletingInterview] = useState(null)
   const [documentInterviewId, setDocumentInterviewId] = useState('')
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   const [previewDoc, setPreviewDoc] = useState(null)
   const viewOnly = searchParams.get('viewOnly') === '1'
 
@@ -630,6 +1069,29 @@ export default function CandidateDetail() {
   const extraCandidateDocuments = unmatchedCandidateDocuments(candidate.documents)
   const selectedDocumentInterview = visibleInterviews.find((row) => String(row.id) === String(documentInterviewId)) || visibleInterviews[0] || null
   const selectedInterviewDocumentsByType = groupInterviewDocumentsByType(selectedDocumentInterview?.documents)
+  const viewSearchItems = buildViewSearchItems(candidate, visibleInterviews)
+  const normalizedGlobalSearchTerm = normalizeGlobalSearch(globalSearchTerm)
+  const globalSearchResults = normalizedGlobalSearchTerm
+    ? viewSearchItems.filter((item) => item.searchText.includes(normalizedGlobalSearchTerm)).slice(0, 18)
+    : []
+  const successInfoWitnesses = Array.isArray(candidate.successInfo?.witnesses) && candidate.successInfo.witnesses.length
+    ? candidate.successInfo.witnesses
+    : [candidate.successInfo || {}]
+  const selectGlobalSearchResult = (item) => {
+    setActivePanel(item.panel)
+
+    if (item.interviewId) {
+      const match = visibleInterviews.find((row) => String(row.id) === String(item.interviewId))
+      if (match) setSelectedInterview(match)
+    }
+
+    if (item.documentInterviewId) {
+      setDocumentInterviewId(item.documentInterviewId)
+    }
+
+    setGlobalSearchTerm(item.label)
+    scrollToGlobalField(item.targetKey)
+  }
 
   return (
     <div className="flex min-h-0 flex-col gap-4 sm:gap-6">
@@ -656,6 +1118,10 @@ export default function CandidateDetail() {
             Update
           </button>
         ) : null}
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <CandidateGlobalSearch value={globalSearchTerm} results={globalSearchResults} onChange={setGlobalSearchTerm} onSelect={selectGlobalSearchResult} />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -748,18 +1214,42 @@ export default function CandidateDetail() {
               <Field label="Sibling Name">
                 <ReadOnlyInput value={candidate.familyDetails.siblingName} onEditHint={showEditHint} />
               </Field>
-              <Field label="Sibling Education / Occupation">
-                <ReadOnlyInput value={candidate.familyDetails.siblingEducationOccupation} onEditHint={showEditHint} />
+              <Field label="Sibling Education">
+                <ReadOnlyInput value={candidate.familyDetails.siblingEducation || candidate.familyDetails.siblingEducationOccupation} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Sibling Mobile Number">
+                <ReadOnlyInput value={candidate.familyDetails.siblingMobileNumber} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Sibling DOB">
+                <ReadOnlyInput type="date" value={candidate.familyDetails.siblingDateOfBirth} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Sibling Age">
+                <ReadOnlyInput type="number" value={candidate.familyDetails.siblingAge} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Sibling Gender">
+                <ReadOnlyInput value={candidate.familyDetails.siblingGender} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Sibling Career Profile">
+                <ReadOnlyInput value={candidate.familyDetails.siblingCareerProfile} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Sibling Study Standard">
+                <ReadOnlyInput value={candidate.familyDetails.siblingStudyStandard} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Other Study Standard">
+                <ReadOnlyInput value={candidate.familyDetails.siblingStudyStandardOther} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Other Career Profile">
+                <ReadOnlyInput value={candidate.familyDetails.siblingCareerProfileOther} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
           </Section>
 
           <Section title="Education Details" icon={ClipboardList}>
             <FieldGroup title="Education">
-              <Field label="Highest Education">
+              <Field label="Highest Education Like Graduate, Post Graduate">
                 <ReadOnlyInput value={candidate.educationSector} onEditHint={showEditHint} />
               </Field>
-              <Field label="Year of Higher Education">
+              <Field label="Passing Year of Education">
                 <ReadOnlyInput value={candidate.yearOfHigherEducation} onEditHint={showEditHint} />
               </Field>
               <Field label="Education Branch">
@@ -789,27 +1279,21 @@ export default function CandidateDetail() {
               <Field label="Mobile Number">
                 <ReadOnlyInput value={candidate.placementReference.professorContactNumber} onEditHint={showEditHint} />
               </Field>
-              <Field label="Institute Village">
+              <Field label="Institute/College Village">
                 <ReadOnlyInput value={candidate.instituteAddressVillage} onEditHint={showEditHint} />
               </Field>
-              <Field label="Institute Taluka">
+              <Field label="Institute/College Taluka">
                 <ReadOnlyInput value={candidate.instituteAddressTaluka} onEditHint={showEditHint} />
               </Field>
-              <Field label="Institute District">
+              <Field label="Institute/College District">
                 <ReadOnlyInput value={candidate.instituteAddressDistrict} onEditHint={showEditHint} />
               </Field>
-              <Field label="Institute State">
+              <Field label="Institute/College State">
                 <ReadOnlyInput value={candidate.instituteAddressState} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
 
-            <FieldGroup title="Institute / College Details">
-              <Field label="12th / Graduate College Name">
-                <ReadOnlyInput value={candidate.college12GraduateName} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Post Graduate College Name">
-                <ReadOnlyInput value={candidate.postGraduateCollegeName} onEditHint={showEditHint} />
-              </Field>
+            <FieldGroup title="Institute Details">
               <Field label="Teacher">
                 <ReadOnlyInput value={candidate.collegeTeacherName} onEditHint={showEditHint} />
               </Field>
@@ -821,18 +1305,6 @@ export default function CandidateDetail() {
               </Field>
               <Field label="Reference">
                 <ReadOnlyInput value={candidate.collegeReference} onEditHint={showEditHint} />
-              </Field>
-              <Field label="College Village">
-                <ReadOnlyInput value={candidate.collegeAddressVillage} onEditHint={showEditHint} />
-              </Field>
-              <Field label="College Taluka">
-                <ReadOnlyInput value={candidate.collegeAddressTaluka} onEditHint={showEditHint} />
-              </Field>
-              <Field label="College District">
-                <ReadOnlyInput value={candidate.collegeAddressDistrict} onEditHint={showEditHint} />
-              </Field>
-              <Field label="College State">
-                <ReadOnlyInput value={candidate.collegeAddressState} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
           </Section>
@@ -850,6 +1322,18 @@ export default function CandidateDetail() {
               </Field>
             </FieldGroup>
 
+            <FieldGroup title="Expected Salary Per Month">
+              <Field label="Expected NET / In-hand Salary">
+                <ReadOnlyInput value={candidate.expectedNetInHandSalary} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Expected Gross Per Month">
+                <ReadOnlyInput value={candidate.expectedGrossSalaryPerMonth} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Expected CTC Per Month">
+                <ReadOnlyInput value={candidate.expectedCtcSalaryPerMonth} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+
             <FieldGroup title="Current Salary Per Month">
               <Field label="NET / In-hand Salary">
                 <ReadOnlyInput value={candidate.netInHandSalary} onEditHint={showEditHint} />
@@ -860,23 +1344,20 @@ export default function CandidateDetail() {
               <Field label="CTC Per Month">
                 <ReadOnlyInput value={candidate.ctcSalaryPerMonth} onEditHint={showEditHint} />
               </Field>
-              <Field label="Current Job Location">
+              <Field label="Current Job Location (Taluka)">
                 <ReadOnlyInput value={candidate.currentJobLocation} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Other Current Job Location (Taluka)">
+                <ReadOnlyInput value={candidate.currentJobLocationOther} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Current Job Location (MIDC Area)">
+                <ReadOnlyInput value={candidate.currentJobLocationMidcArea} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Other MIDC Area">
+                <ReadOnlyInput value={candidate.currentJobLocationMidcAreaOther} onEditHint={showEditHint} />
               </Field>
               <Field label="Preferred Job Location">
                 <ReadOnlyInput value={candidate.preferredJobLocation} onEditHint={showEditHint} />
-              </Field>
-            </FieldGroup>
-
-            <FieldGroup title="Expected Salary Per Month">
-              <Field label="Expected NET / In-hand Salary">
-                <ReadOnlyInput value={candidate.expectedNetInHandSalary} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Expected Gross Per Month">
-                <ReadOnlyInput value={candidate.expectedGrossSalaryPerMonth} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Expected CTC Per Month">
-                <ReadOnlyInput value={candidate.expectedCtcSalaryPerMonth} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
 
@@ -890,7 +1371,7 @@ export default function CandidateDetail() {
               <Field label="Total Year of Experience">
                 <ReadOnlyInput value={candidate.experienceType} onEditHint={showEditHint} />
               </Field>
-              <Field label="Enter Experience">
+              <Field label="Enter Total Year of Experience">
                 <ReadOnlyInput value={candidate.totalExperience} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
@@ -901,20 +1382,29 @@ export default function CandidateDetail() {
               </Field>
             </FieldGroup>
 
+            <FieldGroup title="Availability for Interview">
+              <Field label="Availability for Interview">
+                <ReadOnlyInput value={candidate.availabilityForInterview} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Interview Mode">
+                <ReadOnlyInput value={candidate.interviewMode} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+
             <FieldGroup title="Reason For Job Change">
               <Field label="Reason For Job Change">
                 <ReadOnlyInput value={candidate.reasonForJobChange} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
 
-            <FieldGroup title="Key Skills / Knowledge">
-              <Field label="Key Skills / Knowledge">
+            <FieldGroup title="Key Skills You Have">
+              <Field label="Key Skills You Have">
                 <ReadOnlyInput value={candidate.keySkillsKnowledge} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
 
-            <FieldGroup title="Key Job Responsibility">
-              <Field label="Key Job Responsibility">
+            <FieldGroup title="Key Job Responsibility As Per Your Experience">
+              <Field label="Key Job Responsibility As Per Your Experience">
                 <ReadOnlyInput value={candidate.careerJobResponsibilities} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
@@ -937,6 +1427,11 @@ export default function CandidateDetail() {
               <Field label="Reference Source" className="md:col-span-2 xl:col-span-3">
                 <ReadOnlyInput value={(candidate.referenceSources || []).join(', ')} onEditHint={showEditHint} />
               </Field>
+              {(candidate.referenceSources || []).includes('Other') ? (
+                <Field label="Other Reference Source" className="md:col-span-2 xl:col-span-3">
+                  <ReadOnlyInput value={candidate.referenceSourceOther} onEditHint={showEditHint} />
+                </Field>
+              ) : null}
             </FieldGroup>
           </Section>
         </>
@@ -958,7 +1453,7 @@ export default function CandidateDetail() {
                 <p className="text-xs font-bold uppercase text-slate-500">Other Uploaded Documents</p>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {extraCandidateDocuments.map((doc, index) => (
-                    <DocumentCard key={doc._id || `${doc.fileUrl}-${index}`} doc={doc} />
+                    <DocumentCard key={doc._id || `${doc.fileUrl}-${index}`} doc={doc} searchKey={globalFieldKey('document', doc._id || doc.fileUrl || `other-${index}`)} />
                   ))}
                 </div>
               </div>
@@ -1022,8 +1517,39 @@ export default function CandidateDetail() {
 
       {activePanel === 'successInfo' ? (
         <Section title="Success Info For Candidate" icon={ClipboardList}>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="space-y-5">
+            <div className="space-y-4">
+              <div className="border-b border-slate-200 pb-3">
+                <h3 className="text-sm font-bold text-slate-800">Witness Details</h3>
+              </div>
+              {successInfoWitnesses.map((witness, witnessIndex) => (
+                <div key={witnessIndex} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                  <h4 className="mb-3 text-sm font-bold text-slate-700">Witness {witnessIndex + 1}</h4>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {WITNESS_FIELDS.map((field) => {
+                      if (field.showWhen && witness?.[field.showWhen.key] !== field.showWhen.value) return null
+
+                      return (
+                        <Field key={field.key} label={field.label}>
+                          <ReadOnlyInput value={witness?.[field.key]} onEditHint={showEditHint} />
+                        </Field>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {SUCCESS_INFO_FIELDS.map((field) => {
+              if (field.kind === 'section') {
+                return (
+                  <div key={field.label} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0 md:col-span-2 xl:col-span-3" data-global-field={globalFieldKey('section', field.label)}>
+                    <h3 className="text-sm font-bold text-slate-800">{field.label}</h3>
+                  </div>
+                )
+              }
+              if (field.showWhen && candidate.successInfo?.[field.showWhen.key] !== field.showWhen.value) return null
               const multiline = ['candidateDataSource', 'hrContactDetails'].includes(field.key)
 
               return (
@@ -1036,6 +1562,7 @@ export default function CandidateDetail() {
                 </Field>
               )
             })}
+            </div>
           </div>
         </Section>
       ) : null}
@@ -1092,7 +1619,7 @@ export default function CandidateDetail() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {visibleInterviews.map((row, index) => (
-                    <tr key={row.id} className="odd:bg-white even:bg-slate-50">
+                    <tr key={row.id} className="odd:bg-white even:bg-slate-50" data-global-field={globalFieldKey('interviewRow', row.id || index)}>
                       <td className="px-4 py-3 text-slate-500">{index + 1}</td>
                       <td className="px-4 py-3 font-semibold text-slate-900">{row.companyName || '-'}</td>
                       <td className="px-4 py-3 text-slate-700">{row.jobRole || '-'}</td>
