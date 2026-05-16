@@ -2526,6 +2526,22 @@ function CandidateDocumentsPanel({
 }) {
   const [activeDocumentType, setActiveDocumentType] = useState('')
   const [documentSearchTerm, setDocumentSearchTerm] = useState('')
+  const [enabledDocumentTypes, setEnabledDocumentTypes] = useState(() => {
+    const initial = {}
+    allCandidateDocumentTypes.forEach((item) => {
+      initial[item.key] = Boolean(documentCountsByType[item.key])
+    })
+    return initial
+  })
+  useEffect(() => {
+    setEnabledDocumentTypes((current) => {
+      const next = { ...current }
+      allCandidateDocumentTypes.forEach((item) => {
+        if (documentCountsByType[item.key]) next[item.key] = true
+      })
+      return next
+    })
+  }, [documentCountsByType])
   const normalizedDocumentSearchTerm = normalizeDocumentSearch(documentSearchTerm)
   const matchesDocumentType = (item, label = item.label, groupTitle = '') =>
     documentMatchesSearch({
@@ -2554,7 +2570,13 @@ function CandidateDocumentsPanel({
     viewDocument,
     downloadDocument,
     removeDocument,
-    openDocumentsDialog: setActiveDocumentType
+    openDocumentsDialog: setActiveDocumentType,
+    enabledDocumentTypes,
+    setDocumentEnabled: (key, enabled) =>
+      setEnabledDocumentTypes((current) => ({
+        ...current,
+        [key]: enabled
+      }))
   }
 
   return (
@@ -2676,7 +2698,9 @@ function CandidateDocumentUploadCard({
   viewDocument,
   downloadDocument,
   removeDocument,
-  openDocumentsDialog
+  openDocumentsDialog,
+  enabledDocumentTypes,
+  setDocumentEnabled
 }) {
   const uploadedDoc = documentsByType[item.key]
   const uploadedDocs = documentsByTypeList[item.key] || []
@@ -2685,6 +2709,7 @@ function CandidateDocumentUploadCard({
   const uploadedCount = documentCountsByType[item.key] || 0
   const allowMultiple = educationCertificateDocumentKeys.has(item.key) || computerCourseDocumentKeys.has(item.key)
   const hasDocuments = uploadedDocs.length > 0
+  const enabled = Boolean(enabledDocumentTypes?.[item.key])
   const firstDoc = uploadedDocs[0]
   const firstDocId = String(firstDoc?._id || '')
   const isDeletingFirstDoc = firstDocId && deletingDocumentId === firstDocId
@@ -2708,10 +2733,39 @@ function CandidateDocumentUploadCard({
   }
 
   return (
-    <div className={`rounded-lg border border-slate-200 p-2.5 ${className}`} data-global-field={globalFieldKey('documents', item.key)}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[15px] font-bold leading-5 text-slate-900">{label || item.label}</p>
+    <div className={`rounded-lg border border-slate-200 p-2 ${className}`} data-global-field={globalFieldKey('documents', item.key)}>
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <p className="min-w-0 flex-1 truncate text-[14px] font-bold leading-5 text-slate-900" title={label || item.label}>{label || item.label}</p>
+        <div className="flex shrink-0 rounded-md border border-slate-200 bg-slate-50 p-0.5">
+          {[
+            ['yes', 'Yes', true],
+            ['no', 'No', false]
+          ].map(([key, text, value]) => {
+            const selected = enabled === value
+            return (
+              <label
+                key={key}
+                className={`inline-flex h-7 cursor-pointer items-center gap-1 rounded px-2 text-[11px] font-bold ${
+                  selected ? 'bg-white text-sky-700 shadow-sm ring-1 ring-sky-200' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={`document-enabled-${item.key}`}
+                  checked={selected}
+                  onChange={() => setDocumentEnabled(item.key, value)}
+                  className="h-3 w-3 border-slate-300 text-sky-600"
+                />
+                {text}
+              </label>
+            )
+          })}
+        </div>
+      </div>
+
+      {enabled ? (
+        <div className="mt-2 flex items-start justify-between gap-2">
+          <div className="min-w-0">
           {item.description ? <p className="mt-0.5 text-[11px] font-semibold leading-4 text-slate-500">{item.description}</p> : null}
           <p className={`mt-0.5 text-xs font-semibold ${uploadedDoc ? 'text-emerald-700' : 'text-amber-700'}`}>
             {uploadedDoc ? 'Provided' : 'Not provided'}
@@ -2751,7 +2805,8 @@ function CandidateDocumentUploadCard({
             {uploading ? 'Uploading...' : 'Upload'}
           </label>
         </div>
-      </div>
+        </div>
+      ) : null}
 
       <input
         id={inputId}
@@ -2759,7 +2814,7 @@ function CandidateDocumentUploadCard({
         accept={item.accept || 'image/jpeg,image/png'}
         multiple={allowMultiple}
         className="sr-only"
-        disabled={uploading}
+        disabled={uploading || !enabled}
         onChange={(event) => {
           uploadDocuments(item.key, event.target.files)
           event.target.value = ''
