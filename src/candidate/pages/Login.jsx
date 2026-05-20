@@ -1,9 +1,11 @@
 ﻿import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import { useState } from 'react'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { loginUser } from '../store/authSlice'
 import BrandLogo from '../components/BrandLogo'
 
@@ -12,11 +14,12 @@ const schema = z.object({
   password: z.string().min(1, 'Password is required')
 })
 
-const routeFor = (role) => (role === 'superAdmin' ? '/candidate/admin/references' : '/ba/dashboard')
+const routeFor = (role) => (role === 'superAdmin' ? '/candidate/admin/cms/candidates' : '/ba/dashboard')
 
 export default function Login() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const [showPassword, setShowPassword] = useState(false)
   const { token, user, loading, error } = useSelector((state) => state.auth)
   const {
     register,
@@ -89,12 +92,23 @@ export default function Login() {
 
           <label className="block text-sm font-semibold text-slate-700">
             Password
-            <input
-              type="password"
-              {...register('password')}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
-              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-            />
+            <div className="relative mt-1">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                {...register('password')}
+                className="hide-password-toggle w-full rounded-lg border border-slate-300 px-3 py-2.5 pr-12 text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-slate-500 transition hover:text-sky-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-400"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
             {errors.password && <span className="mt-1 block text-xs text-rose-600">{errors.password.message}</span>}
           </label>
 

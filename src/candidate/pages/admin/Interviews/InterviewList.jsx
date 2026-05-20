@@ -6,13 +6,12 @@ import api from '../../../api/axios'
 import Pagination from '../../../components/Pagination'
 import { ExportRangeDialog } from '../../../components/ActionDialogs'
 
-const fallbackCode = (item) => {
-  if (item?.candidateCode) return item.candidateCode
-  const date = item?.createdAt ? new Date(item.createdAt) : new Date()
-  const yy = String(date.getFullYear()).slice(-2)
-  const mm = String(date.getMonth() + 1).padStart(2, '0')
-  const tail = String(item?._id || '').slice(-4).toUpperCase().padStart(4, '0')
-  return `C${yy}${mm}${tail}`
+const fallbackCode = (item, index = 0, total = 0) => {
+  const storedCode = String(item?.candidateCode || '').trim().toUpperCase()
+  if (/^SC-\d+$/.test(storedCode)) return storedCode
+
+  const sequence = total > 0 ? total - index : index + 1
+  return `SC-${Math.max(sequence, 1)}`
 }
 
 const dateKey = (value) => {
@@ -116,7 +115,7 @@ function StatTile({ icon: Icon, label, value, tone }) {
   )
 }
 
-const toInterviewCandidate = (candidate, interviewsRaw = []) => {
+const toInterviewCandidate = (candidate, interviewsRaw = [], index = 0, total = 0) => {
   const interviews = visibleInterviews(interviewsRaw).sort((a, b) => interviewTimeValue(b) - interviewTimeValue(a))
   const latestInterview = interviews[0] || {}
   const interviewDates = interviews
@@ -127,7 +126,7 @@ const toInterviewCandidate = (candidate, interviewsRaw = []) => {
 
   return {
     id: candidate._id,
-    code: fallbackCode(candidate),
+    code: fallbackCode(candidate, index, total),
     fullName: candidate.fullName || '',
     mobile: candidate.mobileNumber || '',
     email: candidate.emailId || '',
@@ -162,19 +161,19 @@ export default function InterviewList() {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data } = await api.get('/cms/candidates')
+        const { data } = await api.get('/cms/candidates', { params: { all: 'true' } })
         const candidates = Array.isArray(data) ? data : []
         const enriched = await Promise.all(
-          candidates.map(async (candidate) => {
+          candidates.map(async (candidate, index) => {
             if (Array.isArray(candidate.interviews)) {
-              return toInterviewCandidate(candidate, candidate.interviews)
+              return toInterviewCandidate(candidate, candidate.interviews, index, candidates.length)
             }
 
             try {
               const { data: interviewsRaw } = await api.get(`/cms/candidates/${candidate._id}/interviews`)
-              return toInterviewCandidate(candidate, interviewsRaw)
+              return toInterviewCandidate(candidate, interviewsRaw, index, candidates.length)
             } catch (_error) {
-              return toInterviewCandidate(candidate, [])
+              return toInterviewCandidate(candidate, [], index, candidates.length)
             }
           })
         )
@@ -310,11 +309,6 @@ export default function InterviewList() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Interviews</h1>
-        <p className="mt-1 text-sm text-slate-500">Track and manage candidate interviews</p>
-      </div>
-
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile icon={Users} label="Candidates" value={stats.totalCandidates} tone="indigo" />
         <StatTile icon={CalendarDays} label="Interviews" value={stats.totalInterviews} tone="sky" />
@@ -373,15 +367,14 @@ export default function InterviewList() {
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="overflow-x-auto">
-          <table className="min-w-[980px] w-full table-fixed text-sm">
+          <table className="min-w-[960px] w-full table-fixed text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
               <tr>
                 <th className="w-24 px-3 py-3">ID</th>
-                <th className="w-44 px-3 py-3">Name</th>
-                <th className="w-28 px-3 py-3">Mobile</th>
-                <th className="w-36 px-3 py-3">Latest Company</th>
+                <th className="w-56 px-3 py-3">Name</th>
+                <th className="w-40 px-3 py-3">Latest Company</th>
                 <th className="w-32 px-3 py-3">Interview Date</th>
-                <th className="w-44 px-3 py-3">Job Role/Department</th>
+                <th className="w-60 px-3 py-3">Job Role/Department</th>
                 <th className="w-32 px-3 py-3">Selection Chances</th>
                 <th className="w-40 px-3 py-3 text-right">Actions</th>
               </tr>
@@ -395,10 +388,12 @@ export default function InterviewList() {
                       <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${avatarPalette[candidate.fullName.length % avatarPalette.length]}`}>
                         {(candidate.fullName || 'C').charAt(0).toUpperCase()}
                       </span>
-                      <span className="truncate text-sm font-semibold text-slate-900" title={candidate.fullName}>{candidate.fullName}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold leading-5 text-slate-900" title={candidate.fullName}>{candidate.fullName}</span>
+                        <span className="block truncate text-xs font-semibold text-slate-500" title={candidate.mobile}>{candidate.mobile || '-'}</span>
+                      </span>
                     </div>
                   </td>
-                  <td className="truncate px-3 py-3 text-slate-800" title={candidate.mobile}>{candidate.mobile}</td>
                   <td className="px-3 py-3 text-slate-800">
                     <p className="truncate" title={candidate.latestCompanyName || '-'}>{candidate.latestCompanyName || '-'}</p>
                   </td>
@@ -406,7 +401,7 @@ export default function InterviewList() {
                     {displayDate(candidate.latestInterviewDate) || '-'}
                   </td>
                   <td className="px-3 py-3 text-slate-800">
-                    <p className="truncate" title={candidate.jobRole || '-'}>{candidate.jobRole || '-'}</p>
+                    <p className="whitespace-normal break-words leading-5" title={candidate.jobRole || '-'}>{candidate.jobRole || '-'}</p>
                   </td>
                   <td className="px-3 py-3 text-slate-800">
                     <SelectionChanceBadge value={candidate.selectionChances} />
@@ -439,7 +434,7 @@ export default function InterviewList() {
               ))}
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
                     No interviews found.
                   </td>
                 </tr>

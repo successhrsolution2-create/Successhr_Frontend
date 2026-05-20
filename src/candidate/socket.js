@@ -4,13 +4,11 @@ const defaultHost = typeof window !== 'undefined' ? window.location.hostname : '
 const API_ROOT = import.meta.env.VITE_API_URL || `http://${defaultHost}:5000`
 
 const socket = io(API_ROOT, {
-  auth: { token: localStorage.getItem('token') },
-  autoConnect: false
+  autoConnect: false,
+  withCredentials: true
 })
 
-export const connectSocket = (token = localStorage.getItem('token')) => {
-  socket.auth = { token }
-
+export const connectSocket = () => {
   if (!socket.connected) {
     socket.connect()
   }

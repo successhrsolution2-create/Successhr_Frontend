@@ -10,8 +10,9 @@ import {
   BadgeCheck
 } from 'lucide-react'
 import { logout } from '../store/authSlice'
+import api from '../api/axios'
 
-export default function Topbar({ onMenuClick }) {
+export default function Topbar({ onMenuClick, showMenuButton = true }) {
   const [open, setOpen] = useState(false)
   const ref = useRef()
 
@@ -29,7 +30,8 @@ export default function Topbar({ onMenuClick }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await api.post('/auth/logout').catch(() => {})
     dispatch(logout())
     navigate('/login')
   }
@@ -39,15 +41,16 @@ export default function Topbar({ onMenuClick }) {
   return (
     <div className="sticky top-0 z-30 flex h-14 min-w-0 items-center border-b bg-white px-3 shadow-sm sm:px-4">
 
-      {/* MOBILE MENU */}
-      <button
-        type="button"
-        onClick={onMenuClick}
-        aria-label="Open menu"
-        className="mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg hover:bg-gray-100 lg:hidden"
-      >
-        <Menu size={20} />
-      </button>
+      {showMenuButton ? (
+        <button
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Open menu"
+          className="mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg hover:bg-gray-100"
+        >
+          <Menu size={20} />
+        </button>
+      ) : null}
 
       {/* PROFILE */}
       <div className="relative ml-auto min-w-0" ref={ref}>

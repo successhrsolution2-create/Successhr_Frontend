@@ -18,7 +18,7 @@ export default function CandidatesList() {
   const load = async () => {
     try {
       const { data } = await api.get('/cms/candidates', {
-        params: search.trim() ? { search: search.trim() } : undefined
+        params: { all: 'true', ...(search.trim() ? { search: search.trim() } : {}) }
       })
       setCandidates(data)
     } catch (error) {
@@ -99,11 +99,7 @@ export default function CandidatesList() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Candidates</h1>
-          <p className="mt-1 text-sm text-slate-500">Candidate Management System</p>
-        </div>
+      <div className="flex justify-end">
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <button
             type="button"

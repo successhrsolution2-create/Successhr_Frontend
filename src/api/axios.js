@@ -6,23 +6,18 @@ const defaultHost = typeof window !== 'undefined' ? window.location.hostname : '
 export const API_ROOT = import.meta.env.VITE_API_URL || `http://${defaultHost}:5000`
 
 const api = axios.create({
-  baseURL: `${API_ROOT}/api`
-})
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-
-  return config
+  baseURL: `${API_ROOT}/api`,
+  withCredentials: true
 })
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      if (!error.config?.url?.includes('/auth/logout')) {
+        axios.post(`${API_ROOT}/api/auth/logout`, {}, { withCredentials: true }).catch(() => {})
+      }
+
       store.dispatch(logout())
 
       if (window.location.pathname !== '/login') {

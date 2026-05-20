@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   UserCircle,
@@ -10,13 +10,15 @@ import {
   BadgeCheck
 } from 'lucide-react'
 import { logout } from '../store/authSlice'
+import api from '../api/axios'
 
-export default function Topbar({ onMenuClick }) {
+export default function Topbar({ onMenuClick, showMenuButton = true }) {
   const [open, setOpen] = useState(false)
   const ref = useRef()
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useSelector((state) => state.auth)
 
   useEffect(() => {
@@ -29,25 +31,67 @@ export default function Topbar({ onMenuClick }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await api.post('/auth/logout').catch(() => {})
     dispatch(logout())
     navigate('/login')
   }
 
   const settingsPath = user?.role === 'businessAdvisor' ? '/ba/settings' : '/admin/settings'
+  const isCandidateAdmin = user?.role === 'candidateAdmin'
+  const candidateAdminTitle = location.pathname.startsWith('/admin/cms/interviews')
+    ? 'Interviews'
+    : location.pathname.startsWith('/admin/cms/companies')
+      ? 'Companies'
+      : location.pathname.startsWith('/admin/process-panel')
+        ? 'Process Panel'
+        : 'Candidates'
+
+  if (isCandidateAdmin) {
+    return (
+      <header className="sticky top-0 z-30 border-b border-[#d4dde8] bg-white/95 backdrop-blur">
+        <div className="flex min-h-20 flex-col gap-3 py-3 pl-4 pr-4 sm:flex-row sm:items-center sm:justify-between lg:pl-6 lg:pr-10">
+          {showMenuButton ? (
+            <button
+              type="button"
+              onClick={onMenuClick}
+              aria-label="Open menu"
+              className="mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[#d4dde8] bg-white text-slate-700 hover:bg-slate-50"
+            >
+              <Menu size={20} />
+            </button>
+          ) : null}
+
+          <div>
+            <h1 className="text-3xl font-semibold leading-tight text-[#00427d]">{candidateAdminTitle}</h1>
+            <p className="mt-2 text-sm text-slate-600">Candidate Management System</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex h-10 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d]"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
+    )
+  }
 
   return (
     <div className="sticky top-0 z-30 flex h-14 min-w-0 items-center border-b bg-white px-3 shadow-sm sm:px-4">
 
-      {/* MOBILE MENU */}
-      <button
-        type="button"
-        onClick={onMenuClick}
-        aria-label="Open menu"
-        className="mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg hover:bg-gray-100 lg:hidden"
-      >
-        <Menu size={20} />
-      </button>
+      {showMenuButton ? (
+        <button
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Open menu"
+          className="mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg hover:bg-gray-100"
+        >
+          <Menu size={20} />
+        </button>
+      ) : null}
 
       {/* PROFILE */}
       <div className="relative ml-auto min-w-0" ref={ref}>

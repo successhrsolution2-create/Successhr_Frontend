@@ -11,7 +11,7 @@ const labels = {
   emailId: 'Email',
   appliedFor: 'Applied For',
   interestedDepartment: 'Interested Department',
-  preferredIndustry: 'Preferred Industry',
+  preferredIndustry: 'Preferred Industry',  
   preferredJobLocation: 'Preferred Job Location',
   education: 'Education',
   currentCompany: 'Current Company',

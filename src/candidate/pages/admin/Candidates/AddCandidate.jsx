@@ -597,6 +597,14 @@ const downloadBlob = (blob, fileName) => {
   setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
 }
 
+export {
+  createCandidateExcelWorkbook,
+  createCompanyInterviewPdf,
+  createSuccessInfoPdf,
+  downloadBlob,
+  safeFileName
+}
+
 function Section({ title, icon: Icon, children, searchKey = '' }) {
   return (
     <section className={`${cardClass} space-y-5`} data-global-field={searchKey || undefined}>
@@ -1463,151 +1471,24 @@ const flatExportPairs = (candidate) => {
 
 const createCandidateExcelWorkbook = (candidate) => {
   const exportedAt = excelDateTime(new Date())
-  const title = `Candidate Complete Export - ${candidate.fullName || candidate.candidateCode || 'Candidate'}`
-  const flatPairs = flatExportPairs(candidate)
   const detailRows = candidateDetailExportRows(candidate)
-  const successRows = successInfoExportRows(candidate)
-  const documentRows = documentExportRows(candidate)
-  const assessmentRows = assessmentExportRows(candidate)
-  const questionRows = buildQuestionRows(candidate.interviewForm?.questions)
-  const questionResult = calculateQuestionMarksResult(candidate.interviewForm?.questions, { preserveRows: true })
-  const interviews = (candidate.interviews || []).filter(interviewHasContent)
+  const subtitle = `Candidate: ${candidate.fullName || '-'} | ID: ${candidate.candidateCode || '-'} | Exported: ${exportedAt}`
+  const rowsForPanel = (panelTitle) => detailRows.filter((row) => row.panel === panelTitle)
 
-  const sheets = [
+  const sheets = candidateDetailPanels.map((panel) =>
     excelWorksheet({
-      name: 'Flat Export',
+      name: panel.title,
       freezeRows: 4,
-      columns: Array.from({ length: Math.max(flatPairs.length, 1) }, () => 155),
+      columns: [215, 260, 430],
       rows: [
-        excelRow([{ value: title, style: 'Title', mergeAcross: Math.max(flatPairs.length - 1, 0) }]),
-        excelRow([{ value: `Candidate ID: ${candidate.candidateCode || '-'} | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: Math.max(flatPairs.length - 1, 0) }]),
-        excelBlankRow(),
-        excelRow(flatPairs.map(([label]) => label), 'Header'),
-        excelRow(flatPairs.map(([, value]) => excelValue(value)), 'Body')
-      ]
-    }),
-    excelWorksheet({
-      name: 'Candidate Details',
-      freezeRows: 4,
-      columns: [155, 170, 210, 360],
-      rows: [
-        excelRow([{ value: 'Candidate Details', style: 'Title', mergeAcross: 3 }]),
-        excelRow([{ value: `Candidate ID: ${candidate.candidateCode || '-'} | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: 3 }]),
-        excelBlankRow(),
-        excelRow(['Panel', 'Section', 'Field', 'Value'], 'Header'),
-        ...detailRows.map((row) => excelRow([row.panel, row.section, row.field, row.value]))
-      ]
-    }),
-    excelWorksheet({
-      name: 'Documents',
-      freezeRows: 4,
-      columns: [190, 235, 90, 70, 145, 320, 360],
-      rows: [
-        excelRow([{ value: 'Documents', style: 'Title', mergeAcross: 6 }]),
-        excelRow([{ value: `Uploaded and pending documents across all panels | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: 6 }]),
-        excelBlankRow(),
-        excelRow(['Category', 'Document', 'Status', 'Count', 'Latest Uploaded', 'File Names', 'Links'], 'Header'),
-        ...documentRows.map((row) => excelRow([row.category, row.document, row.status, row.count, row.latestUploaded, row.files, row.links], row.status === 'Uploaded' ? 'Body' : 'Muted'))
-      ]
-    }),
-    excelWorksheet({
-      name: 'Success Info',
-      freezeRows: 4,
-      columns: [180, 230, 390],
-      rows: [
-        excelRow([{ value: 'Success Info For Candidate', style: 'Title', mergeAcross: 2 }]),
-        excelRow([{ value: `Candidate: ${candidate.fullName || '-'} | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: 2 }]),
+        excelRow([{ value: panel.title, style: 'Title', mergeAcross: 2 }]),
+        excelRow([{ value: subtitle, style: 'Subtitle', mergeAcross: 2 }]),
         excelBlankRow(),
         excelRow(['Section', 'Field', 'Value'], 'Header'),
-        ...successRows.map((row) => excelRow([row.section, row.field, row.value]))
-      ]
-    }),
-    excelWorksheet({
-      name: 'Assessment',
-      freezeRows: 4,
-      columns: [205, 245, 150, 145],
-      rows: [
-        excelRow([{ value: 'Success Interviewer Remark', style: 'Title', mergeAcross: 3 }]),
-        excelRow([{ value: `Assessment and ratings | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: 3 }]),
-        excelBlankRow(),
-        excelRow(['Category', 'Parameter', 'Selected / Value', 'Scale'], 'Header'),
-        ...assessmentRows.map((row) => excelRow([row.category, row.parameter, row.selected, row.scale]))
-      ]
-    }),
-    excelWorksheet({
-      name: 'Questions',
-      freezeRows: 5,
-      columns: [55, 430, 120, 110],
-      rows: [
-        excelRow([{ value: 'Interview Questions and Marks', style: 'Title', mergeAcross: 3 }]),
-        excelRow([{ value: `Total: ${questionResult.total}/${questionResult.maxTotal} (${questionResult.percentageLabel})`, style: 'Subtitle', mergeAcross: 3 }]),
-        excelBlankRow(),
-        excelRow(['Sr.', 'Question', 'Choices', 'Marks'], 'Header'),
-        ...questionRows.map((row, index) => excelRow([index + 1, row.question, excelValue(row.choices), row.marks ? `${row.marks}/10` : ''])),
-        excelBlankRow(),
-        excelRow(['', '', 'Total', `${questionResult.total}/${questionResult.maxTotal} (${questionResult.percentageLabel})`], 'Header')
-      ]
-    }),
-    excelWorksheet({
-      name: 'Company Interviews',
-      freezeRows: 4,
-      columns: [55, 180, 120, 180, 175, 150, 115, 110, 125, 135, 125, 220, 220, 220, 220, 220, 220, 220, 120, 320],
-      rows: [
-        excelRow([{ value: 'Company Interviews', style: 'Title', mergeAcross: 19 }]),
-        excelRow([{ value: `${interviews.length} interview record${interviews.length === 1 ? '' : 's'} | Exported: ${exportedAt}`, style: 'Subtitle', mergeAcross: 19 }]),
-        excelBlankRow(),
-        excelRow(
-          [
-            'Sr.',
-            'Name Of Candidate',
-            'Mobile Number',
-            'Name Of Company',
-            'Job Role/Department',
-            'Reference',
-            'Date Of Interview',
-            'Attend Interview',
-            'Interested For Join',
-            'Selection Chances',
-            'Rating (/5)',
-            'Not Attend Remark',
-            'IF Not Interested Reason',
-            'Reply From Company',
-            'Positive Feedback',
-            'Negative Feedback',
-            'Overall Discussion',
-            'Note',
-            'Update By',
-            'Documents'
-          ],
-          'Header'
-        ),
-        ...interviews.map((row, index) =>
-          excelRow([
-            index + 1,
-            row.candidateName || candidate.fullName,
-            candidate.mobile,
-            row.companyName,
-            row.jobRole,
-            row.referencePerson,
-            row.date,
-            row.attendInterview,
-            row.interestedForJoin,
-            row.selectionChances,
-            row.ratingForCompany,
-            row.notAttendRemark,
-            row.notInterestedReason,
-            row.replyFromCompany,
-            row.positiveFeedback,
-            row.negativeFeedback,
-            row.overallDiscussion,
-            row.note,
-            row.updatedBy,
-            interviewDocumentExportSummary(row.documents)
-          ])
-        )
+        ...rowsForPanel(panel.title).map((row) => excelRow([row.section, row.field, row.value]))
       ]
     })
-  ]
+  )
 
   const workbook = `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -4860,8 +4741,8 @@ export default function AddCandidate() {
 
   const exportCandidateExcel = () => {
     const candidateName = safeFileName(candidate.fullName || candidate.candidateCode || id || 'candidate')
-    downloadBlob(createCandidateExcelWorkbook(candidate), `${candidateName}-Complete-Candidate-Export.xls`)
-    toast.success('Candidate Excel downloaded')
+    downloadBlob(createCandidateExcelWorkbook(candidate), `${candidateName}-Candidate-Details.xls`)
+    toast.success('Candidate details Excel downloaded')
   }
 
   const exportSuccessInfoPdf = () => {
@@ -4914,72 +4795,76 @@ export default function AddCandidate() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <button
-        type="button"
-        onClick={() => navigate('/admin/cms/candidates')}
-        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        Back
-      </button>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">{isEdit ? 'Edit Candidate' : 'Add Candidate'}</h1>
-          {candidate.candidateCode ? <p className="mt-1 text-sm font-semibold text-slate-500">Candidate ID: {candidate.candidateCode}</p> : null}
-          {isEdit && autoSaveStatusText ? <p className={`mt-1 text-xs font-semibold ${autoSaveStatusClass}`}>{autoSaveStatusText}</p> : null}
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          {activePanel === 'details' ? (
+      <div className="sticky top-0 z-20 -mx-3 bg-slate-100/95 px-3 pb-3 pt-1 backdrop-blur sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5">
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
-              onClick={exportCandidateExcel}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 sm:w-auto"
+              onClick={() => navigate('/admin/cms/candidates')}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
             >
-              <Download className="h-4 w-4" />
-              Export Full Excel
+              <ArrowLeft className="h-4 w-4" />
+              Back
             </button>
-          ) : null}
-          {isEdit && activePanel === 'successInfo' ? (
-            <button
-              type="button"
-              onClick={exportSuccessInfoPdf}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 sm:w-auto"
-            >
-              <Download className="h-4 w-4" />
-              Export Success PDF
-            </button>
-          ) : null}
-          {isEdit && activePanel === 'assessment' ? (
-            <button
-              type="button"
-              onClick={exportAssessmentPdf}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 sm:w-auto"
-            >
-              <Download className="h-4 w-4" />
-              Export PDF
-            </button>
-          ) : null}
-          {isEdit && activePanel === 'assessment' ? (
-            <button
-              type="button"
-              onClick={copyAssessmentPdfLink}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto"
-            >
-              <Copy className="h-4 w-4" />
-              Copy Link
-            </button>
-          ) : null}
-          {showCandidateSave ? (
-            <button
-              type="button"
-              disabled={saving}
-              onClick={save}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-            >
-              <Save className="h-4 w-4" />
-              {saving ? 'Saving...' : 'Save Candidate'}
-            </button>
-          ) : null}
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-bold leading-6 text-slate-950 sm:text-xl">{isEdit ? 'Edit Candidate' : 'Add Candidate'}</h1>
+              {candidate.candidateCode ? <p className="truncate text-xs font-semibold text-slate-500">Candidate ID: {candidate.candidateCode}</p> : null}
+              {isEdit && autoSaveStatusText ? <p className={`truncate text-xs font-semibold ${autoSaveStatusClass}`}>{autoSaveStatusText}</p> : null}
+            </div>
+          </div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            {activePanel === 'details' ? (
+              <button
+                type="button"
+                onClick={exportCandidateExcel}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 sm:w-auto"
+              >
+                <Download className="h-4 w-4" />
+                Export Details Excel
+              </button>
+            ) : null}
+            {isEdit && activePanel === 'successInfo' ? (
+              <button
+                type="button"
+                onClick={exportSuccessInfoPdf}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 sm:w-auto"
+              >
+                <Download className="h-4 w-4" />
+                Export Success PDF
+              </button>
+            ) : null}
+            {isEdit && activePanel === 'assessment' ? (
+              <button
+                type="button"
+                onClick={exportAssessmentPdf}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 sm:w-auto"
+              >
+                <Download className="h-4 w-4" />
+                Export PDF
+              </button>
+            ) : null}
+            {isEdit && activePanel === 'assessment' ? (
+              <button
+                type="button"
+                onClick={copyAssessmentPdfLink}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto"
+              >
+                <Copy className="h-4 w-4" />
+                Copy Link
+              </button>
+            ) : null}
+            {showCandidateSave ? (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={save}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              >
+                <Save className="h-4 w-4" />
+                {saving ? 'Saving...' : 'Save Candidate'}
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -5282,68 +5167,66 @@ export default function AddCandidate() {
           </div>
 
           <div className="overflow-hidden rounded-xl border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-[920px] w-full table-fixed text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="w-14 px-4 py-3">#</th>
-                    <th className="px-4 py-3">Company Name</th>
-                    <th className="w-40 px-4 py-3">Job Role/Department</th>
-                    <th className="w-36 px-4 py-3">Interview Date</th>
-                    <th className="w-36 px-4 py-3">Selection Chances</th>
-                    <th className="w-72 px-4 py-3 text-right">Actions</th>
+            <table className="w-full table-fixed text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="w-12 px-3 py-3 sm:w-14 sm:px-4">#</th>
+                  <th className="px-3 py-3 sm:px-4">Company Name</th>
+                  <th className="w-40 px-3 py-3 sm:px-4">Job Role/Department</th>
+                  <th className="w-36 px-3 py-3 sm:px-4">Interview Date</th>
+                  <th className="w-36 px-3 py-3 sm:px-4">Selection Chances</th>
+                  <th className="w-96 px-3 py-3 text-right sm:px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredInterviewRows.map(({ row, index }) => (
+                  <tr key={row.id} className="odd:bg-white even:bg-slate-50">
+                    <td className="px-3 py-3 text-slate-500 sm:px-4">{index + 1}</td>
+                    <td className="truncate px-3 py-3 font-semibold text-slate-900 sm:px-4">{row.companyName || '-'}</td>
+                    <td className="truncate px-3 py-3 text-slate-700 sm:px-4">{row.jobRole || '-'}</td>
+                    <td className="px-3 py-3 text-slate-700 sm:px-4">{row.date || '-'}</td>
+                    <td className="px-3 py-3 sm:px-4">
+                      <InterviewSelectionChanceBadge value={row.selectionChances} />
+                    </td>
+                    <td className="px-3 py-3 sm:px-4">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => exportCompanyInterviewPdf(row)}
+                          className="inline-flex h-9 min-w-28 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-indigo-200 bg-white px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                        >
+                          <Download className="h-4 w-4 shrink-0" />
+                          Export PDF
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => startViewInterview(row)}
+                          className="inline-flex h-9 min-w-20 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          <Eye className="h-4 w-4 shrink-0" />
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => startUpdateInterview(row)}
+                          className="inline-flex h-9 min-w-24 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700"
+                        >
+                          <Pencil className="h-4 w-4 shrink-0" />
+                          Update
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredInterviewRows.map(({ row, index }) => (
-                    <tr key={row.id} className="odd:bg-white even:bg-slate-50">
-                      <td className="px-4 py-3 text-slate-500">{index + 1}</td>
-                      <td className="truncate px-4 py-3 font-semibold text-slate-900">{row.companyName || '-'}</td>
-                      <td className="truncate px-4 py-3 text-slate-700">{row.jobRole || '-'}</td>
-                      <td className="px-4 py-3 text-slate-700">{row.date || '-'}</td>
-                      <td className="px-4 py-3">
-                        <InterviewSelectionChanceBadge value={row.selectionChances} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => exportCompanyInterviewPdf(row)}
-                            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
-                          >
-                            <Download className="h-4 w-4" />
-                            Export PDF
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => startViewInterview(row)}
-                            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => startUpdateInterview(row)}
-                            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Update
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredInterviewRows.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                        {visibleInterviews.length ? 'No interviews matched your search.' : 'No interview updates added yet.'}
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
+                ))}
+                {filteredInterviewRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                      {visibleInterviews.length ? 'No interviews matched your search.' : 'No interview updates added yet.'}
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
           </div>
 
           <InterviewUpdatePanel

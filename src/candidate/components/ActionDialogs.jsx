@@ -34,6 +34,8 @@ export function PromptDialog({
   confirmText = 'Save',
   cancelText = 'Cancel',
   inputType = 'password',
+  danger = false,
+  confirmDisabled = false,
   onConfirm,
   onCancel
 }) {
@@ -64,8 +66,13 @@ export function PromptDialog({
           </button>
           <button
             type="button"
-            onClick={() => onConfirm(input)}
-            className="min-h-10 w-full rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 sm:w-auto"
+            disabled={confirmDisabled}
+            onClick={() => {
+              if (!confirmDisabled) onConfirm(input)
+            }}
+            className={`min-h-10 w-full rounded-lg px-4 text-sm font-semibold text-white sm:w-auto disabled:cursor-not-allowed disabled:opacity-60 ${
+              danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-sky-600 hover:bg-sky-700'
+            }`}
           >
             {confirmText}
           </button>

@@ -1,20 +1,39 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import {
+  ArrowLeftRight,
   UserCheck,
+  Menu,
   X,
-  Building2,
   PanelsTopLeft
 } from 'lucide-react'
 import { connectSocket, disconnectSocket } from '../socket'
 import BrandLogo from './BrandLogo'
 import Topbar from './Topbar'
 
+const SIDEBAR_DEFAULT_WIDTH = 224
+const SIDEBAR_MIN_WIDTH = 204
+const SIDEBAR_MAX_WIDTH = 340
+const SIDEBAR_WIDTH_KEY = 'candidate_admin_sidebar_width_compact'
+
+const clampSidebarWidth = (value) => Math.min(Math.max(value, SIDEBAR_MIN_WIDTH), SIDEBAR_MAX_WIDTH)
+
 export default function Sidebar({ role, children }) {
-  const [open, setOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window === 'undefined' ? true : window.matchMedia('(min-width: 1024px)').matches
+  )
+  const [open, setOpen] = useState(() =>
+    typeof window === 'undefined' ? true : window.matchMedia('(min-width: 1024px)').matches
+  )
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window === 'undefined') return SIDEBAR_DEFAULT_WIDTH
+
+    const savedWidth = Number(window.localStorage.getItem(SIDEBAR_WIDTH_KEY))
+    return Number.isFinite(savedWidth) ? clampSidebarWidth(savedWidth) : SIDEBAR_DEFAULT_WIDTH
+  })
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false)
   const { token } = useSelector((state) => state.auth)
-  const location = useLocation()
 
   const isSuperAdmin = role === 'superAdmin'
 
@@ -24,40 +43,82 @@ export default function Sidebar({ role, children }) {
     return () => disconnectSocket()
   }, [token])
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)')
+    const handleViewportChange = (event) => {
+      setIsDesktop(event.matches)
+      setOpen(event.matches)
+    }
+
+    handleViewportChange(mediaQuery)
+    mediaQuery.addEventListener('change', handleViewportChange)
+    return () => mediaQuery.removeEventListener('change', handleViewportChange)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth))
+    }
+  }, [sidebarWidth])
+
+  useEffect(() => {
+    if (!isResizingSidebar) return undefined
+
+    const handlePointerMove = (event) => {
+      setSidebarWidth(clampSidebarWidth(event.clientX))
+    }
+
+    const handlePointerUp = () => {
+      setIsResizingSidebar(false)
+    }
+
+    const previousCursor = document.body.style.cursor
+    const previousUserSelect = document.body.style.userSelect
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+
+    return () => {
+      document.body.style.cursor = previousCursor
+      document.body.style.userSelect = previousUserSelect
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [isResizingSidebar])
+
   return (
-    <div className="flex min-h-screen min-w-0 bg-slate-100">
-      {open && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setOpen(false)} />}
+    <div className="min-h-screen min-w-0 bg-slate-100">
+      {open && <button type="button" aria-label="Close sidebar overlay" className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setOpen(false)} />}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] transform overflow-y-auto bg-slate-800 text-white transition ${
+        className={`fixed inset-y-0 left-0 z-50 w-[min(224px,86vw)] max-w-[86vw] transform overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,#09264a_0%,#071f3d_42%,#06172c_100%)] text-white transition-transform duration-300 ease-out lg:max-w-none ${
           open ? 'translate-x-0' : '-translate-x-full'
-        } lg:static lg:translate-x-0`}
+        }`}
+        style={{ width: isDesktop ? `${sidebarWidth}px` : 'min(224px, 86vw)' }}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-slate-700 p-3 sm:p-4">
-          <BrandLogo className="max-h-24" />
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-200 hover:bg-slate-700 lg:hidden"
-            aria-label="Close menu"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        <div className="border-b border-white/10 px-4 pb-5 pt-14">
+          <BrandLogo className="mx-auto h-auto w-[168px] object-contain" />
         </div>
 
-        <nav className="space-y-1 overflow-x-hidden p-2 sm:p-3" onClick={() => setOpen(false)}>
+        <nav className="space-y-5 overflow-x-hidden px-3 py-5" onClick={() => !isDesktop && setOpen(false)}>
           {isSuperAdmin ? (
             <>
-              <div className="my-3 border-t border-slate-700" />
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-300">Candidate Management</p>
-              <div className="ml-2 mt-1 space-y-1 sm:ml-6">
-                <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
-                  <UserCheck size={16} /> <span className="min-w-0 truncate">Candidates</span>
+              <div className="border-t border-white/10" />
+              <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Candidate Management</p>
+              <div className="space-y-1">
+                <div className="flex h-9 items-center gap-3 rounded-md px-3 text-[13px] font-medium text-slate-300">
+                  <UserCheck size={15} /> <span className="min-w-0 truncate">Candidates</span>
                 </div>
                 <NavLink
                   to="/candidate/admin/cms/candidates"
                   className={({ isActive }) =>
-                    `block rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`
+                    `flex h-9 items-center rounded-md px-3 text-[13px] font-medium transition ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#2f8dff] to-[#316dff] text-white'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`
                   }
                 >
                   Candidates List
@@ -65,7 +126,11 @@ export default function Sidebar({ role, children }) {
                 <NavLink
                   to="/candidate/admin/cms/companies"
                   className={({ isActive }) =>
-                    `block rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`
+                    `flex h-9 items-center rounded-md px-3 text-[13px] font-medium transition ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#2f8dff] to-[#316dff] text-white'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`
                   }
                 >
                   Companies
@@ -73,19 +138,55 @@ export default function Sidebar({ role, children }) {
                 <NavLink
                   to="/candidate/admin/process-panel"
                   className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`
+                    `flex h-9 items-center gap-3 rounded-md px-3 text-[13px] font-medium transition ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#2f8dff] to-[#316dff] text-white'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`
                   }
                 >
-                  <PanelsTopLeft size={16} /> <span className="min-w-0 truncate">Process Panel</span>
+                  <PanelsTopLeft size={15} /> <span className="min-w-0 truncate">Process Panel</span>
                 </NavLink>
               </div>
             </>
           ) : null}
         </nav>
+
+        {isDesktop && open ? (
+          <button
+            type="button"
+            aria-label="Resize sidebar"
+            title="Drag to resize sidebar"
+            className={`absolute right-0 top-0 hidden h-full w-3 cursor-col-resize items-center justify-center border-r border-white/10 transition lg:flex ${
+              isResizingSidebar ? 'bg-white/10' : 'bg-transparent hover:bg-white/10'
+            }`}
+            onPointerDown={(event) => {
+              event.preventDefault()
+              setIsResizingSidebar(true)
+            }}
+            onDoubleClick={() => setSidebarWidth(SIDEBAR_DEFAULT_WIDTH)}
+          >
+            <span className="flex h-11 w-6 items-center justify-center rounded-full border border-white/20 bg-[#06172c] text-white">
+              <ArrowLeftRight className="h-4 w-4" />
+            </span>
+          </button>
+        ) : null}
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenuClick={() => setOpen(true)} />
+      <button
+        type="button"
+        aria-label={open ? 'Close sidebar' : 'Open sidebar'}
+        className="fixed left-3 top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-md border border-white/15 bg-[#06172c]/95 text-white transition hover:bg-[#0b2546] focus:outline-none focus:ring-2 focus:ring-white/25"
+        onClick={() => setOpen((value) => !value)}
+      >
+        {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+      </button>
+
+      <div
+        className="flex min-h-screen min-w-0 flex-col transition-[padding] duration-300"
+        style={{ paddingLeft: isDesktop && open ? `${sidebarWidth}px` : !open ? '56px' : undefined }}
+      >
+        <Topbar onMenuClick={() => setOpen((value) => !value)} showMenuButton={false} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:p-5 lg:p-6">{children}</main>
       </div>
     </div>

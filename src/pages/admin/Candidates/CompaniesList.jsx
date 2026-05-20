@@ -78,11 +78,7 @@ export default function CompaniesList() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Companies</h1>
-          <p className="mt-1 text-sm text-slate-500">Candidate Management System</p>
-        </div>
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={() => navigate('/admin/cms/companies/new')}

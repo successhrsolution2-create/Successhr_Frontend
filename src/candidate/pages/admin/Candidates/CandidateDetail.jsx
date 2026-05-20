@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { ArrowLeft, BriefcaseBusiness, ClipboardList, ExternalLink, Eye, FileImage, MapPin, Pencil, Search, Trash2, Upload, UserRound, Users, X } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, ClipboardList, Download, ExternalLink, Eye, FileImage, MapPin, Pencil, Search, Trash2, Upload, UserRound, Users, X } from 'lucide-react'
 import api, { assetUrl } from '../../../api/axios'
 import { ConfirmDialog } from '../../../components/ActionDialogs'
 import {
@@ -24,6 +24,13 @@ import {
   interviewHasContent,
   mapApiToCandidateForm
 } from './candidateFormModel'
+import {
+  createCandidateExcelWorkbook,
+  createCompanyInterviewPdf,
+  createSuccessInfoPdf,
+  downloadBlob,
+  safeFileName
+} from './AddCandidate'
 
 const inputClass =
   'mt-1 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none'
@@ -1093,31 +1100,100 @@ export default function CandidateDetail() {
     scrollToGlobalField(item.targetKey)
   }
 
+  const exportCandidateExcel = () => {
+    const candidateName = safeFileName(candidate.fullName || candidate.candidateCode || id || 'candidate')
+    downloadBlob(createCandidateExcelWorkbook(candidate), `${candidateName}-Candidate-Details.xls`)
+    toast.success('Candidate details Excel downloaded')
+  }
+
+  const exportSuccessInfoPdf = () => {
+    const candidateName = safeFileName(candidate.fullName || candidate.candidateCode || id || 'candidate')
+    downloadBlob(createSuccessInfoPdf(candidate), `${candidateName}-Success-Info.pdf`)
+    toast.success('Success info PDF downloaded')
+  }
+
+  const exportAssessmentPdf = async () => {
+    if (!id || activePanel !== 'assessment') return
+    const candidateName = safeFileName(candidate.fullName || candidate.candidateCode || id)
+    const panelName = safeFileName(viewPanelLabels.assessment)
+
+    try {
+      const { data } = await api.get(`/cms/candidates/${id}/success-remark.pdf`, { responseType: 'blob' })
+      downloadBlob(data, `${candidateName}-${panelName}.pdf`)
+      toast.success('PDF downloaded')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not export PDF')
+    }
+  }
+
+  const exportCompanyInterviewPdf = (row) => {
+    const candidateName = safeFileName(candidate.fullName || candidate.candidateCode || id || 'candidate')
+    const companyName = safeFileName(row?.companyName || 'company-interview')
+    downloadBlob(createCompanyInterviewPdf(candidate, row), `${candidateName}-${companyName}-Interview.pdf`)
+    toast.success('Company interview PDF downloaded')
+  }
+
   return (
     <div className="flex min-h-0 flex-col gap-4 sm:gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <button
-            type="button"
-            onClick={() => navigate('/admin/cms/candidates')}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-          <h1 className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">{candidate.fullName}</h1>
-          {candidate.candidateCode ? <p className="text-sm font-semibold text-slate-500">{candidate.candidateCode}</p> : null}
+      <div className="sticky top-0 z-20 -mx-3 bg-slate-100/95 px-3 pb-3 pt-1 backdrop-blur sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5">
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/admin/cms/candidates')}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-bold leading-6 text-slate-950 sm:text-xl">{candidate.fullName}</h1>
+              {candidate.candidateCode ? <p className="truncate text-xs font-semibold text-slate-500">Candidate ID: {candidate.candidateCode}</p> : null}
+            </div>
+          </div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            {activePanel === 'details' ? (
+              <button
+                type="button"
+                onClick={exportCandidateExcel}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 sm:w-auto"
+              >
+                <Download className="h-4 w-4" />
+                Export Details Excel
+              </button>
+            ) : null}
+            {activePanel === 'successInfo' ? (
+              <button
+                type="button"
+                onClick={exportSuccessInfoPdf}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 sm:w-auto"
+              >
+                <Download className="h-4 w-4" />
+                Export Success PDF
+              </button>
+            ) : null}
+            {activePanel === 'assessment' ? (
+              <button
+                type="button"
+                onClick={exportAssessmentPdf}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 sm:w-auto"
+              >
+                <Download className="h-4 w-4" />
+                Export PDF
+              </button>
+            ) : null}
+            {!viewOnly ? (
+              <button
+                type="button"
+                onClick={goToEdit}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 sm:w-auto"
+              >
+                <Pencil className="h-4 w-4" />
+                Update
+              </button>
+            ) : null}
+          </div>
         </div>
-        {!viewOnly ? (
-          <button
-            type="button"
-            onClick={goToEdit}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 sm:w-auto"
-          >
-            <Pencil className="h-4 w-4" />
-            Update
-          </button>
-        ) : null}
       </div>
 
       <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
@@ -1605,66 +1681,72 @@ export default function CandidateDetail() {
         <Section title="Company Interviews">
           <p className="text-sm font-semibold text-slate-500">Company-wise interview updates are listed by date. Open View for details or Update to edit.</p>
           <div className="overflow-hidden rounded-xl border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-[860px] w-full table-fixed text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="w-14 px-4 py-3">#</th>
-                    <th className="px-4 py-3">Company Name</th>
-                    <th className="w-40 px-4 py-3">Job Role/Department</th>
-                    <th className="w-36 px-4 py-3">Interview Date</th>
-                    <th className="w-36 px-4 py-3">Selection Chances</th>
-                    <th className="w-72 px-4 py-3 text-right">Actions</th>
+            <table className="w-full table-fixed text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="w-12 px-3 py-3 sm:w-14 sm:px-4">#</th>
+                  <th className="px-3 py-3 sm:px-4">Company Name</th>
+                  <th className="w-40 px-3 py-3 sm:px-4">Job Role/Department</th>
+                  <th className="w-36 px-3 py-3 sm:px-4">Interview Date</th>
+                  <th className="w-36 px-3 py-3 sm:px-4">Selection Chances</th>
+                  <th className="w-96 px-3 py-3 text-right sm:px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {visibleInterviews.map((row, index) => (
+                  <tr key={row.id} className="odd:bg-white even:bg-slate-50" data-global-field={globalFieldKey('interviewRow', row.id || index)}>
+                    <td className="px-3 py-3 text-slate-500 sm:px-4">{index + 1}</td>
+                    <td className="truncate px-3 py-3 font-semibold text-slate-900 sm:px-4">{row.companyName || '-'}</td>
+                    <td className="truncate px-3 py-3 text-slate-700 sm:px-4">{row.jobRole || '-'}</td>
+                    <td className="px-3 py-3 text-slate-700 sm:px-4">{row.date || '-'}</td>
+                    <td className="px-3 py-3 text-slate-700 sm:px-4">{row.selectionChances || '-'}</td>
+                    <td className="px-3 py-3 sm:px-4">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => exportCompanyInterviewPdf(row)}
+                          className="inline-flex h-9 min-w-28 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-indigo-200 bg-white px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                        >
+                          <Download className="h-4 w-4 shrink-0" />
+                          Export PDF
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedInterview(row)}
+                          className="inline-flex h-9 min-w-20 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          <Eye className="h-4 w-4 shrink-0" />
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/admin/cms/candidates/${id}/edit?panel=interviews&interview=${row.id}`)}
+                          className="inline-flex h-9 min-w-24 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700"
+                        >
+                          <Pencil className="h-4 w-4 shrink-0" />
+                          Update
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingInterview(row)}
+                          className="inline-flex h-9 min-w-24 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-rose-50 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-100"
+                        >
+                          <Trash2 className="h-4 w-4 shrink-0" />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {visibleInterviews.map((row, index) => (
-                    <tr key={row.id} className="odd:bg-white even:bg-slate-50" data-global-field={globalFieldKey('interviewRow', row.id || index)}>
-                      <td className="px-4 py-3 text-slate-500">{index + 1}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-900">{row.companyName || '-'}</td>
-                      <td className="px-4 py-3 text-slate-700">{row.jobRole || '-'}</td>
-                      <td className="px-4 py-3 text-slate-700">{row.date || '-'}</td>
-                      <td className="px-4 py-3 text-slate-700">{row.selectionChances || '-'}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedInterview(row)}
-                            className="inline-flex h-9 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/admin/cms/candidates/${id}/edit?panel=interviews&interview=${row.id}`)}
-                            className="inline-flex h-9 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Update
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeletingInterview(row)}
-                            className="inline-flex h-9 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-rose-50 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-100"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {visibleInterviews.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                        No interview updates added yet.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
+                ))}
+                {visibleInterviews.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                      No interview updates added yet.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
           </div>
           <InterviewDetailsPanel row={selectedInterview} candidateName={candidate.fullName} onClose={() => setSelectedInterview(null)} />
         </Section>

@@ -12,6 +12,7 @@ const AdminReferenceBoard = lazy(() => import('./pages/admin/ReferenceBoard'))
 const AdminStudents = lazy(() => import('./pages/admin/Students'))
 const AdminCompanies = lazy(() => import('./pages/admin/Companies'))
 const AdminCommissionPanel = lazy(() => import('./pages/admin/CommissionPanel'))
+const AdminCrmManagement = lazy(() => import('./pages/admin/CrmManagement'))
 const AdminSettings = lazy(() => import('./pages/admin/Settings'))
 const BADashboard = lazy(() => import('./pages/ba/Dashboard'))
 const BAProfile = lazy(() => import('./pages/ba/Profile'))
@@ -42,8 +43,8 @@ function HomeRedirect() {
   return <Navigate to="/ba/dashboard" replace />
 }
 
-function AppShell({ role, children }) {
-  return <Sidebar role={role}>{children}</Sidebar>
+function AppShell({ role, children, hideTopbar = false }) {
+  return <Sidebar role={role} hideTopbar={hideTopbar}>{children}</Sidebar>
 }
 
 function SettingsShell() {
@@ -53,6 +54,24 @@ function SettingsShell() {
     <AppShell role={sidebarRole}>
       <AdminSettings />
     </AppShell>
+  )
+}
+
+function NotFound() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+      <div className="max-w-md text-center">
+        <p className="text-sm font-bold uppercase tracking-wide text-sky-700">404</p>
+        <h1 className="mt-2 text-3xl font-bold text-slate-950">Page not found</h1>
+        <p className="mt-3 text-sm text-slate-600">The page you opened does not exist.</p>
+        <a
+          href="/"
+          className="mt-6 inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+        >
+          Go home
+        </a>
+      </div>
+    </div>
   )
 }
 
@@ -144,7 +163,7 @@ export default function App() {
           path="/admin/cms/candidates/new"
           element={
             <ProtectedRoute roles={['candidateAdmin']}>
-              <AppShell role="candidateAdmin">
+              <AppShell role="candidateAdmin" hideTopbar>
                 <CmsAddCandidate />
               </AppShell>
             </ProtectedRoute>
@@ -154,7 +173,7 @@ export default function App() {
           path="/admin/cms/candidates/add"
           element={
             <ProtectedRoute roles={['candidateAdmin']}>
-              <AppShell role="candidateAdmin">
+              <AppShell role="candidateAdmin" hideTopbar>
                 <CmsAddCandidate />
               </AppShell>
             </ProtectedRoute>
@@ -164,7 +183,7 @@ export default function App() {
           path="/admin/cms/candidates/:id"
           element={
             <ProtectedRoute roles={['candidateAdmin']}>
-              <AppShell role="candidateAdmin">
+              <AppShell role="candidateAdmin" hideTopbar>
                 <CmsCandidateDetail />
               </AppShell>
             </ProtectedRoute>
@@ -174,7 +193,7 @@ export default function App() {
           path="/admin/cms/candidates/:id/edit"
           element={
             <ProtectedRoute roles={['candidateAdmin']}>
-              <AppShell role="candidateAdmin">
+              <AppShell role="candidateAdmin" hideTopbar>
                 <CmsAddCandidate />
               </AppShell>
             </ProtectedRoute>
@@ -246,6 +265,34 @@ export default function App() {
             <ProtectedRoute roles={['superAdmin']}>
               <AppShell role="superAdmin">
                 <AdminCommissionPanel />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/crm"
+          element={<Navigate to="/admin/crm/employees" replace />}
+        />
+        <Route
+          path="/admin/crm/dashboard"
+          element={<Navigate to="/admin/crm/employees" replace />}
+        />
+        <Route
+          path="/admin/crm/employees"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <AdminCrmManagement initialTab="employees" />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/crm/candidates"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <AdminCrmManagement initialTab="candidates" />
               </AppShell>
             </ProtectedRoute>
           }
@@ -372,7 +419,7 @@ export default function App() {
         <Route path="/candidate/admin/candidates/:id" element={<Navigate to="/admin/cms/candidates" replace />} />
         <Route path="/candidate/admin/companies/new" element={<Navigate to="/admin/cms/companies/new" replace />} />
 
-        <Route path="*" element={<HomeRedirect />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   )

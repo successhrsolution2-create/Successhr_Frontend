@@ -312,7 +312,7 @@ function PublicShell({ children, advisor }) {
         <header className="mb-4 rounded-xl bg-white px-3 py-3 shadow-sm ring-1 ring-slate-200 sm:mb-5 sm:px-5 sm:py-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
-              <img src="/success-logo.png" alt="SUCCESS HR Solution" className="h-10 w-28 shrink-0 object-contain sm:h-12 sm:w-32" />
+              <img src="/success-logo.svg" alt="SUCCESS HR Solution" className="h-10 w-28 shrink-0 object-contain sm:h-12 sm:w-32" />
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase text-sky-700">SUCCESS HR Solution</p>
                 <h1 className="text-xl font-bold leading-tight text-slate-950 sm:text-2xl">Candidate Application</h1>
