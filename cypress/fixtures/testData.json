@@ -1,0 +1,23 @@
+{
+  "candidate": {
+    "name": "Cypress Candidate",
+    "phone": "9876501234",
+    "email": "cypress.candidate@example.com",
+    "education": "Graduate",
+    "jobNo": "CY-101",
+    "jobProfile": "Sales Executive",
+    "remark": "Interested in weekday interview"
+  },
+  "leave": {
+    "type": "Casual",
+    "fromDate": "2026-06-10",
+    "toDate": "2026-06-11",
+    "reason": "Family function"
+  },
+  "employee": {
+    "firstName": "Cypress",
+    "lastName": "Employee",
+    "email": "cypress.employee@example.com",
+    "phone": "9876509999"
+  }
+}

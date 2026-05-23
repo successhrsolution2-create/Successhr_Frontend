@@ -4,9 +4,11 @@ import { useSelector } from 'react-redux'
 import {
   ArrowLeftRight,
   Building2,
+  CalendarClock,
   ChevronDown,
   ChevronRight,
   LayoutDashboard,
+  MapPin,
   Menu,
   PanelsTopLeft,
   PhoneCall,
@@ -20,8 +22,9 @@ import { connectSocket, disconnectSocket } from '../socket'
 import BrandLogo from './BrandLogo'
 import Topbar from './Topbar'
 
-// Remove top four options from main links for super admin
-const adminMainLinks = []
+const adminMainLinks = [
+  { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true }
+]
 
 const baLinks = [
   { to: '/ba/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -31,16 +34,27 @@ const baLinks = [
 ]
 
 const businessAdvisorAdminLinks = [
-  { to: '/admin/references', label: 'Dashboard', icon: PanelsTopLeft },
-  { to: '/admin/business-advisors', label: 'Advisors', icon: Users, end: true },
-  { to: '/admin/students', label: 'Advisor Candidates', icon: UserCircle },
-  { to: '/admin/companies', label: 'Advisor Companies', icon: Building2 },
+  { to: '/admin/references', label: 'Reference Board', icon: PanelsTopLeft },
+  { to: '/admin/business-advisors', label: 'Success Advisors', icon: Users, end: true },
+  { to: '/admin/students', label: 'Success Advisor Candidates', icon: UserCircle },
+  { to: '/admin/companies', label: 'Success Advisor Companies', icon: Building2 },
   { to: '/admin/commission', label: 'Earnings', icon: Wallet }
 ]
 
 const telecallingCrmLinks = [
   { to: '/admin/crm/employees', label: 'Success Employee', icon: Users },
   { to: '/admin/crm/candidates', label: 'CRM Candidates', icon: UserCheck }
+]
+
+const employeeManagementLinks = [
+  { to: '/ems', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/ems/employees', label: 'Employees', icon: Users },
+  { to: '/ems/locations', label: 'Locations', icon: MapPin },
+  { to: '/ems/schedules', label: 'Schedules', icon: CalendarClock },
+  { to: '/ems/attendance', label: 'Attendance', icon: PanelsTopLeft },
+  { to: '/ems/leaves', label: 'Leaves', icon: UserCheck },
+  { to: '/ems/payroll', label: 'Payroll', icon: Wallet },
+  { to: '/ems/reports', label: 'Reports', icon: Building2 }
 ]
 
 const SIDEBAR_DEFAULT_WIDTH = 224
@@ -72,16 +86,18 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
   const [isResizingSidebar, setIsResizingSidebar] = useState(false)
   const [baPanelOpen, setBaPanelOpen] = useState(true)
   const [crmPanelOpen, setCrmPanelOpen] = useState(true)
+  const [emsPanelOpen, setEmsPanelOpen] = useState(true)
   const { token } = useSelector((state) => state.auth)
   const location = useLocation()
 
-  const links = useMemo(() => (isSuperAdmin || isCandidateAdmin ? adminMainLinks : baLinks), [isSuperAdmin, isCandidateAdmin])
+  const links = useMemo(() => (isSuperAdmin ? adminMainLinks : isCandidateAdmin ? [] : baLinks), [isSuperAdmin, isCandidateAdmin])
   const isBusinessAdvisorPanelActive = businessAdvisorAdminLinks.some((item) =>
     item.to === '/admin/business-advisors'
       ? location.pathname === item.to
       : location.pathname.startsWith(item.to)
   )
   const isTelecallingCrmPanelActive = location.pathname.startsWith('/admin/crm')
+  const isEmployeeManagementPanelActive = location.pathname.startsWith('/ems')
 
   useEffect(() => {
     if (!token) return undefined
@@ -146,6 +162,12 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
     }
   }, [isTelecallingCrmPanelActive])
 
+  useEffect(() => {
+    if (isEmployeeManagementPanelActive) {
+      setEmsPanelOpen(true)
+    }
+  }, [isEmployeeManagementPanelActive])
+
   return (
     <div className={`min-h-screen min-w-0 ${isCandidateAdmin ? 'bg-[#f7fafc]' : 'bg-slate-100'}`}>
       {open && <button type="button" aria-label="Close sidebar overlay" className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setOpen(false)} />}
@@ -182,6 +204,27 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
           {isSuperAdmin ? (
             <>
               <div className="border-t border-white/10" />
+              <div className="space-y-1">
+                {adminMainLinks.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className={({ isActive }) =>
+                      `flex h-9 items-center gap-3 rounded-md px-3 text-[13px] font-medium whitespace-nowrap transition ${
+                        isActive
+                          ? 'bg-gradient-to-r from-[#2f8dff] to-[#316dff] text-white'
+                          : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`
+                    }
+                  >
+                    <item.icon size={15} />
+                    <span className="whitespace-nowrap">{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+
+              <div className="border-t border-white/10" />
               <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Projects</p>
 
               <div className="space-y-1">
@@ -198,7 +241,7 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <Users size={15} />
-                    <span className="min-w-0 truncate">Business Advisor</span>
+                    <span className="min-w-0 truncate">Success Advisor</span>
                   </span>
                   {baPanelOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 </button>
@@ -250,6 +293,47 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
                       <NavLink
                         key={item.to}
                         to={item.to}
+                        className={({ isActive }) =>
+                          `flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium transition ${
+                            isActive
+                              ? 'bg-gradient-to-r from-[#2f8dff] to-[#316dff] text-white'
+                              : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                          }`
+                        }
+                      >
+                        <item.icon size={14} /> <span className="min-w-0 truncate">{item.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setEmsPanelOpen((current) => !current)
+                  }}
+                  className={`flex h-9 w-full items-center justify-between gap-2 rounded-md px-3 text-left text-[13px] font-medium transition ${
+                    isEmployeeManagementPanelActive ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  }`}
+                  aria-expanded={emsPanelOpen}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Users size={15} />
+                    <span className="min-w-0 truncate">Employee Management</span>
+                  </span>
+                  {emsPanelOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </button>
+
+                {emsPanelOpen ? (
+                  <div className="ml-3 mt-1 space-y-1 border-l border-white/10 pl-2">
+                    {employeeManagementLinks.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.end}
                         className={({ isActive }) =>
                           `flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium transition ${
                             isActive

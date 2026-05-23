@@ -21,6 +21,7 @@ import {
   SUCCESS_INFO_FIELDS,
   WITNESS_FIELDS,
   calculateQuestionMarksResult,
+  candidateVisitHasContent,
   interviewHasContent,
   mapApiToCandidateForm
 } from './candidateFormModel'
@@ -38,10 +39,31 @@ const textAreaClass =
   'mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none'
 const labelClass = 'text-sm font-semibold text-slate-700'
 const cardClass = 'rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5'
+const directorAssessmentLabel = 'MR Ganesh Avhad - Director Assessment'
 
 const dateLabel = (value) => (value ? String(value).slice(0, 10) : '')
 const fieldValue = (value) => (value === null || value === undefined ? '' : String(value))
-const editablePanels = new Set(['details', 'documents', 'successInfo', 'assessment', 'interviews'])
+const siblingHasValue = (sibling = {}) =>
+  Object.values(sibling).some((value) => String(value ?? '').trim())
+const siblingRows = (familyDetails = {}) => {
+  const rows = Array.isArray(familyDetails.siblings) && familyDetails.siblings.length
+    ? familyDetails.siblings
+    : [{
+        siblingName: familyDetails.siblingName,
+        siblingEducation: familyDetails.siblingEducation || familyDetails.siblingEducationOccupation,
+        siblingMobileNumber: familyDetails.siblingMobileNumber,
+        siblingDateOfBirth: familyDetails.siblingDateOfBirth,
+        siblingAge: familyDetails.siblingAge,
+        siblingGender: familyDetails.siblingGender,
+        siblingCareerProfile: familyDetails.siblingCareerProfile,
+        siblingStudyStandard: familyDetails.siblingStudyStandard,
+        siblingStudyStandardOther: familyDetails.siblingStudyStandardOther,
+        siblingCareerProfileOther: familyDetails.siblingCareerProfileOther
+      }]
+
+  return rows.filter(siblingHasValue)
+}
+const editablePanels = new Set(['details', 'documents', 'successInfo', 'assessment', 'interviews', 'visits'])
 const panelFromSearch = (searchParams) => {
   const panel = searchParams.get('panel')
   return editablePanels.has(panel) ? panel : 'details'
@@ -226,44 +248,59 @@ const detailSearchFields = [
   ['Current Age', 'currentAge'],
   ['Gender', 'gender'],
   ['Marital Status', 'marriageStatus'],
+  ['Current Flat No / House No, Society, Landmark', 'currentAddressLine'],
   ['Current Village', 'currentAddressVillage'],
   ['Current Taluka', 'currentAddressTaluka'],
   ['Current District', 'currentAddressDistrict'],
   ['Current State', 'currentAddressState'],
+  ['Permanent Flat No / House No, Society, Landmark', 'permanentAddressLine'],
   ['Permanent Village', 'permanentAddressVillage'],
   ['Permanent Taluka', 'permanentAddressTaluka'],
   ['Permanent District', 'permanentAddressDistrict'],
   ['Permanent State', 'permanentAddressState'],
   ['Father / Husband Name', 'familyDetails.fatherOrHusbandName'],
-  ['Father Occupation', 'familyDetails.fatherOccupation'],
-  ['Father Mobile Number', 'familyDetails.fatherMobileNumber'],
+  ['Father / Husband Occupation', 'familyDetails.fatherOccupation'],
+  ['Father / Husband Mobile Number', 'familyDetails.fatherMobileNumber'],
   ['Mother / Wife Name', 'familyDetails.motherOrWifeName'],
-  ['Mother Occupation', 'familyDetails.motherOccupation'],
-  ['Mother Mobile Number', 'familyDetails.motherMobileNumber'],
-  ['Sibling Name', 'familyDetails.siblingName'],
-  ['Sibling Education', 'familyDetails.siblingEducation'],
-  ['Sibling Mobile Number', 'familyDetails.siblingMobileNumber'],
-  ['Sibling DOB', 'familyDetails.siblingDateOfBirth'],
-  ['Sibling Age', 'familyDetails.siblingAge'],
-  ['Sibling Gender', 'familyDetails.siblingGender'],
-  ['Sibling Career Profile', 'familyDetails.siblingCareerProfile'],
-  ['Sibling Study Standard', 'familyDetails.siblingStudyStandard'],
-  ['Other Study Standard', 'familyDetails.siblingStudyStandardOther'],
-  ['Other Career Profile', 'familyDetails.siblingCareerProfileOther'],
+  ['Mother / Wife Occupation', 'familyDetails.motherOccupation'],
+  ['Mother / Wife Mobile Number', 'familyDetails.motherMobileNumber'],
+  ['Sibling / Brother / Sister Name', 'familyDetails.siblingName'],
+  ['Sibling / Brother / Sister Education', 'familyDetails.siblingEducation'],
+  ['Sibling / Brother / Sister Mobile Number', 'familyDetails.siblingMobileNumber'],
+  ['Sibling / Brother / Sister DOB', 'familyDetails.siblingDateOfBirth'],
+  ['Sibling / Brother / Sister Age', 'familyDetails.siblingAge'],
+  ['Sibling / Brother / Sister Gender', 'familyDetails.siblingGender'],
+  ['Sibling / Brother / Sister Career Profile', 'familyDetails.siblingCareerProfile'],
+  ['Sibling / Brother / Sister Study Standard', 'familyDetails.siblingStudyStandard'],
+  ['Other Sibling / Brother / Sister Study Standard', 'familyDetails.siblingStudyStandardOther'],
+  ['Other Sibling / Brother / Sister Career Profile', 'familyDetails.siblingCareerProfileOther'],
   ['Highest Education Like Graduate, Post Graduate', 'educationSector'],
   ['Passing Year of Education', 'yearOfHigherEducation'],
   ['Education Branch', 'educationBranch'],
+  ['Mention Your Other Branch', 'educationBranchOther'],
   ['Special Subject / Remark', 'educationSpecialization'],
+  ['Other Special Subject / Remark', 'educationSpecializationOther'],
   ['Computer Courses', 'computerCourse'],
   ['Other Certification Courses', 'certificationCourse'],
-  ['Institute Name', 'collegeName'],
-  ['Institute Representative Name', 'placementReference.professorName'],
+  ['Training and Placement Department', 'trainingPlacementDepartment'],
+  ['College Name', 'collegeName'],
+  ['College Representative Name', 'placementReference.professorName'],
+  ['College Education Branch', 'collegeEducationBranch'],
+  ['Other College Education Branch', 'collegeEducationBranchOther'],
   ['Designation', 'instituteDesignation'],
+  ['Other Designation', 'instituteDesignationOther'],
   ['Mobile Number', 'placementReference.professorContactNumber'],
-  ['Institute/College Village', 'instituteAddressVillage'],
-  ['Institute/College Taluka', 'instituteAddressTaluka'],
-  ['Institute/College District', 'instituteAddressDistrict'],
-  ['Institute/College State', 'instituteAddressState'],
+  ['Post Graduate College Name', 'postGraduateReference.instituteName'],
+  ['Post Graduate College Representative Name', 'postGraduateReference.representativeName'],
+  ['Post Graduate College Education Branch', 'postGraduateReference.educationBranch'],
+  ['Post Graduate Other College Education Branch', 'postGraduateReference.educationBranchOther'],
+  ['Post Graduate Designation', 'postGraduateReference.designation'],
+  ['Post Graduate Other Designation', 'postGraduateReference.designationOther'],
+  ['Post Graduate Mobile Number', 'postGraduateReference.mobileNumber'],
+  ['College Village', 'instituteAddressVillage'],
+  ['College Taluka', 'instituteAddressTaluka'],
+  ['College District', 'instituteAddressDistrict'],
+  ['College State', 'instituteAddressState'],
   ['Teacher', 'collegeTeacherName'],
   ['Designation', 'collegeDesignation'],
   ['Mobile Number', 'collegeMobileNumber'],
@@ -274,6 +311,7 @@ const detailSearchFields = [
   ['Expected NET / In-hand Salary', 'expectedNetInHandSalary'],
   ['Expected Gross Per Month', 'expectedGrossSalaryPerMonth'],
   ['Expected CTC Per Month', 'expectedCtcSalaryPerMonth'],
+  ['Expected Salary Negotiable', 'expectedSalaryNegotiable'],
   ['NET / In-hand Salary', 'netInHandSalary'],
   ['Gross Per Month', 'grossSalaryPerMonth'],
   ['CTC Per Month', 'ctcSalaryPerMonth'],
@@ -288,6 +326,7 @@ const detailSearchFields = [
   ['Notice Period', 'noticePeriod'],
   ['Availability for Interview', 'availabilityForInterview'],
   ['Interview Mode', 'interviewMode'],
+  ['Online Interview Mode', 'onlineInterviewMode'],
   ['Reason For Job Change', 'reasonForJobChange'],
   ['Key Skills You Have', 'keySkillsKnowledge'],
   ['Key Job Responsibility As Per Your Experience', 'careerJobResponsibilities'],
@@ -295,6 +334,8 @@ const detailSearchFields = [
   ['Reference Name', 'placementReference.referenceBy'],
   ['Reference Mobile Number', 'placementReference.referenceContactNumber'],
   ['Reference Profile', 'referenceProfile'],
+  ['Reference Relation', 'referenceRelation'],
+  ['Other Reference Relation', 'referenceRelationOther'],
   ['Reference Source', 'referenceSources'],
   ['Other Reference Source', 'referenceSourceOther']
 ]
@@ -415,6 +456,39 @@ function TabButton({ active, label, onClick }) {
     >
       {label}
     </button>
+  )
+}
+
+function DetailStepTabs({ currentStep, onStep }) {
+  return (
+    <aside className="rounded-lg bg-white p-2 ring-1 ring-slate-200">
+      <nav className="grid gap-1.5 sm:grid-cols-2 xl:flex xl:min-w-0 xl:flex-wrap">
+        {viewDetailSteps.map((step, index) => {
+          const StepIcon = step.icon
+          const active = index === currentStep
+          const complete = index < currentStep
+          return (
+            <button
+              key={step.title}
+              type="button"
+              onClick={() => onStep(index)}
+              className={`flex min-h-8 min-w-0 items-center gap-1.5 rounded-md px-2 text-left text-xs font-semibold transition xl:min-w-[150px] ${
+                active
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : complete
+                    ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                    : 'text-slate-600 ring-1 ring-slate-100 hover:bg-slate-50'
+              }`}
+            >
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${active ? 'bg-white/15' : 'bg-white ring-1 ring-slate-200'}`}>
+                <StepIcon className="h-3 w-3" />
+              </span>
+              <span className="min-w-0 flex-1 truncate leading-5">{step.title}</span>
+            </button>
+          )
+        })}
+      </nav>
+    </aside>
   )
 }
 
@@ -723,10 +797,89 @@ const viewPanelLabels = {
   documents: 'Documents',
   successInfo: 'Success Info For Candidate',
   assessment: 'Success Interviewer Remark',
-  interviews: 'Company Interviews'
+  interviews: 'Company Interviews',
+  visits: 'Number of Visits'
 }
 
-const createSearchItem = ({ label, panel, group = '', value = '', targetKey = '', interviewId = '', documentInterviewId = '' }) => {
+const viewDetailSteps = [
+  { title: 'Personal Details', icon: UserRound },
+  { title: 'Education Details', icon: ClipboardList },
+  { title: 'Professional Details', icon: BriefcaseBusiness },
+  { title: 'Reference Success Details', icon: Users }
+]
+
+const detailStepForPath = (path = '') => {
+  const value = String(path || '')
+  if (
+    value.startsWith('familyDetails.') ||
+    [
+      'fullName',
+      'mobile',
+      'whatsappNo',
+      'email',
+      'aadhaarNo',
+      'panNo',
+      'dateOfBirth',
+      'currentAge',
+      'gender',
+      'marriageStatus'
+    ].includes(value) ||
+    value.startsWith('currentAddress') ||
+    value.startsWith('permanentAddress')
+  ) {
+    return 0
+  }
+  if (
+    value.startsWith('education') ||
+    value.startsWith('postGraduateReference.') ||
+    value.startsWith('instituteAddress') ||
+    value.startsWith('college') ||
+    value.startsWith('placementReference.professor') ||
+    [
+      'yearOfHigherEducation',
+      'computerCourse',
+      'certificationCourse',
+      'trainingPlacementDepartment',
+      'instituteDesignation'
+    ].includes(value)
+  ) {
+    return 1
+  }
+  if (
+    [
+      'interestedDepartment',
+      'preferredIndustry',
+      'industrySpecialization',
+      'expectedNetInHandSalary',
+      'expectedGrossSalaryPerMonth',
+      'expectedCtcSalaryPerMonth',
+      'expectedSalaryNegotiable',
+      'netInHandSalary',
+      'grossSalaryPerMonth',
+      'ctcSalaryPerMonth',
+      'currentJobLocation',
+      'currentJobLocationOther',
+      'currentJobLocationMidcArea',
+      'currentJobLocationMidcAreaOther',
+      'preferredJobLocation',
+      'jobWorkingStatus',
+      'experienceType',
+      'totalExperience',
+      'noticePeriod',
+      'availabilityForInterview',
+      'interviewMode',
+      'onlineInterviewMode',
+      'reasonForJobChange',
+      'keySkillsKnowledge',
+      'careerJobResponsibilities'
+    ].includes(value)
+  ) {
+    return 2
+  }
+  return 3
+}
+
+const createSearchItem = ({ label, panel, group = '', value = '', targetKey = '', interviewId = '', documentInterviewId = '', detailStep = null }) => {
   const valueText = previewSearchValue(value)
   return {
     label,
@@ -735,6 +888,7 @@ const createSearchItem = ({ label, panel, group = '', value = '', targetKey = ''
     valueText,
     interviewId,
     documentInterviewId,
+    detailStep,
     panelLabel: viewPanelLabels[panel] || panel,
     targetKey: targetKey || globalFieldKey('field', label),
     searchText: normalizeGlobalSearch([label, viewPanelLabels[panel], group, compactSearchValue(value)].filter(Boolean).join(' '))
@@ -748,13 +902,14 @@ const buildViewSearchItems = (candidate, visibleInterviews = []) => {
       panel: 'details',
       group: 'Panel',
       value: candidate.fullName,
-      targetKey: globalFieldKey('section', 'Personal Details')
+      targetKey: globalFieldKey('section', 'Personal Details'),
+      detailStep: 0
     })
   ]
 
   detailSearchFields.forEach(([label, path]) => {
     const value = path === 'familyDetails.siblingEducation' ? pathValue(candidate, path) || pathValue(candidate, 'familyDetails.siblingEducationOccupation') : pathValue(candidate, path)
-    items.push(createSearchItem({ label, panel: 'details', group: 'Candidate Details', value }))
+    items.push(createSearchItem({ label, panel: 'details', group: 'Candidate Details', value, detailStep: detailStepForPath(path) }))
   })
 
   const candidateDocumentsByType = groupCandidateDocumentsByType(candidate.documents)
@@ -873,7 +1028,7 @@ const buildViewSearchItems = (candidate, visibleInterviews = []) => {
       createSearchItem({
         label: field.label,
         panel: 'assessment',
-        group: 'Director Assessment',
+        group: directorAssessmentLabel,
         value: candidate.interviewForm.directorAssessment?.[field.key],
         targetKey: globalFieldKey('assessment', `Director Assessment-${field.key}`)
       })
@@ -896,7 +1051,7 @@ const buildViewSearchItems = (candidate, visibleInterviews = []) => {
     ['Counseling Of Candidate', 'managerAssessment'],
     ['Counseling Mode', 'managerAssessment']
   ].forEach(([label, bucket]) => {
-    const group = bucket === 'directorAssessment' ? 'Director Assessment' : 'Manager Assessment'
+    const group = bucket === 'directorAssessment' ? directorAssessmentLabel : 'Manager Assessment'
     const key = label === 'Counseling Mode' ? 'counselingMode' : 'counselingOfCandidate'
     items.push(
       createSearchItem({
@@ -951,6 +1106,35 @@ const buildViewSearchItems = (candidate, visibleInterviews = []) => {
     )
   })
 
+  ;(candidate.candidateVisits || []).filter(candidateVisitHasContent).forEach((row, index) => {
+    const visitLabel = `Visit ${index + 1}`
+    items.push(
+      createSearchItem({
+        label: visitLabel,
+        panel: 'visits',
+        group: 'Candidate Visits',
+        value: [row.visitDateTime, row.purpose, row.purposeOther, row.meetingStaffName, row.communicationDetails],
+        targetKey: globalFieldKey('visitRow', row.id || index)
+      })
+    )
+    ;[
+      ['Date and Time of Visit', row.visitDateTime],
+      ['Purpose for Visit', row.purpose === 'Other' ? row.purposeOther : row.purpose],
+      ['Meeting Staff Name', row.meetingStaffName],
+      ['Communication Details', row.communicationDetails]
+    ].forEach(([label, value]) => {
+      items.push(
+        createSearchItem({
+          label,
+          panel: 'visits',
+          group: visitLabel,
+          value,
+          targetKey: globalFieldKey('visitRow', row.id || index)
+        })
+      )
+    })
+  })
+
   return items
 }
 
@@ -989,6 +1173,45 @@ function InterviewDetailsPanel({ row, candidateName, onClose }) {
   )
 }
 
+function CandidateVisitsView({ visits, onEditHint }) {
+  const rows = (Array.isArray(visits) ? visits : []).filter(candidateVisitHasContent)
+
+  return (
+    <Section title="Number of Visits" icon={ClipboardList} searchKey={globalFieldKey('section', 'Number of Visits')}>
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+        <p className="text-xs font-bold uppercase text-slate-500">Candidate Visit Count</p>
+        <p className="mt-1 text-lg font-bold text-slate-950">{rows.length}</p>
+      </div>
+
+      {rows.length ? (
+        <div className="space-y-4">
+          {rows.map((visit, index) => (
+            <div key={visit.id || index} className="rounded-xl border border-slate-200 bg-white p-4" data-global-field={globalFieldKey('visitRow', visit.id || index)}>
+              <h3 className="mb-3 text-sm font-bold text-slate-900">Visit {index + 1}</h3>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <Field label="Date and Time of Visit">
+                  <ReadOnlyInput value={visit.visitDateTime} onEditHint={onEditHint} />
+                </Field>
+                <Field label="Purpose for Visit">
+                  <ReadOnlyInput value={visit.purpose === 'Other' ? visit.purposeOther : visit.purpose} onEditHint={onEditHint} />
+                </Field>
+                <Field label="Meeting Staff Name">
+                  <ReadOnlyInput value={visit.meetingStaffName} onEditHint={onEditHint} />
+                </Field>
+                <Field label="Communication Details" className="md:col-span-2 xl:col-span-3">
+                  <ReadOnlyTextArea value={visit.communicationDetails} onEditHint={onEditHint} />
+                </Field>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-lg bg-slate-50 px-3 py-4 text-sm font-semibold text-slate-500">No candidate visits added yet.</p>
+      )}
+    </Section>
+  )
+}
+
 export default function CandidateDetail() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -998,6 +1221,7 @@ export default function CandidateDetail() {
   const [selectedInterview, setSelectedInterview] = useState(null)
   const [deletingInterview, setDeletingInterview] = useState(null)
   const [documentInterviewId, setDocumentInterviewId] = useState('')
+  const [candidateDetailsStep, setCandidateDetailsStep] = useState(0)
   const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   const [previewDoc, setPreviewDoc] = useState(null)
   const viewOnly = searchParams.get('viewOnly') === '1'
@@ -1086,6 +1310,9 @@ export default function CandidateDetail() {
     : [candidate.successInfo || {}]
   const selectGlobalSearchResult = (item) => {
     setActivePanel(item.panel)
+    if (item.panel === 'details' && Number.isInteger(item.detailStep)) {
+      setCandidateDetailsStep(Math.max(0, Math.min(item.detailStep, viewDetailSteps.length - 1)))
+    }
 
     if (item.interviewId) {
       const match = visibleInterviews.find((row) => String(row.id) === String(item.interviewId))
@@ -1206,10 +1433,14 @@ export default function CandidateDetail() {
         <TabButton active={activePanel === 'successInfo'} label="Success Info For Candidate" onClick={() => setActivePanel('successInfo')} />
         <TabButton active={activePanel === 'assessment'} label="Success Interviewer Remark" onClick={() => setActivePanel('assessment')} />
         <TabButton active={activePanel === 'interviews'} label="Company Interviews" onClick={() => setActivePanel('interviews')} />
+        <TabButton active={activePanel === 'visits'} label="Number of Visits" onClick={() => setActivePanel('visits')} />
       </div>
 
       {activePanel === 'details' ? (
         <>
+          <DetailStepTabs currentStep={candidateDetailsStep} onStep={setCandidateDetailsStep} />
+
+          {candidateDetailsStep === 0 ? (
           <Section title="Personal Details" icon={UserRound}>
             <FieldGroup title="All Details" icon={UserRound}>
               <Field label="Candidate Name">
@@ -1242,6 +1473,9 @@ export default function CandidateDetail() {
               <Field label="Marital Status">
                 <ReadOnlyInput value={candidate.marriageStatus} onEditHint={showEditHint} />
               </Field>
+              <Field label="Current Flat No / House No, Society, Landmark">
+                <ReadOnlyInput value={candidate.currentAddressLine} onEditHint={showEditHint} />
+              </Field>
               <Field label="Current Village">
                 <ReadOnlyInput value={candidate.currentAddressVillage} onEditHint={showEditHint} />
               </Field>
@@ -1253,6 +1487,9 @@ export default function CandidateDetail() {
               </Field>
               <Field label="Current State">
                 <ReadOnlyInput value={candidate.currentAddressState} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Permanent Flat No / House No, Society, Landmark">
+                <ReadOnlyInput value={candidate.permanentAddressLine} onEditHint={showEditHint} />
               </Field>
               <Field label="Permanent Village">
                 <ReadOnlyInput value={candidate.permanentAddressVillage} onEditHint={showEditHint} />
@@ -1272,54 +1509,72 @@ export default function CandidateDetail() {
               <Field label="Father / Husband Name">
                 <ReadOnlyInput value={candidate.familyDetails.fatherOrHusbandName} onEditHint={showEditHint} />
               </Field>
-              <Field label="Father Occupation">
+              <Field label="Father / Husband Occupation">
                 <ReadOnlyInput value={candidate.familyDetails.fatherOccupation} onEditHint={showEditHint} />
               </Field>
-              <Field label="Father Mobile Number">
+              <Field label="Father / Husband Mobile Number">
                 <ReadOnlyInput value={candidate.familyDetails.fatherMobileNumber} onEditHint={showEditHint} />
               </Field>
               <Field label="Mother / Wife Name">
                 <ReadOnlyInput value={candidate.familyDetails.motherOrWifeName} onEditHint={showEditHint} />
               </Field>
-              <Field label="Mother Occupation">
+              <Field label="Mother / Wife Occupation">
                 <ReadOnlyInput value={candidate.familyDetails.motherOccupation} onEditHint={showEditHint} />
               </Field>
-              <Field label="Mother Mobile Number">
+              <Field label="Mother / Wife Mobile Number">
                 <ReadOnlyInput value={candidate.familyDetails.motherMobileNumber} onEditHint={showEditHint} />
               </Field>
-              <Field label="Sibling Name">
-                <ReadOnlyInput value={candidate.familyDetails.siblingName} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Sibling Education">
-                <ReadOnlyInput value={candidate.familyDetails.siblingEducation || candidate.familyDetails.siblingEducationOccupation} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Sibling Mobile Number">
-                <ReadOnlyInput value={candidate.familyDetails.siblingMobileNumber} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Sibling DOB">
-                <ReadOnlyInput type="date" value={candidate.familyDetails.siblingDateOfBirth} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Sibling Age">
-                <ReadOnlyInput type="number" value={candidate.familyDetails.siblingAge} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Sibling Gender">
-                <ReadOnlyInput value={candidate.familyDetails.siblingGender} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Sibling Career Profile">
-                <ReadOnlyInput value={candidate.familyDetails.siblingCareerProfile} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Sibling Study Standard">
-                <ReadOnlyInput value={candidate.familyDetails.siblingStudyStandard} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Other Study Standard">
-                <ReadOnlyInput value={candidate.familyDetails.siblingStudyStandardOther} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Other Career Profile">
-                <ReadOnlyInput value={candidate.familyDetails.siblingCareerProfileOther} onEditHint={showEditHint} />
-              </Field>
+              <div className="md:col-span-2 xl:col-span-3">
+                <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                  <p className="text-sm font-bold text-slate-800">Sibling Details</p>
+                  {siblingRows(candidate.familyDetails).length ? (
+                    siblingRows(candidate.familyDetails).map((sibling, siblingIndex) => (
+                      <div key={siblingIndex} className="rounded-lg border border-slate-200 bg-white p-3">
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Sibling {siblingIndex + 1}</p>
+                        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          <Field label="Sibling / Brother / Sister Name">
+                            <ReadOnlyInput value={sibling.siblingName} onEditHint={showEditHint} />
+                          </Field>
+                          <Field label="Sibling / Brother / Sister Education">
+                            <ReadOnlyInput value={sibling.siblingEducation || sibling.siblingEducationOccupation} onEditHint={showEditHint} />
+                          </Field>
+                          <Field label="Sibling / Brother / Sister Mobile Number">
+                            <ReadOnlyInput value={sibling.siblingMobileNumber} onEditHint={showEditHint} />
+                          </Field>
+                          <Field label="Sibling / Brother / Sister DOB">
+                            <ReadOnlyInput type="date" value={sibling.siblingDateOfBirth} onEditHint={showEditHint} />
+                          </Field>
+                          <Field label="Sibling / Brother / Sister Age">
+                            <ReadOnlyInput type="number" value={sibling.siblingAge} onEditHint={showEditHint} />
+                          </Field>
+                          <Field label="Sibling / Brother / Sister Gender">
+                            <ReadOnlyInput value={sibling.siblingGender} onEditHint={showEditHint} />
+                          </Field>
+                          <Field label="Sibling / Brother / Sister Career Profile">
+                            <ReadOnlyInput value={sibling.siblingCareerProfile} onEditHint={showEditHint} />
+                          </Field>
+                          <Field label="Sibling / Brother / Sister Study Standard">
+                            <ReadOnlyInput value={sibling.siblingStudyStandard} onEditHint={showEditHint} />
+                          </Field>
+                          <Field label="Other Sibling / Brother / Sister Study Standard">
+                            <ReadOnlyInput value={sibling.siblingStudyStandardOther} onEditHint={showEditHint} />
+                          </Field>
+                          <Field label="Other Sibling / Brother / Sister Career Profile">
+                            <ReadOnlyInput value={sibling.siblingCareerProfileOther} onEditHint={showEditHint} />
+                          </Field>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="rounded-lg bg-white px-3 py-3 text-sm font-semibold text-slate-500">No sibling details added.</p>
+                  )}
+                </div>
+              </div>
             </FieldGroup>
           </Section>
+          ) : null}
 
+          {candidateDetailsStep === 1 ? (
           <Section title="Education Details" icon={ClipboardList}>
             <FieldGroup title="Education">
               <Field label="Highest Education Like Graduate, Post Graduate">
@@ -1329,10 +1584,10 @@ export default function CandidateDetail() {
                 <ReadOnlyInput value={candidate.yearOfHigherEducation} onEditHint={showEditHint} />
               </Field>
               <Field label="Education Branch">
-                <ReadOnlyInput value={candidate.educationBranch} onEditHint={showEditHint} />
+                <ReadOnlyInput value={candidate.educationBranch === 'Other' ? candidate.educationBranchOther : candidate.educationBranch} onEditHint={showEditHint} />
               </Field>
               <Field label="Special Subject / Remark">
-                <ReadOnlyInput value={candidate.educationSpecialization} onEditHint={showEditHint} />
+                <ReadOnlyInput value={candidate.educationSpecialization === 'Other' ? candidate.educationSpecializationOther : candidate.educationSpecialization} onEditHint={showEditHint} />
               </Field>
               <Field label="Computer Courses">
                 <ReadOnlyInput value={candidate.computerCourse} onEditHint={showEditHint} />
@@ -1342,34 +1597,64 @@ export default function CandidateDetail() {
               </Field>
             </FieldGroup>
 
-            <FieldGroup title="Institute Reference Details">
-              <Field label="Institute Name">
+            <FieldGroup title="College Reference Details (Like 12th, ITI, Diploma, Graduate)">
+              <Field label="Training and Placement Department">
+                <ReadOnlyInput value={candidate.trainingPlacementDepartment} onEditHint={showEditHint} />
+              </Field>
+              <Field label="College Name">
                 <ReadOnlyInput value={candidate.collegeName} onEditHint={showEditHint} />
               </Field>
-              <Field label="Institute Representative Name">
+              <Field label="College Representative Name">
                 <ReadOnlyInput value={candidate.placementReference.professorName} onEditHint={showEditHint} />
               </Field>
+              <Field label="College Education Branch">
+                <ReadOnlyInput value={candidate.collegeEducationBranch === 'Other' ? candidate.collegeEducationBranchOther : candidate.collegeEducationBranch} onEditHint={showEditHint} />
+              </Field>
               <Field label="Designation">
-                <ReadOnlyInput value={candidate.instituteDesignation} onEditHint={showEditHint} />
+                <ReadOnlyInput value={candidate.instituteDesignation === 'Other' ? candidate.instituteDesignationOther : candidate.instituteDesignation} onEditHint={showEditHint} />
               </Field>
               <Field label="Mobile Number">
                 <ReadOnlyInput value={candidate.placementReference.professorContactNumber} onEditHint={showEditHint} />
               </Field>
-              <Field label="Institute/College Village">
+              <Field label="College Village">
                 <ReadOnlyInput value={candidate.instituteAddressVillage} onEditHint={showEditHint} />
               </Field>
-              <Field label="Institute/College Taluka">
+              <Field label="College Taluka">
                 <ReadOnlyInput value={candidate.instituteAddressTaluka} onEditHint={showEditHint} />
               </Field>
-              <Field label="Institute/College District">
+              <Field label="College District">
                 <ReadOnlyInput value={candidate.instituteAddressDistrict} onEditHint={showEditHint} />
               </Field>
-              <Field label="Institute/College State">
+              <Field label="College State">
                 <ReadOnlyInput value={candidate.instituteAddressState} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
 
-            <FieldGroup title="Institute Details">
+            <FieldGroup title="Post Graduate Reference Details">
+              <Field label="College Name">
+                <ReadOnlyInput value={candidate.postGraduateReference?.instituteName} onEditHint={showEditHint} />
+              </Field>
+              <Field label="College Representative Name">
+                <ReadOnlyInput value={candidate.postGraduateReference?.representativeName} onEditHint={showEditHint} />
+              </Field>
+              <Field label="College Education Branch">
+                <ReadOnlyInput
+                  value={candidate.postGraduateReference?.educationBranch === 'Other' ? candidate.postGraduateReference?.educationBranchOther : candidate.postGraduateReference?.educationBranch}
+                  onEditHint={showEditHint}
+                />
+              </Field>
+              <Field label="Designation">
+                <ReadOnlyInput
+                  value={candidate.postGraduateReference?.designation === 'Other' ? candidate.postGraduateReference?.designationOther : candidate.postGraduateReference?.designation}
+                  onEditHint={showEditHint}
+                />
+              </Field>
+              <Field label="Mobile Number">
+                <ReadOnlyInput value={candidate.postGraduateReference?.mobileNumber} onEditHint={showEditHint} />
+              </Field>
+            </FieldGroup>
+
+            <FieldGroup title="Institute Details (Private Coaching Classes)">
               <Field label="Teacher">
                 <ReadOnlyInput value={candidate.collegeTeacherName} onEditHint={showEditHint} />
               </Field>
@@ -1384,7 +1669,9 @@ export default function CandidateDetail() {
               </Field>
             </FieldGroup>
           </Section>
+          ) : null}
 
+          {candidateDetailsStep === 2 ? (
           <Section title="Professional Details" icon={BriefcaseBusiness}>
             <FieldGroup title="Job Preference" icon={MapPin}>
               <Field label="Preferred Department">
@@ -1407,6 +1694,9 @@ export default function CandidateDetail() {
               </Field>
               <Field label="Expected CTC Per Month">
                 <ReadOnlyInput value={candidate.expectedCtcSalaryPerMonth} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Expected Salary Negotiable">
+                <ReadOnlyInput value={candidate.expectedSalaryNegotiable} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
 
@@ -1465,6 +1755,9 @@ export default function CandidateDetail() {
               <Field label="Interview Mode">
                 <ReadOnlyInput value={candidate.interviewMode} onEditHint={showEditHint} />
               </Field>
+              <Field label="Online Interview Mode">
+                <ReadOnlyInput value={candidate.onlineInterviewMode} onEditHint={showEditHint} />
+              </Field>
             </FieldGroup>
 
             <FieldGroup title="Reason For Job Change">
@@ -1485,7 +1778,9 @@ export default function CandidateDetail() {
               </Field>
             </FieldGroup>
           </Section>
+          ) : null}
 
+          {candidateDetailsStep === 3 ? (
           <Section title="Reference Success Details" icon={Users}>
             <FieldGroup title="Reference Details">
               <Field label="Business Advisor Code">
@@ -1500,6 +1795,9 @@ export default function CandidateDetail() {
               <Field label="Reference Profile">
                 <ReadOnlyInput value={candidate.referenceProfile} onEditHint={showEditHint} />
               </Field>
+              <Field label="Reference Relation">
+                <ReadOnlyInput value={candidate.referenceRelation === 'Other' ? candidate.referenceRelationOther : candidate.referenceRelation} onEditHint={showEditHint} />
+              </Field>
               <Field label="Reference Source" className="md:col-span-2 xl:col-span-3">
                 <ReadOnlyInput value={(candidate.referenceSources || []).join(', ')} onEditHint={showEditHint} />
               </Field>
@@ -1510,6 +1808,7 @@ export default function CandidateDetail() {
               ) : null}
             </FieldGroup>
           </Section>
+          ) : null}
         </>
       ) : null}
 
@@ -1650,7 +1949,7 @@ export default function CandidateDetail() {
             <p className="mt-1 text-base font-bold text-slate-950">{candidate.fullName || '-'}</p>
           </div>
 
-          <AssessmentView title="Director Assessment" fields={DIRECTOR_ASSESSMENT_FIELDS} assessment={candidate.interviewForm.directorAssessment} onEditHint={showEditHint} />
+          <AssessmentView title={directorAssessmentLabel} fields={DIRECTOR_ASSESSMENT_FIELDS} assessment={candidate.interviewForm.directorAssessment} onEditHint={showEditHint} />
           <AssessmentView title="Manager Assessment" fields={MANAGER_ASSESSMENT_FIELDS} assessment={candidate.interviewForm.managerAssessment} onEditHint={showEditHint} />
 
           <div className="grid gap-4 xl:grid-cols-2">
@@ -1750,6 +2049,10 @@ export default function CandidateDetail() {
           </div>
           <InterviewDetailsPanel row={selectedInterview} candidateName={candidate.fullName} onClose={() => setSelectedInterview(null)} />
         </Section>
+      ) : null}
+
+      {activePanel === 'visits' ? (
+        <CandidateVisitsView visits={candidate.candidateVisits} onEditHint={showEditHint} />
       ) : null}
 
       <ConfirmDialog

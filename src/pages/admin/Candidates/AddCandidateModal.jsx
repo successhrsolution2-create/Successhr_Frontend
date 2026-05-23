@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { X, UploadCloud } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -141,7 +141,7 @@ export default function AddCandidateModal({ open, onClose }) {
         {/* SECTION 2 */}
         <Section title="Education">
           <Input label="Highest Qualification" value={form.education} onChange={(v) => update('education', v)} />
-          <Input label="College/Institute Name" value={form.college} onChange={(v) => update('college', v)} />
+          <Input label="College Name" value={form.college} onChange={(v) => update('college', v)} />
           <Input label="Professor/Staff/TPO Name" value={form.professorName} onChange={(v) => update('professorName', v)} />
           <Input label="Professor/Staff/TPO Contact" value={form.professorContact} onChange={(v) => update('professorContact', v)} />
           <Input label="Passing Year" value={form.passingYear} onChange={(v) => update('passingYear', v)} />
@@ -174,8 +174,8 @@ export default function AddCandidateModal({ open, onClose }) {
         {/* SECTION 5 */}
         <Section title="Family Details">
           <Input label="Mother Name" value={form.motherName} onChange={(v) => update('motherName', v)} />
-          <Input label="Mother Mobile Number" value={form.motherMobile} onChange={(v) => update('motherMobile', v)} />
-          <Input label="Mother Occupation" value={form.motherOccupation} onChange={(v) => update('motherOccupation', v)} />
+          <Input label="Mother / Wife Mobile Number" value={form.motherMobile} onChange={(v) => update('motherMobile', v)} />
+          <Input label="Mother / Wife Occupation" value={form.motherOccupation} onChange={(v) => update('motherOccupation', v)} />
           <Input label="Father/Husband Name" value={form.fatherName} onChange={(v) => update('fatherName', v)} />
           <Input label="Father/Husband Mobile Number" value={form.fatherMobile} onChange={(v) => update('fatherMobile', v)} />
           <Input label="Father/Husband Occupation" value={form.fatherOccupation} onChange={(v) => update('fatherOccupation', v)} />

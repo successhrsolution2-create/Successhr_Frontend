@@ -124,6 +124,20 @@ export const candidateDocumentTypes = [
     typeMessage: 'only JPG, PNG, or PDF files are allowed'
   },
   {
+    key: 'sapCertification',
+    label: 'SAP Certification',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'cCppCertification',
+    label: 'C/C++ Certification',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
     key: 'computerCourseCertificate',
     label: 'Other Computer Course Certificate',
     accept: letterAccept,
@@ -177,7 +191,7 @@ export const successDocumentTypes = [
   },
   {
     key: 'hamiPatra',
-    label: 'HP - Hami Patra',
+    label: 'Registration Declaration Form',
     accept: letterAccept,
     allowedTypes: letterTypes,
     typeMessage: 'only JPG, PNG, or PDF files are allowed'
@@ -198,7 +212,14 @@ export const successDocumentTypes = [
   },
   {
     key: 'jobJoiningHamiPatra',
-    label: 'Job Joining Hami Patra',
+    label: 'Job Joining Declaration Form',
+    accept: letterAccept,
+    allowedTypes: letterTypes,
+    typeMessage: 'only JPG, PNG, or PDF files are allowed'
+  },
+  {
+    key: 'jobJoiningDocumentLetter',
+    label: 'Job Joining Document Letter',
     accept: letterAccept,
     allowedTypes: letterTypes,
     typeMessage: 'only JPG, PNG, or PDF files are allowed'
@@ -230,6 +251,8 @@ export const computerCourseDocumentKeys = new Set([
   'autoCadCertificate',
   'typingCertificate',
   'catiaCertificate',
+  'sapCertification',
+  'cCppCertification',
   'computerCourseCertificate',
   'otherCertificationCertificate'
 ])

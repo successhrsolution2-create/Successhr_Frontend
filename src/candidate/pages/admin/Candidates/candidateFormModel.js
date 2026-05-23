@@ -6,7 +6,9 @@ export const DIRECTOR_MODE_VALUES = ['Online', 'Offline']
 export const QUESTION_CHOICES = ['A', 'B', 'C']
 export const INTERVIEW_QUESTION_COUNT = 10
 export const QUESTION_MARK_MAX = 10
-export const COMPUTER_COURSE_ASSESSMENT_COURSES = ['MSCIT', 'Tally', 'Typing-E', 'M', 'DTP', 'CCC', 'Advance Excel', 'MS-Office']
+export const COMPUTER_COURSE_ASSESSMENT_COURSES = ['Word', 'Excel', 'Tally', 'AutoCAD', 'CATIA', 'SolidWorks', 'CCC', 'Advance Excel', 'MS Office', 'DTP', 'M', 'MS-CIT']
+export const TYPING_LANGUAGE_OPTIONS = ['English', 'Marathi']
+export const TYPING_SPEED_OPTIONS = ['30', '40', '60']
 
 export const PROFESSIONAL_RATING_FIELDS = [
   { key: 'qualification', label: 'Qualification' },
@@ -43,20 +45,23 @@ export const MANAGER_ASSESSMENT_FIELDS = [
 export const WITNESS_FIELDS = [
   { key: 'witnessName', label: 'Witness Name' },
   { key: 'witnessMobileNumber', label: 'Witness Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
-  { key: 'witnessEducation', label: 'Witness Education' },
+  {
+    key: 'witnessEducation',
+    label: 'Witness Education',
+    options: ['', 'Below 10th', '10th Pass', '12th Pass', 'ITI', 'Diploma', 'Graduate', 'Post Graduate', 'Professional Degree', 'Doctorate', 'Other']
+  },
+  { key: 'witnessEducationOther', label: 'Other Witness Education', showWhen: { key: 'witnessEducation', value: 'Other' } },
   { key: 'witnessCareerProfile', label: 'Witness Career Profile', options: ['', 'Business', 'Professional', 'Government Job', 'Private Job', 'Farmer'] },
   { key: 'witnessRelation', label: 'Witness Relation', options: ['', 'Mother', 'Father', 'Brother', 'Sister', 'Relative', 'Other'] },
   { key: 'witnessRelationOther', label: 'Mention Other Relation', showWhen: { key: 'witnessRelation', value: 'Other' } }
 ]
 
 export const SUCCESS_INFO_FIELDS = [
-  { kind: 'section', label: 'Other Details' },
+  { kind: 'section', label: 'Details' },
   { key: 'numberSave', label: 'Number Save', options: ['', 'Yes', 'No'] },
   { key: 'groupJoin', label: 'Group Join', options: ['', 'Yes', 'No'] },
   { key: 'byWhichStaff', label: 'By Which Staff' },
-  { key: 'candidateClass', label: 'Class Of Candidate' },
-  { key: 'reference', label: 'Reference' },
-  { key: 'referenceMobileNo', label: 'Reference Mobile No' },
+  { key: 'candidateClass', label: 'Class Of Candidate', options: ['', '1', '2', '3', '4', '5'] },
   { key: 'whatsappChannelCommunity', label: 'WhatsApp Channel / Community', options: ['', 'Yes', 'No'] },
   { key: 'candidateRegistrationStatus', label: 'Candidate Registration Status', options: ['', 'Registered Candidate', 'Non Registered Candidate'] },
   { key: 'candidateDataSource', label: 'Candidates Data (College/Institute/Company)' },
@@ -69,12 +74,112 @@ const text = (value) => String(value ?? '')
 
 const dateInput = (value) => (value ? String(value).slice(0, 10) : '')
 
-const addressPartKeys = ['village', 'taluka', 'district', 'state']
+export const emptySiblingDetails = () => ({
+  siblingName: '',
+  siblingEducation: '',
+  siblingMobileNumber: '',
+  siblingDateOfBirth: '',
+  siblingAge: '',
+  siblingGender: '',
+  siblingStudyStandard: '',
+  siblingStudyStandardOther: '',
+  siblingCareerProfile: '',
+  siblingCareerProfileOther: ''
+})
+
+const normalizeSiblingDetails = (value = {}) => ({
+  ...emptySiblingDetails(),
+  siblingName: text(value?.siblingName).trim(),
+  siblingEducation: text(value?.siblingEducation || value?.siblingEducationOccupation).trim(),
+  siblingMobileNumber: text(value?.siblingMobileNumber).replace(/\D/g, ''),
+  siblingDateOfBirth: dateInput(value?.siblingDateOfBirth),
+  siblingAge: value?.siblingAge ?? '',
+  siblingGender: text(value?.siblingGender).trim(),
+  siblingStudyStandard: text(value?.siblingStudyStandard).trim(),
+  siblingStudyStandardOther: text(value?.siblingStudyStandardOther).trim(),
+  siblingCareerProfile: text(value?.siblingCareerProfile).trim(),
+  siblingCareerProfileOther: text(value?.siblingCareerProfileOther).trim()
+})
+
+const siblingHasValue = (sibling = {}) =>
+  Object.values(sibling).some((value) => String(value ?? '').trim())
+
+const siblingListFromFamily = (...sources) => {
+  const rawSiblings = sources
+    .flatMap((source) => (Array.isArray(source?.siblings) ? source.siblings : []))
+    .map((item) => normalizeSiblingDetails(item))
+    .filter(siblingHasValue)
+
+  if (rawSiblings.length) return rawSiblings
+
+  const legacySibling = normalizeSiblingDetails(
+    sources.find((source) => siblingHasValue(normalizeSiblingDetails(source))) || {}
+  )
+
+  return siblingHasValue(legacySibling) ? [legacySibling] : [emptySiblingDetails()]
+}
+
+const siblingLegacyFields = (siblings = []) => {
+  const firstSibling = Array.isArray(siblings) && siblings.length ? normalizeSiblingDetails(siblings[0]) : emptySiblingDetails()
+
+  return {
+    siblingName: firstSibling.siblingName,
+    siblingEducation: firstSibling.siblingEducation,
+    siblingMobileNumber: firstSibling.siblingMobileNumber,
+    siblingDateOfBirth: firstSibling.siblingDateOfBirth,
+    siblingAge: firstSibling.siblingAge,
+    siblingGender: firstSibling.siblingGender,
+    siblingStudyStandard: firstSibling.siblingCareerProfile === 'Studying' ? firstSibling.siblingStudyStandard : '',
+    siblingStudyStandardOther: firstSibling.siblingCareerProfile === 'Studying' && firstSibling.siblingStudyStandard === 'Other' ? firstSibling.siblingStudyStandardOther : '',
+    siblingCareerProfile: firstSibling.siblingCareerProfile,
+    siblingCareerProfileOther: firstSibling.siblingCareerProfile === 'Other' ? firstSibling.siblingCareerProfileOther : ''
+  }
+}
+
+const normalizedSiblingListForPayload = (siblings = []) =>
+  (Array.isArray(siblings) && siblings.length ? siblings : [emptySiblingDetails()])
+    .map((item) => {
+      const sibling = normalizeSiblingDetails(item)
+      return {
+        ...sibling,
+        siblingStudyStandard: sibling.siblingCareerProfile === 'Studying' ? sibling.siblingStudyStandard : '',
+        siblingStudyStandardOther: sibling.siblingCareerProfile === 'Studying' && sibling.siblingStudyStandard === 'Other' ? sibling.siblingStudyStandardOther : '',
+        siblingCareerProfileOther: sibling.siblingCareerProfile === 'Other' ? sibling.siblingCareerProfileOther : ''
+      }
+    })
+    .filter(siblingHasValue)
+
+const addressPartKeys = ['addressLine', 'village', 'taluka', 'district', 'state']
+const addressPartLabels = {
+  addressLine: 'Flat No / House No, Society, Landmark',
+  village: 'Village',
+  taluka: 'Taluka',
+  district: 'District',
+  state: 'State'
+}
+const addressPartLabelAliases = {
+  addressLine: ['Flat No / House No, Society, Landmark', 'Flat / House No, Society, Landmark', 'Address Line'],
+  village: ['Village'],
+  taluka: ['Taluka'],
+  district: ['District'],
+  state: ['State']
+}
+const addressFieldPath = (prefix, key) =>
+  `${prefix}${key === 'addressLine' ? 'Line' : `${key[0].toUpperCase()}${key.slice(1)}`}`
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const addressLabelPattern = Object.values(addressPartLabelAliases)
+  .flat()
+  .map(escapeRegExp)
+  .join('|')
 
 const parseAddressParts = (value) => {
   if (value && typeof value === 'object') {
     return addressPartKeys.reduce((acc, key) => {
-      acc[key] = text(value[key]).trim()
+      acc[key] = text(
+        key === 'addressLine'
+          ? value.addressLine || value.line || value.addressDetails || value.flatHouseSocietyLandmark
+          : value[key]
+      ).trim()
       return acc
     }, {})
   }
@@ -87,34 +192,22 @@ const parseAddressParts = (value) => {
 
   if (!raw) return parts
 
-  const labels = {
-    village: 'Village',
-    taluka: 'Taluka',
-    district: 'District',
-    state: 'State'
-  }
-
   addressPartKeys.forEach((key) => {
-    const match = raw.match(new RegExp(`${labels[key]}\\s*:\\s*([^,]+)`, 'i'))
+    const keyLabelPattern = addressPartLabelAliases[key].map(escapeRegExp).join('|')
+    const match = raw.match(new RegExp(`(?:^|,\\s*)(?:${keyLabelPattern})\\s*:\\s*([\\s\\S]*?)(?=,\\s*(?:${addressLabelPattern})\\s*:|$)`, 'i'))
     if (match) parts[key] = text(match[1]).trim()
   })
 
   if (!Object.values(parts).some(Boolean)) {
-    parts.village = raw
+    parts.addressLine = raw
   }
 
   return parts
 }
 
 const formatAddressParts = (form, prefix, fallback = '') => {
-  const labels = {
-    village: 'Village',
-    taluka: 'Taluka',
-    district: 'District',
-    state: 'State'
-  }
   const formatted = addressPartKeys
-    .map((key) => [labels[key], text(form?.[`${prefix}${key[0].toUpperCase()}${key.slice(1)}`]).trim()])
+    .map((key) => [addressPartLabels[key], text(form?.[addressFieldPath(prefix, key)]).trim()])
     .filter(([, value]) => value)
     .map(([label, value]) => `${label}: ${value}`)
     .join(', ')
@@ -129,6 +222,9 @@ const optionValue = (value, otherValue) => {
 }
 
 const currentJobLocationTalukaOptions = ['', 'Sinnar', 'Nashik', 'Mumbai', 'Pune', 'Sangamner', 'Ahilyanagar', 'Sambhaji Nagar', 'Other']
+const referenceEducationBranchOptions = ['', 'Arts', 'Commerce', 'Science', 'Diploma/BE', 'Pharmacy', 'MBA', 'Nursing', 'ITI', 'Computer Application', 'Computer Science', 'Other']
+const referenceDesignationOptions = ['', 'TPO', 'Other']
+const referenceRelationOptions = ['', 'Brother', 'Sister', 'Father', 'Mother', 'Spouse', 'Relative', 'Friend', 'Colleague', 'Neighbor', 'Teacher', 'Other']
 
 const optionOrOther = (value, options) => {
   const selected = text(value)
@@ -141,6 +237,17 @@ const splitList = (value) =>
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean)
+
+const normalizeDocumentAvailability = (value = {}) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+
+  return Object.entries(value).reduce((acc, [key, enabled]) => {
+    if (key) {
+      acc[key] = enabled === true || enabled === 'true' || enabled === 'Yes' || enabled === 'yes'
+    }
+    return acc
+  }, {})
+}
 
 const normalizedAllowed = (allowed) => allowed.map((item) => String(item))
 
@@ -187,6 +294,7 @@ const normalizeWitnessDetails = (witness = {}) => ({
   witnessName: text(witness?.witnessName),
   witnessMobileNumber: text(witness?.witnessMobileNumber),
   witnessEducation: text(witness?.witnessEducation),
+  witnessEducationOther: text(witness?.witnessEducationOther),
   witnessCareerProfile: text(witness?.witnessCareerProfile),
   witnessRelation: text(witness?.witnessRelation),
   witnessRelationOther: text(witness?.witnessRelationOther)
@@ -200,6 +308,7 @@ const legacyWitnessFromSuccessInfo = (successInfo = {}) =>
     witnessName: successInfo?.witnessName,
     witnessMobileNumber: successInfo?.witnessMobileNumber,
     witnessEducation: successInfo?.witnessEducation,
+    witnessEducationOther: successInfo?.witnessEducationOther,
     witnessCareerProfile: successInfo?.witnessCareerProfile,
     witnessRelation: successInfo?.witnessRelation,
     witnessRelationOther: successInfo?.witnessRelationOther
@@ -260,21 +369,101 @@ const normalizeManagerAssessment = normalizeAssessment
 
 export const emptyComputerCourseAssessment = () => ({
   courses: [],
+  courseScores: [{ course: '', score: '' }],
+  typingLanguage: '',
   typingAccuracy: '',
   typingSpeed: '',
+  typingSpeedOther: '',
   word: '',
   excel: '',
   tally: '',
   remark: ''
 })
 
+const normalizeComputerCourseScore = (value, max) => {
+  const raw = text(value).trim()
+  if (!raw) return ''
+  const numeric = Number(raw)
+  if (!Number.isFinite(numeric)) return ''
+  const clamped = Math.max(0, Math.min(max, numeric))
+  return Number.isInteger(clamped) ? String(clamped) : String(clamped)
+}
+
+const normalizeComputerCourseName = (value) => {
+  const raw = text(value).trim()
+  const aliases = {
+    word: 'Word',
+    'ms word': 'Word',
+    excel: 'Excel',
+    'advance excel': 'Excel',
+    'advanced excel': 'Excel',
+    tally: 'Tally',
+    autocad: 'AutoCAD',
+    catia: 'CATIA',
+    solidworks: 'SolidWorks',
+    'solid works': 'SolidWorks',
+    ccc: 'CCC',
+    'advance excel': 'Advance Excel',
+    'advanced excel': 'Advance Excel',
+    'ms office': 'MS Office',
+    'ms-office': 'MS Office',
+    dtp: 'DTP',
+    m: 'M',
+    mscit: 'MS-CIT',
+    'ms-cit': 'MS-CIT'
+  }
+  return aliases[raw.toLowerCase()] || raw
+}
+
+const normalizeComputerCourseRows = (assessment = {}) => {
+  const fromRows = Array.isArray(assessment?.courseScores)
+    ? assessment.courseScores
+        .map((row) => ({
+          course: normalizeComputerCourseName(row?.course),
+          score: normalizeComputerCourseScore(row?.score, 10)
+        }))
+        .filter((row) => row.course || row.score)
+    : []
+
+  if (fromRows.length) return fromRows
+
+  const legacyScores = [
+    { course: 'Word', score: assessment?.word },
+    { course: 'Excel', score: assessment?.excel },
+    { course: 'Tally', score: assessment?.tally }
+  ]
+    .map((row) => ({ ...row, score: normalizeComputerCourseScore(row.score, 10) }))
+    .filter((row) => row.score)
+
+  if (legacyScores.length) return legacyScores
+
+  const selectedCourses = Array.isArray(assessment?.courses)
+    ? assessment.courses.map(normalizeComputerCourseName).filter((course) => COMPUTER_COURSE_ASSESSMENT_COURSES.includes(course))
+    : []
+
+  return selectedCourses.length ? selectedCourses.map((course) => ({ course, score: '' })) : [{ course: '', score: '' }]
+}
+
+const normalizeTypingSpeedSelection = (assessment = {}) => {
+  const speed = text(assessment?.typingSpeed)
+  if (!speed) return ''
+  return TYPING_SPEED_OPTIONS.includes(speed) ? speed : 'Other'
+}
+
+const normalizeTypingSpeedOther = (assessment = {}) => {
+  const speed = text(assessment?.typingSpeed)
+  if (!speed || TYPING_SPEED_OPTIONS.includes(speed)) return text(assessment?.typingSpeedOther)
+  return speed === 'Other' ? text(assessment?.typingSpeedOther) : text(assessment?.typingSpeedOther || speed)
+}
+
 const normalizeComputerCourseAssessment = (assessment = {}) => ({
   ...emptyComputerCourseAssessment(),
-  courses: Array.isArray(assessment?.courses)
-    ? COMPUTER_COURSE_ASSESSMENT_COURSES.filter((course) => assessment.courses.some((item) => String(item) === course))
-    : [],
-  typingAccuracy: text(assessment?.typingAccuracy),
-  typingSpeed: text(assessment?.typingSpeed),
+  courseScores: normalizeComputerCourseRows(assessment),
+  courses: normalizeComputerCourseRows(assessment).map((row) => row.course).filter(Boolean),
+  typingLanguage: TYPING_LANGUAGE_OPTIONS.includes(text(assessment?.typingLanguage)) ? text(assessment?.typingLanguage) : '',
+  typingAccuracy: normalizeComputerCourseScore(assessment?.typingAccuracy, 100),
+  typingSpeed: normalizeTypingSpeedSelection(assessment),
+  typingSpeedOther: normalizeTypingSpeedOther(assessment),
   word: text(assessment?.word),
   excel: text(assessment?.excel),
   tally: text(assessment?.tally),
@@ -365,6 +554,40 @@ export const emptyInterviewRow = () => ({
   commissionPercent: ''
 })
 
+export const emptyCandidateVisit = () => ({
+  id: Date.now() + Math.random(),
+  visitDateTime: '',
+  purpose: '',
+  purposeOther: '',
+  meetingStaffName: '',
+  communicationDetails: ''
+})
+
+const normalizeCandidateVisit = (row = {}) => ({
+  ...emptyCandidateVisit(),
+  id: row?._id || row?.id || Date.now() + Math.random(),
+  visitDateTime: text(row?.visitDateTime || row?.dateTime || row?.date),
+  purpose: text(row?.purpose),
+  purposeOther: text(row?.purposeOther),
+  meetingStaffName: text(row?.meetingStaffName || row?.staffName),
+  communicationDetails: text(row?.communicationDetails || row?.communication)
+})
+
+export const candidateVisitHasContent = (row) =>
+  Boolean(
+    text(row?.visitDateTime).trim() ||
+      text(row?.purpose).trim() ||
+      text(row?.purposeOther).trim() ||
+      text(row?.meetingStaffName).trim() ||
+      text(row?.communicationDetails).trim()
+  )
+
+export const sanitizeCandidateVisits = (rows) =>
+  (Array.isArray(rows) ? rows : [])
+    .map((row) => normalizeCandidateVisit(row))
+    .filter(candidateVisitHasContent)
+    .map(({ id, ...row }) => row)
+
 export const emptyCandidateForm = () => ({
   id: null,
   candidateCode: '',
@@ -386,17 +609,20 @@ export const emptyCandidateForm = () => ({
   aadhaarNo: '',
   panNo: '',
   currentAddress: '',
+  currentAddressLine: '',
   currentAddressVillage: '',
   currentAddressTaluka: '',
   currentAddressDistrict: '',
   currentAddressState: '',
   permanentAddress: '',
+  permanentAddressLine: '',
   permanentAddressVillage: '',
   permanentAddressTaluka: '',
   permanentAddressDistrict: '',
   permanentAddressState: '',
   sameAsCurrentAddress: false,
   collegeName: '',
+  trainingPlacementDepartment: '',
   whatsappNo: '',
   email: '',
   educationSector: '',
@@ -407,12 +633,15 @@ export const emptyCandidateForm = () => ({
   educationBranchOther: '',
   educationSpecialization: '',
   educationSpecializationOther: '',
+  collegeEducationBranch: '',
+  collegeEducationBranchOther: '',
   computerCourse: '',
   computerCourseOther: '',
   certificationCourse: '',
   certificationCourseOther: '',
   computerCourses: '',
   instituteDesignation: '',
+  instituteDesignationOther: '',
   instituteAddressVillage: '',
   instituteAddressTaluka: '',
   instituteAddressDistrict: '',
@@ -441,6 +670,7 @@ export const emptyCandidateForm = () => ({
   availabilityInterviewStartDate: '',
   availabilityInterviewEndDate: '',
   interviewMode: '',
+  onlineInterviewMode: '',
   totalExperience: '',
   experienceType: '',
   experienceDepartment: '',
@@ -454,6 +684,7 @@ export const emptyCandidateForm = () => ({
   expectedNetInHandSalary: '',
   expectedGrossSalaryPerMonth: '',
   expectedCtcSalaryPerMonth: '',
+  expectedSalaryNegotiable: '',
   currentSalary: '',
   expectedSalary: '',
   jobWorkingStatus: '',
@@ -468,6 +699,8 @@ export const emptyCandidateForm = () => ({
   reasonForJobChangeOther: '',
   referenceProfile: '',
   referenceProfileOther: '',
+  referenceRelation: '',
+  referenceRelationOther: '',
   referenceSources: [],
   referenceSourceOther: '',
   placementReference: {
@@ -475,6 +708,15 @@ export const emptyCandidateForm = () => ({
     professorContactNumber: '',
     referenceBy: '',
     referenceContactNumber: ''
+  },
+  postGraduateReference: {
+    instituteName: '',
+    representativeName: '',
+    educationBranch: '',
+    educationBranchOther: '',
+    designation: '',
+    designationOther: '',
+    mobileNumber: ''
   },
   familyDetails: {
     fatherOrHusbandName: '',
@@ -493,6 +735,7 @@ export const emptyCandidateForm = () => ({
     siblingStudyStandardOther: '',
     siblingCareerProfile: '',
     siblingCareerProfileOther: '',
+    siblings: [emptySiblingDetails()],
     brotherOccupation: '',
     sisterOccupation: ''
   },
@@ -500,6 +743,7 @@ export const emptyCandidateForm = () => ({
   feedback: '',
   suggestion: '',
   documents: [],
+  documentAvailability: {},
   successInfo: normalizeSuccessInfo(),
   interviewForm: {
     suitableIndustry: '',
@@ -516,7 +760,8 @@ export const emptyCandidateForm = () => ({
     grade: '',
     questions: buildQuestionRows()
   },
-  interviews: []
+  interviews: [],
+  candidateVisits: []
 })
 
 export const mapInterviewToForm = (row, fallbackReference = '') => ({
@@ -564,6 +809,18 @@ export const mapApiToCandidateForm = (payload) => {
     state: instituteAddressParts.state || collegeAddressParts.state
   }
   const interviewForm = candidate?.interviewForm || {}
+  const siblings = siblingListFromFamily(personal.familyDetails, candidate?.familyDetails)
+  const firstSibling = siblingLegacyFields(siblings)
+  const collegeEducationBranch = optionOrOther(educationDetails.instituteReference?.educationBranch, referenceEducationBranchOptions)
+  const postGraduateEducationBranch = optionOrOther(educationDetails.postGraduateReference?.educationBranch, referenceEducationBranchOptions)
+  const instituteDesignation = optionOrOther(educationDetails.instituteReference?.designation, referenceDesignationOptions)
+  const postGraduateDesignation = optionOrOther(educationDetails.postGraduateReference?.designation, referenceDesignationOptions)
+  const referenceRelation = optionOrOther(referenceSuccess.referenceRelationRaw || referenceSuccess.referenceRelation, referenceRelationOptions)
+  const candidateVisitRows = Array.isArray(candidate?.candidateVisits) && candidate.candidateVisits.length
+    ? candidate.candidateVisits
+    : Array.isArray(applicationDetails.candidateVisits)
+      ? applicationDetails.candidateVisits
+      : []
 
   return {
     ...base,
@@ -587,17 +844,20 @@ export const mapApiToCandidateForm = (payload) => {
     aadhaarNo: text(personal.aadhaarNo || candidate?.aadhaarNo),
     panNo: text(personal.panNo || candidate?.panNo),
     currentAddress: text(candidate?.currentAddress),
+    currentAddressLine: currentAddressParts.addressLine,
     currentAddressVillage: currentAddressParts.village,
     currentAddressTaluka: currentAddressParts.taluka,
     currentAddressDistrict: currentAddressParts.district,
     currentAddressState: currentAddressParts.state,
     permanentAddress: text(candidate?.permanentAddress),
+    permanentAddressLine: permanentAddressParts.addressLine,
     permanentAddressVillage: permanentAddressParts.village,
     permanentAddressTaluka: permanentAddressParts.taluka,
     permanentAddressDistrict: permanentAddressParts.district,
     permanentAddressState: permanentAddressParts.state,
     sameAsCurrentAddress: Boolean(personal.sameAsCurrentAddress),
     collegeName: text(educationDetails.instituteReference?.instituteName || candidate?.collegeName),
+    trainingPlacementDepartment: text(educationDetails.instituteReference?.trainingPlacementDepartment),
     whatsappNo: text(personal.whatsappNo || candidate?.whatsappNo),
     email: text(personal.emailId || candidate?.emailId),
     educationSector: text(educationDetails.educationSector || educationDetails.highestEducation),
@@ -608,12 +868,15 @@ export const mapApiToCandidateForm = (payload) => {
     educationBranchOther: text(educationDetails.educationBranchOther),
     educationSpecialization: text(educationDetails.educationSpecialization || educationDetails.specialization || candidate?.specialization),
     educationSpecializationOther: text(educationDetails.educationSpecializationOther),
+    collegeEducationBranch: text(educationDetails.instituteReference?.educationBranchRaw || collegeEducationBranch.value),
+    collegeEducationBranchOther: text(educationDetails.instituteReference?.educationBranchOther || collegeEducationBranch.other),
     computerCourse: text(educationDetails.computerCourse),
     computerCourseOther: text(educationDetails.computerCourseOther),
     certificationCourse: text(educationDetails.certificationCourse),
     certificationCourseOther: text(educationDetails.certificationCourseOther),
     computerCourses: text(candidate?.computerCourses),
-    instituteDesignation: text(educationDetails.instituteReference?.designation),
+    instituteDesignation: text(educationDetails.instituteReference?.designationRaw || instituteDesignation.value),
+    instituteDesignationOther: text(educationDetails.instituteReference?.designationOther || instituteDesignation.other),
     instituteAddressVillage: instituteCollegeAddressParts.village,
     instituteAddressTaluka: instituteCollegeAddressParts.taluka,
     instituteAddressDistrict: instituteCollegeAddressParts.district,
@@ -642,6 +905,7 @@ export const mapApiToCandidateForm = (payload) => {
     availabilityInterviewStartDate: text(professional.availabilityInterviewStartDate),
     availabilityInterviewEndDate: text(professional.availabilityInterviewEndDate),
     interviewMode: text(professional.interviewMode || candidate?.interviewMode),
+    onlineInterviewMode: text(professional.onlineInterviewMode),
     totalExperience: professional.totalExperience ?? candidate?.totalExperience ?? '',
     experienceType: text(professional.experienceType) || (candidate?.totalExperience ? 'Experience' : ''),
     experienceDepartment: text(candidate?.experienceDepartment),
@@ -655,6 +919,7 @@ export const mapApiToCandidateForm = (payload) => {
     expectedNetInHandSalary: text(professional.expectedSalary?.netInHand || candidate?.expectedSalary),
     expectedGrossSalaryPerMonth: text(professional.expectedSalary?.grossPerMonth),
     expectedCtcSalaryPerMonth: text(professional.expectedSalary?.ctcPerMonth),
+    expectedSalaryNegotiable: text(professional.expectedSalary?.negotiable || professional.expectedSalaryNegotiable),
     currentSalary: text(candidate?.currentSalary),
     expectedSalary: text(candidate?.expectedSalary),
     jobWorkingStatus: text(professional.jobWorkingStatus),
@@ -673,6 +938,8 @@ export const mapApiToCandidateForm = (payload) => {
     reasonForJobChangeOther: text(professional.reasonForJobChangeOther),
     referenceProfile: text(referenceSuccess.referenceProfileRaw || referenceSuccess.referenceProfile),
     referenceProfileOther: text(referenceSuccess.referenceProfileOther),
+    referenceRelation: text(referenceSuccess.referenceRelationRaw || referenceRelation.value),
+    referenceRelationOther: text(referenceSuccess.referenceRelationOther || referenceRelation.other),
     referenceSources: Array.isArray(referenceSuccess.referenceSources) ? referenceSuccess.referenceSources : [],
     referenceSourceOther: text(referenceSuccess.referenceSourceOther),
     placementReference: {
@@ -681,6 +948,15 @@ export const mapApiToCandidateForm = (payload) => {
       referenceBy: text(referenceSuccess.referenceName || candidate?.placementReference?.referenceBy || candidate?.referenceName),
       referenceContactNumber: text(referenceSuccess.referenceMobileNumber || candidate?.placementReference?.referenceContactNumber)
     },
+    postGraduateReference: {
+      instituteName: text(educationDetails.postGraduateReference?.instituteName),
+      representativeName: text(educationDetails.postGraduateReference?.representativeName),
+      educationBranch: text(educationDetails.postGraduateReference?.educationBranchRaw || postGraduateEducationBranch.value),
+      educationBranchOther: text(educationDetails.postGraduateReference?.educationBranchOther || postGraduateEducationBranch.other),
+      designation: text(educationDetails.postGraduateReference?.designationRaw || postGraduateDesignation.value),
+      designationOther: text(educationDetails.postGraduateReference?.designationOther || postGraduateDesignation.other),
+      mobileNumber: text(educationDetails.postGraduateReference?.mobileNumber)
+    },
     familyDetails: {
       fatherOrHusbandName: text(personal.familyDetails?.fatherOrHusbandName || candidate?.familyDetails?.fatherOrHusbandName),
       fatherOccupation: text(personal.familyDetails?.fatherOccupation || candidate?.familyDetails?.fatherOccupation),
@@ -688,16 +964,8 @@ export const mapApiToCandidateForm = (payload) => {
       motherOrWifeName: text(personal.familyDetails?.motherOrWifeName || candidate?.familyDetails?.motherOrWifeName),
       motherOccupation: text(personal.familyDetails?.motherOccupation || candidate?.familyDetails?.motherOccupation),
       motherMobileNumber: text(personal.familyDetails?.motherMobileNumber || candidate?.familyDetails?.motherMobileNumber),
-      siblingName: text(personal.familyDetails?.siblingName || candidate?.familyDetails?.siblingName),
-      siblingEducation: text(personal.familyDetails?.siblingEducation || candidate?.familyDetails?.siblingEducation || personal.familyDetails?.siblingEducationOccupation || candidate?.familyDetails?.siblingEducationOccupation),
-      siblingMobileNumber: text(personal.familyDetails?.siblingMobileNumber || candidate?.familyDetails?.siblingMobileNumber),
-      siblingDateOfBirth: dateInput(personal.familyDetails?.siblingDateOfBirth || candidate?.familyDetails?.siblingDateOfBirth),
-      siblingAge: personal.familyDetails?.siblingAge ?? candidate?.familyDetails?.siblingAge ?? '',
-      siblingGender: text(personal.familyDetails?.siblingGender || candidate?.familyDetails?.siblingGender),
-      siblingStudyStandard: text(personal.familyDetails?.siblingStudyStandard || candidate?.familyDetails?.siblingStudyStandard),
-      siblingStudyStandardOther: text(personal.familyDetails?.siblingStudyStandardOther || candidate?.familyDetails?.siblingStudyStandardOther),
-      siblingCareerProfile: text(personal.familyDetails?.siblingCareerProfile || candidate?.familyDetails?.siblingCareerProfile),
-      siblingCareerProfileOther: text(personal.familyDetails?.siblingCareerProfileOther || candidate?.familyDetails?.siblingCareerProfileOther),
+      ...firstSibling,
+      siblings,
       brotherOccupation: text(candidate?.familyDetails?.brotherOccupation),
       sisterOccupation: text(candidate?.familyDetails?.sisterOccupation)
     },
@@ -705,6 +973,7 @@ export const mapApiToCandidateForm = (payload) => {
     feedback: text(candidate?.feedback),
     suggestion: text(candidate?.suggestion),
     documents: Array.isArray(candidate?.documents) ? candidate.documents : [],
+    documentAvailability: normalizeDocumentAvailability(candidate?.documentAvailability),
     successInfo: normalizeSuccessInfo(candidate?.successInfo),
     interviewForm: {
       suitableIndustry: text(interviewForm?.suitableIndustry),
@@ -724,7 +993,8 @@ export const mapApiToCandidateForm = (payload) => {
     interviews:
       Array.isArray(payload?.interviews) && payload.interviews.length
         ? payload.interviews.map((row) => mapInterviewToForm(row, candidate?.referenceName))
-        : []
+        : [],
+    candidateVisits: candidateVisitRows.map((row) => normalizeCandidateVisit(row)).filter(candidateVisitHasContent)
   }
 }
 
@@ -741,6 +1011,7 @@ const numberOrNull = (value) => {
 }
 
 const currentAddressObject = (form) => ({
+  addressLine: text(form?.currentAddressLine),
   village: text(form?.currentAddressVillage),
   taluka: text(form?.currentAddressTaluka),
   district: text(form?.currentAddressDistrict),
@@ -748,6 +1019,7 @@ const currentAddressObject = (form) => ({
 })
 
 const permanentAddressObject = (form) => ({
+  addressLine: text(form?.permanentAddressLine),
   village: text(form?.permanentAddressVillage),
   taluka: text(form?.permanentAddressTaluka),
   district: text(form?.permanentAddressDistrict),
@@ -774,14 +1046,16 @@ const formatExpectedSalaryDetails = (form) =>
   [
     text(form?.expectedNetInHandSalary) ? `Expected NET / In-hand Salary: ${text(form.expectedNetInHandSalary)}` : '',
     text(form?.expectedGrossSalaryPerMonth) ? `Expected Gross Per Month: ${text(form.expectedGrossSalaryPerMonth)}` : '',
-    text(form?.expectedCtcSalaryPerMonth) ? `Expected CTC Per Month: ${text(form.expectedCtcSalaryPerMonth)}` : ''
+    text(form?.expectedCtcSalaryPerMonth) ? `Expected CTC Per Month: ${text(form.expectedCtcSalaryPerMonth)}` : '',
+    text(form?.expectedSalaryNegotiable) ? `Expected Salary Negotiable: ${text(form.expectedSalaryNegotiable)}` : ''
   ].filter(Boolean).join('\n')
 
 const formatInterviewAvailability = (form) =>
   [
     text(form?.availabilityInterviewStartDate) ? `Available From: ${text(form.availabilityInterviewStartDate)}` : '',
     text(form?.availabilityInterviewEndDate) ? `Available To: ${text(form.availabilityInterviewEndDate)}` : '',
-    text(form?.interviewMode) ? `Interview Mode: ${text(form.interviewMode)}` : ''
+    text(form?.interviewMode) ? `Interview Mode: ${text(form.interviewMode)}` : '',
+    text(form?.interviewMode) === 'Online' && text(form?.onlineInterviewMode) ? `Online Interview Mode: ${text(form.onlineInterviewMode)}` : ''
   ].filter(Boolean).join('\n')
 
 const formatComputerCourses = (form) => {
@@ -809,14 +1083,27 @@ const formatEducationDetails = (form) => {
 
 const formatInstituteReferenceDetails = (form) => {
   const address = formatAddressParts(form, 'instituteAddress')
+  const collegeEducationBranch = optionValue(form?.collegeEducationBranch, form?.collegeEducationBranchOther)
+  const instituteDesignation = optionValue(form?.instituteDesignation, form?.instituteDesignationOther)
   return [
-    text(form?.collegeName) ? `Institute Name: ${text(form.collegeName)}` : '',
-    text(form?.placementReference?.professorName) ? `Institute Representative Name: ${text(form.placementReference.professorName)}` : '',
-    text(form?.instituteDesignation) ? `Designation: ${text(form.instituteDesignation)}` : '',
-    text(form?.placementReference?.professorContactNumber) ? `Institute Mobile Number: ${text(form.placementReference.professorContactNumber)}` : '',
-    address ? `Institute/College Address: ${address}` : ''
+    text(form?.collegeName) ? `College Name: ${text(form.collegeName)}` : '',
+    text(form?.trainingPlacementDepartment) ? `Training and Placement Department: ${text(form.trainingPlacementDepartment)}` : '',
+    text(form?.placementReference?.professorName) ? `College Representative Name: ${text(form.placementReference.professorName)}` : '',
+    collegeEducationBranch ? `College Education Branch: ${collegeEducationBranch}` : '',
+    instituteDesignation ? `Designation: ${instituteDesignation}` : '',
+    text(form?.placementReference?.professorContactNumber) ? `College Mobile Number: ${text(form.placementReference.professorContactNumber)}` : '',
+    address ? `College Address: ${address}` : ''
   ].filter(Boolean).join('\n')
 }
+
+const formatPostGraduateReferenceDetails = (form) =>
+  [
+    text(form?.postGraduateReference?.instituteName) ? `Post Graduate College Name: ${text(form.postGraduateReference.instituteName)}` : '',
+    text(form?.postGraduateReference?.representativeName) ? `Post Graduate College Representative Name: ${text(form.postGraduateReference.representativeName)}` : '',
+    optionValue(form?.postGraduateReference?.educationBranch, form?.postGraduateReference?.educationBranchOther) ? `Post Graduate Education Branch: ${optionValue(form.postGraduateReference.educationBranch, form.postGraduateReference.educationBranchOther)}` : '',
+    optionValue(form?.postGraduateReference?.designation, form?.postGraduateReference?.designationOther) ? `Post Graduate Designation: ${optionValue(form.postGraduateReference.designation, form.postGraduateReference.designationOther)}` : '',
+    text(form?.postGraduateReference?.mobileNumber) ? `Post Graduate Mobile Number: ${text(form.postGraduateReference.mobileNumber)}` : ''
+  ].filter(Boolean).join('\n')
 
 const formatInstituteCollegeDetails = (form) => {
   return [
@@ -837,6 +1124,9 @@ const applicationDetailsFromForm = (form) => {
   const noticePeriod = optionValue(form?.noticePeriod, form?.noticePeriodOther)
   const reasonForJobChange = optionValue(form?.reasonForJobChange, form?.reasonForJobChangeOther)
   const referenceProfile = optionValue(form?.referenceProfile, form?.referenceProfileOther)
+  const referenceRelation = optionValue(form?.referenceRelation, form?.referenceRelationOther)
+  const siblings = normalizedSiblingListForPayload(form?.familyDetails?.siblings)
+  const firstSibling = siblingLegacyFields(siblings)
 
   return {
     personal: {
@@ -860,16 +1150,8 @@ const applicationDetailsFromForm = (form) => {
         motherOrWifeName: text(form?.familyDetails?.motherOrWifeName),
         motherOccupation: text(form?.familyDetails?.motherOccupation),
         motherMobileNumber: text(form?.familyDetails?.motherMobileNumber).replace(/\D/g, ''),
-        siblingName: text(form?.familyDetails?.siblingName),
-        siblingEducation: text(form?.familyDetails?.siblingEducation),
-        siblingMobileNumber: text(form?.familyDetails?.siblingMobileNumber).replace(/\D/g, ''),
-        siblingDateOfBirth: form?.familyDetails?.siblingDateOfBirth || '',
-        siblingAge: text(form?.familyDetails?.siblingAge),
-        siblingGender: text(form?.familyDetails?.siblingGender),
-        siblingCareerProfile: text(form?.familyDetails?.siblingCareerProfile),
-        siblingStudyStandard: form?.familyDetails?.siblingCareerProfile === 'Studying' ? text(form?.familyDetails?.siblingStudyStandard) : '',
-        siblingStudyStandardOther: form?.familyDetails?.siblingCareerProfile === 'Studying' && form?.familyDetails?.siblingStudyStandard === 'Other' ? text(form?.familyDetails?.siblingStudyStandardOther) : '',
-        siblingCareerProfileOther: form?.familyDetails?.siblingCareerProfile === 'Other' ? text(form?.familyDetails?.siblingCareerProfileOther) : ''
+        ...firstSibling,
+        siblings
       }
     },
     education: {
@@ -889,10 +1171,27 @@ const applicationDetailsFromForm = (form) => {
       certificationCourseOther: text(form?.certificationCourseOther),
       instituteReference: {
         instituteName: text(form?.collegeName),
+        trainingPlacementDepartment: text(form?.trainingPlacementDepartment),
         representativeName: text(form?.placementReference?.professorName),
-        designation: text(form?.instituteDesignation),
+        educationBranch: optionValue(form?.collegeEducationBranch, form?.collegeEducationBranchOther),
+        educationBranchRaw: text(form?.collegeEducationBranch),
+        educationBranchOther: text(form?.collegeEducationBranchOther),
+        designation: optionValue(form?.instituteDesignation, form?.instituteDesignationOther),
+        designationRaw: text(form?.instituteDesignation),
+        designationOther: text(form?.instituteDesignationOther),
         mobileNumber: text(form?.placementReference?.professorContactNumber).replace(/\D/g, ''),
         address: instituteAddressObject(form)
+      },
+      postGraduateReference: {
+        instituteName: text(form?.postGraduateReference?.instituteName),
+        representativeName: text(form?.postGraduateReference?.representativeName),
+        educationBranch: optionValue(form?.postGraduateReference?.educationBranch, form?.postGraduateReference?.educationBranchOther),
+        educationBranchRaw: text(form?.postGraduateReference?.educationBranch),
+        educationBranchOther: text(form?.postGraduateReference?.educationBranchOther),
+        designation: optionValue(form?.postGraduateReference?.designation, form?.postGraduateReference?.designationOther),
+        designationRaw: text(form?.postGraduateReference?.designation),
+        designationOther: text(form?.postGraduateReference?.designationOther),
+        mobileNumber: text(form?.postGraduateReference?.mobileNumber).replace(/\D/g, '')
       },
       instituteCollege: {
         college12GraduateName: text(form?.college12GraduateName),
@@ -922,8 +1221,10 @@ const applicationDetailsFromForm = (form) => {
       expectedSalary: {
         netInHand: text(form?.expectedNetInHandSalary),
         grossPerMonth: text(form?.expectedGrossSalaryPerMonth),
-        ctcPerMonth: text(form?.expectedCtcSalaryPerMonth)
+        ctcPerMonth: text(form?.expectedCtcSalaryPerMonth),
+        negotiable: text(form?.expectedSalaryNegotiable)
       },
+      expectedSalaryNegotiable: text(form?.expectedSalaryNegotiable),
       currentJobLocation: text(form?.currentJobLocation),
       currentJobLocationOther: form?.currentJobLocation === 'Other' ? text(form?.currentJobLocationOther) : '',
       currentJobLocationMidcArea: text(form?.currentJobLocationMidcArea),
@@ -939,6 +1240,7 @@ const applicationDetailsFromForm = (form) => {
       availabilityInterviewStartDate: text(form?.availabilityInterviewStartDate),
       availabilityInterviewEndDate: text(form?.availabilityInterviewEndDate),
       interviewMode: text(form?.interviewMode),
+      onlineInterviewMode: text(form?.interviewMode) === 'Online' ? text(form?.onlineInterviewMode) : '',
       reasonForJobChange,
       reasonForJobChangeRaw: text(form?.reasonForJobChange),
       reasonForJobChangeOther: text(form?.reasonForJobChangeOther),
@@ -952,9 +1254,31 @@ const applicationDetailsFromForm = (form) => {
       referenceProfile,
       referenceProfileRaw: text(form?.referenceProfile),
       referenceProfileOther: text(form?.referenceProfileOther),
+      referenceRelation,
+      referenceRelationRaw: text(form?.referenceRelation),
+      referenceRelationOther: text(form?.referenceRelationOther),
       referenceSources: Array.isArray(form?.referenceSources) ? form.referenceSources : [],
       referenceSourceOther: Array.isArray(form?.referenceSources) && form.referenceSources.includes('Other') ? text(form?.referenceSourceOther) : ''
-    }
+    },
+    candidateVisits: sanitizeCandidateVisits(form?.candidateVisits)
+  }
+}
+
+const familyDetailsPayloadFromForm = (form) => {
+  const siblings = normalizedSiblingListForPayload(form?.familyDetails?.siblings)
+  const firstSibling = siblingLegacyFields(siblings)
+
+  return {
+    fatherOrHusbandName: text(form?.familyDetails?.fatherOrHusbandName),
+    fatherOccupation: text(form?.familyDetails?.fatherOccupation),
+    fatherMobileNumber: text(form?.familyDetails?.fatherMobileNumber).replace(/\D/g, ''),
+    motherOrWifeName: text(form?.familyDetails?.motherOrWifeName),
+    motherOccupation: text(form?.familyDetails?.motherOccupation),
+    motherMobileNumber: text(form?.familyDetails?.motherMobileNumber).replace(/\D/g, ''),
+    ...firstSibling,
+    siblings,
+    brotherOccupation: text(form?.familyDetails?.brotherOccupation),
+    sisterOccupation: text(form?.familyDetails?.sisterOccupation)
   }
 }
 
@@ -984,7 +1308,7 @@ export const mapCandidateFormToApi = (form) => ({
   education: formatEducationDetails(form) || text(form?.education),
   yearOfHigherEducation: text(form?.yearOfHigherEducation),
   computerCourses: formatComputerCourses(form) || text(form?.computerCourses),
-  otherAchievements: [formatInstituteReferenceDetails(form), formatInstituteCollegeDetails(form), text(form?.otherAchievements)].filter(Boolean).join('\n\n'),
+  otherAchievements: [formatInstituteReferenceDetails(form), formatPostGraduateReferenceDetails(form), formatInstituteCollegeDetails(form), text(form?.otherAchievements)].filter(Boolean).join('\n\n'),
   specialization: optionValue(form?.educationSpecialization, form?.educationSpecializationOther),
   appliedFor: optionValue(form?.interestedDepartment, form?.interestedDepartmentOther) || text(form?.appliedFor),
   interestedDepartment: optionValue(form?.interestedDepartment, form?.interestedDepartmentOther),
@@ -1021,30 +1345,13 @@ export const mapCandidateFormToApi = (form) => ({
     referenceBy: text(form?.placementReference?.referenceBy),
     referenceContactNumber: text(form?.placementReference?.referenceContactNumber).replace(/\D/g, '')
   },
-  familyDetails: {
-    fatherOrHusbandName: text(form?.familyDetails?.fatherOrHusbandName),
-    fatherOccupation: text(form?.familyDetails?.fatherOccupation),
-    fatherMobileNumber: text(form?.familyDetails?.fatherMobileNumber).replace(/\D/g, ''),
-    motherOrWifeName: text(form?.familyDetails?.motherOrWifeName),
-    motherOccupation: text(form?.familyDetails?.motherOccupation),
-    motherMobileNumber: text(form?.familyDetails?.motherMobileNumber).replace(/\D/g, ''),
-    siblingName: text(form?.familyDetails?.siblingName),
-    siblingEducation: text(form?.familyDetails?.siblingEducation),
-    siblingMobileNumber: text(form?.familyDetails?.siblingMobileNumber).replace(/\D/g, ''),
-    siblingDateOfBirth: form?.familyDetails?.siblingDateOfBirth || null,
-    siblingAge: numberOrNull(form?.familyDetails?.siblingAge),
-    siblingGender: form?.familyDetails?.siblingGender || null,
-    siblingCareerProfile: text(form?.familyDetails?.siblingCareerProfile),
-    siblingStudyStandard: form?.familyDetails?.siblingCareerProfile === 'Studying' ? text(form?.familyDetails?.siblingStudyStandard) : '',
-    siblingStudyStandardOther: form?.familyDetails?.siblingCareerProfile === 'Studying' && form?.familyDetails?.siblingStudyStandard === 'Other' ? text(form?.familyDetails?.siblingStudyStandardOther) : '',
-    siblingCareerProfileOther: form?.familyDetails?.siblingCareerProfile === 'Other' ? text(form?.familyDetails?.siblingCareerProfileOther) : '',
-    brotherOccupation: text(form?.familyDetails?.brotherOccupation),
-    sisterOccupation: text(form?.familyDetails?.sisterOccupation)
-  },
+  familyDetails: familyDetailsPayloadFromForm(form),
   goalAim: text(form?.goalAim),
   feedback: text(form?.feedback),
   suggestion: text(form?.suggestion),
+  documentAvailability: normalizeDocumentAvailability(form?.documentAvailability),
   applicationDetails: applicationDetailsFromForm(form),
+  candidateVisits: sanitizeCandidateVisits(form?.candidateVisits),
   successInfo: normalizeSuccessInfo(form?.successInfo),
   interviewForm: {
     suitableIndustry: text(form?.interviewForm?.suitableIndustry),

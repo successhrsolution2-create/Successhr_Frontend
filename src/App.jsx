@@ -7,6 +7,7 @@ import LoadingScreen from './components/LoadingScreen'
 import { fetchMe } from './store/authSlice'
 
 const Login = lazy(() => import('./pages/Login'))
+const SuperAdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
 const BusinessAdvisors = lazy(() => import('./pages/admin/BusinessAdvisors'))
 const AdminReferenceBoard = lazy(() => import('./pages/admin/ReferenceBoard'))
 const AdminStudents = lazy(() => import('./pages/admin/Students'))
@@ -32,13 +33,31 @@ const CmsCompanyForm = lazy(() => import('./candidate/pages/admin/Candidates/Com
 const CmsProcessPanel = lazy(() => import('./candidate/pages/admin/CommissionProcessPanel'))
 const CmsInterviewList = lazy(() => import('./candidate/pages/admin/Interviews/InterviewList'))
 const CmsInterviewDetails = lazy(() => import('./candidate/pages/admin/Interviews/InterviewDetails'))
+const EMSDashboard = lazy(() => import('./modules/ems/pages/EMSDashboard'))
+const EMSEmployeeList = lazy(() => import('./modules/ems/pages/employees/EmployeeList'))
+const EMSEmployeeAdd = lazy(() => import('./modules/ems/pages/employees/EmployeeAdd'))
+const EMSEmployeeEdit = lazy(() => import('./modules/ems/pages/employees/EmployeeEdit'))
+const EMSEmployeeProfile = lazy(() => import('./modules/ems/pages/employees/EmployeeProfile'))
+const EMSDepartmentList = lazy(() => import('./modules/ems/pages/departments/DepartmentList'))
+const EMSLocationList = lazy(() => import('./modules/ems/pages/locations/LocationList'))
+const EMSScheduleList = lazy(() => import('./modules/ems/pages/schedules/ScheduleList'))
+const EMSAttendanceToday = lazy(() => import('./modules/ems/pages/attendance/AttendanceToday'))
+const EMSAttendanceReport = lazy(() => import('./modules/ems/pages/attendance/AttendanceReport'))
+const EMSLeaveList = lazy(() => import('./modules/ems/pages/leaves/LeaveList'))
+const EMSLeaveApply = lazy(() => import('./modules/ems/pages/leaves/LeaveApply'))
+const EMSLeavePending = lazy(() => import('./modules/ems/pages/leaves/LeavePending'))
+const EMSPayrollList = lazy(() => import('./modules/ems/pages/payroll/PayrollList'))
+const EMSPayrollGenerate = lazy(() => import('./modules/ems/pages/payroll/PayrollGenerate'))
+const EMSPayslipView = lazy(() => import('./modules/ems/pages/payroll/PayslipView'))
+const EMSDocumentManager = lazy(() => import('./modules/ems/pages/documents/DocumentManager'))
+const EMSReportsPage = lazy(() => import('./modules/ems/pages/reports/ReportsPage'))
 
 function HomeRedirect() {
   const { token, user, checking } = useSelector((state) => state.auth)
 
   if (checking) return <LoadingScreen />
   if (!token || !user) return <Navigate to="/login" replace />
-  if (user?.role === 'superAdmin') return <Navigate to="/admin/references" replace />
+  if (user?.role === 'superAdmin') return <Navigate to="/admin/dashboard" replace />
   if (user?.role === 'candidateAdmin') return <Navigate to="/admin/cms/candidates" replace />
   return <Navigate to="/ba/dashboard" replace />
 }
@@ -118,7 +137,16 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/admin/dashboard" element={<Navigate to="/admin/references" replace />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <SuperAdminDashboard />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/business-advisors"
           element={
@@ -313,6 +341,187 @@ export default function App() {
           element={
             <ProtectedRoute roles={['superAdmin', 'candidateAdmin']}>
               <SettingsShell />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ems"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSDashboard />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/employees"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSEmployeeList />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/employees/add"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSEmployeeAdd />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/employees/:id"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSEmployeeProfile />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/employees/:id/edit"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSEmployeeEdit />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/departments"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSDepartmentList />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/locations"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSLocationList />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/schedules"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSScheduleList />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/attendance"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSAttendanceToday />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/attendance/report"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSAttendanceReport />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/leaves"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSLeaveList />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/leaves/apply"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSLeaveApply />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/leaves/pending"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSLeavePending />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/payroll"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSPayrollList />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/payroll/generate"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSPayrollGenerate />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/payroll/:id/payslip"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSPayslipView />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/documents"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSDocumentManager />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ems/reports"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <EMSReportsPage />
+              </AppShell>
             </ProtectedRoute>
           }
         />

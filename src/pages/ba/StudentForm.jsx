@@ -11,6 +11,8 @@ import {
   GraduationCap,
   Handshake,
   Loader2,
+  Plus,
+  Trash2,
   UploadCloud,
   UserRound,
   X
@@ -31,6 +33,21 @@ const visibleApplyStandaloneDocumentTypes = standaloneCandidateDocumentTypes.fil
 )
 const resumeCandidateDocumentType = visibleApplyStandaloneDocumentTypes.find((documentType) => documentType.key === 'updatedResume')
 const otherCandidateDocumentTypes = visibleApplyStandaloneDocumentTypes.filter((documentType) => documentType.key !== 'updatedResume')
+
+function createEmptySibling() {
+  return {
+    siblingName: '',
+    siblingEducation: '',
+    siblingMobileNumber: '',
+    siblingDateOfBirth: '',
+    siblingAge: '',
+    siblingGender: '',
+    siblingCareerProfile: '',
+    siblingStudyStandard: '',
+    siblingStudyStandardOther: '',
+    siblingCareerProfileOther: ''
+  }
+}
 
 const initialForm = {
   candidateName: '',
@@ -56,9 +73,18 @@ const initialForm = {
   educationSpecialization: '',
   educationSpecializationOther: '',
   collegeName: '',
+  trainingPlacementDepartment: '',
+  collegeEducationBranch: '',
+  collegeEducationBranchOther: '',
   instituteDesignation: '',
-  college12GraduateName: '',
-  postGraduateCollegeName: '',
+  instituteDesignationOther: '',
+  postGraduateInstituteName: '',
+  postGraduateRepresentativeName: '',
+  postGraduateEducationBranch: '',
+  postGraduateEducationBranchOther: '',
+  postGraduateDesignation: '',
+  postGraduateDesignationOther: '',
+  postGraduateMobileNumber: '',
   collegeTeacherName: '',
   collegeDesignation: '',
   collegeMobileNumber: '',
@@ -73,9 +99,12 @@ const initialForm = {
   referenceContactNumber: '',
   referenceProfile: '',
   referenceProfileOther: '',
+  referenceRelation: '',
+  referenceRelationOther: '',
   referenceSourceOther: '',
   appliedFor: '',
   interestedDepartment: '',
+  interestedDepartmentOther: '',
   lookingForField: '',
   preferredIndustry: '',
   preferredIndustryOther: '',
@@ -90,6 +119,7 @@ const initialForm = {
   availabilityInterviewStartDate: '',
   availabilityInterviewEndDate: '',
   interviewMode: '',
+  onlineInterviewMode: '',
   totalExperience: '',
   experienceDepartment: '',
   currentCompany: '',
@@ -102,6 +132,7 @@ const initialForm = {
   expectedNetInHandSalary: '',
   expectedGrossSalaryPerMonth: '',
   expectedCtcSalaryPerMonth: '',
+  expectedSalaryNegotiable: '',
   currentSalary: '',
   expectedSalary: '',
   jobWorkingStatus: '',
@@ -127,6 +158,7 @@ const initialForm = {
   siblingStudyStandard: '',
   siblingStudyStandardOther: '',
   siblingCareerProfileOther: '',
+  siblings: [createEmptySibling()],
   feedback: '',
   suggestion: ''
 }
@@ -148,13 +180,6 @@ const personalFields = [
   { name: 'panNo', label: 'PAN Number', maxLength: 10, uppercase: true },
   { name: 'dateOfBirth', label: 'DOB', type: 'date' },
   { name: 'currentAge', label: 'Current Age', type: 'number', readOnly: true }
-]
-
-const instituteReferenceFields = [
-  { name: 'collegeName', label: 'Institute Name' },
-  { name: 'professorName', label: 'Institute Representative Name' },
-  { name: 'instituteDesignation', label: 'Designation' },
-  { name: 'professorContactNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true }
 ]
 
 const instituteCollegeFields = [
@@ -202,42 +227,80 @@ const currentSalaryFields = [
 const expectedSalaryFields = [
   { name: 'expectedNetInHandSalary', label: 'Expected NET / In-hand Salary', inputMode: 'numeric' },
   { name: 'expectedGrossSalaryPerMonth', label: 'Expected Gross Per Month', inputMode: 'numeric' },
-  { name: 'expectedCtcSalaryPerMonth', label: 'Expected CTC Per Month', inputMode: 'numeric' }
+  { name: 'expectedCtcSalaryPerMonth', label: 'Expected CTC Per Month', inputMode: 'numeric' },
+  { name: 'expectedSalaryNegotiable', label: 'Expected Salary Negotiable', options: ['', 'Yes', 'No'] }
 ]
 
 const familyFields = [
   { name: 'fatherOrHusbandName', label: 'Father / Husband Name' },
-  { name: 'fatherOccupation', label: 'Father Occupation' },
-  { name: 'fatherMobileNumber', label: 'Father Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
+  { name: 'fatherOccupation', label: 'Father / Husband Occupation' },
+  { name: 'fatherMobileNumber', label: 'Father / Husband Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
   { name: 'motherOrWifeName', label: 'Mother / Wife Name' },
-  { name: 'motherOccupation', label: 'Mother Occupation' },
-  { name: 'motherMobileNumber', label: 'Mother Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
-  { name: 'siblingName', label: 'Sibling Name' },
-  { name: 'siblingEducation', label: 'Sibling Education' },
-  { name: 'siblingMobileNumber', label: 'Sibling Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
-  { name: 'siblingDateOfBirth', label: 'Sibling DOB', type: 'date' },
-  { name: 'siblingAge', label: 'Sibling Age', type: 'number', readOnly: true },
-  { name: 'siblingGender', label: 'Sibling Gender', options: ['', 'Male', 'Female', 'Other'] },
-  { name: 'siblingCareerProfile', label: 'Sibling Career Profile', options: siblingCareerProfileOptions },
-  { name: 'siblingStudyStandard', label: 'Sibling Study Standard', options: siblingStudyStandardOptions, showWhen: { name: 'siblingCareerProfile', value: 'Studying' } },
-  { name: 'siblingStudyStandardOther', label: 'Other Study Standard', showWhen: { name: 'siblingStudyStandard', value: 'Other' } },
-  { name: 'siblingCareerProfileOther', label: 'Other Career Profile', showWhen: { name: 'siblingCareerProfile', value: 'Other' } }
+  { name: 'motherOccupation', label: 'Mother / Wife Occupation' },
+  { name: 'motherMobileNumber', label: 'Mother / Wife Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true }
+]
+
+const siblingFields = [
+  { name: 'siblingName', label: 'Sibling / Brother / Sister Name' },
+  { name: 'siblingEducation', label: 'Sibling / Brother / Sister Education' },
+  { name: 'siblingMobileNumber', label: 'Sibling / Brother / Sister Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
+  { name: 'siblingDateOfBirth', label: 'Sibling / Brother / Sister DOB', type: 'date' },
+  { name: 'siblingAge', label: 'Sibling / Brother / Sister Age', type: 'number', readOnly: true },
+  { name: 'siblingGender', label: 'Sibling / Brother / Sister Gender', options: ['', 'Male', 'Female', 'Other'] },
+  { name: 'siblingCareerProfile', label: 'Sibling / Brother / Sister Career Profile', options: siblingCareerProfileOptions },
+  { name: 'siblingStudyStandard', label: 'Sibling / Brother / Sister Study Standard', options: siblingStudyStandardOptions, showWhen: { name: 'siblingCareerProfile', value: 'Studying' } },
+  { name: 'siblingStudyStandardOther', label: 'Other Sibling / Brother / Sister Study Standard', showWhen: { name: 'siblingStudyStandard', value: 'Other' } },
+  { name: 'siblingCareerProfileOther', label: 'Other Sibling / Brother / Sister Career Profile', showWhen: { name: 'siblingCareerProfile', value: 'Other' } }
 ]
 
 const addressPartFields = [
+  { name: 'addressLine', label: 'Flat No / House No, Society, Landmark', full: true },
   { name: 'village', label: 'Village' },
   { name: 'taluka', label: 'Taluka' },
   { name: 'district', label: 'District' },
   { name: 'state', label: 'State' }
 ]
+const collegeAddressPartFields = addressPartFields.filter((field) => field.name !== 'addressLine')
 
 const educationSectorOptions = ['', '10th', '12th', 'Graduate', 'PG', 'PHD', 'ITI', 'Diploma', 'Degree', 'Other']
 const higherEducationYearOptions = ['', ...Array.from({ length: 67 }, (_, index) => String(new Date().getFullYear() + 4 - index))]
 const educationBranchOptions = ['', 'Arts', 'Commerce', 'Science', 'Diploma/BE', 'Pharmacy', 'MBA', 'Nursing', 'ITI', 'Computer Application', 'Computer Science', 'Other']
 const computerCourseOptions = ['', 'MS-CIT', 'CCC', 'Advanced Excel', 'PowerPoint', 'Tally', 'AutoCAD', 'Typing', 'Other']
 const certificationCourseOptions = ['', 'Graphic Design', 'C++', 'Java', 'PHP', 'Python', 'Web Development', 'Digital Marketing', 'Data Analytics', 'Other']
-const educationSpecializationOptions = ['', 'Chemistry', 'Microbiology', 'Physics', 'Mathematics', 'Botany', 'Zoology', 'Biotechnology', 'Biochemistry', 'Electronics', 'Mechanical', 'Civil', 'Electrical', 'Computer Science', 'Information Technology', 'Accounting', 'Finance', 'Marketing', 'HR', 'Pharmacy', 'Nursing', 'Other']
-const preferredDepartmentOptions = ['', 'Accounts', 'Sales', 'Quality', 'HR', 'Admin', 'Production', 'Operations', 'Purchase', 'Store', 'Logistics', 'Dispatch', 'Customer Support', 'Marketing', 'Finance', 'IT', 'Design', 'Maintenance', 'Research & Development', 'Safety', 'Front Office', 'Back Office', 'Warehouse']
+const educationSpecializationByBranch = {
+  Arts: ['History', 'Geography', 'Political Science', 'Economics', 'Sociology', 'Psychology', 'Marathi', 'Hindi', 'English'],
+  Commerce: ['Accounting', 'Finance', 'Banking', 'Taxation', 'Business Administration', 'Economics', 'Costing'],
+  Science: ['Chemistry', 'Microbiology', 'Physics', 'Mathematics', 'Botany', 'Zoology', 'Biotechnology', 'Biochemistry', 'Electronics'],
+  'Diploma/BE': ['Mechanical', 'Civil', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Automobile', 'Production', 'Chemical'],
+  Pharmacy: ['Pharmacy', 'B.Pharm', 'D.Pharm', 'Pharmacology', 'Pharmaceutical Chemistry'],
+  MBA: ['Marketing', 'HR', 'Finance', 'Operations', 'Business Analytics', 'International Business'],
+  Nursing: ['Nursing', 'GNM', 'ANM', 'B.Sc Nursing'],
+  ITI: ['Fitter', 'Electrician', 'Welder', 'Turner', 'Machinist', 'COPA', 'Diesel Mechanic'],
+  'Computer Application': ['BCA', 'MCA', 'Computer Application', 'Information Technology', 'Software Development'],
+  'Computer Science': ['Computer Science', 'Information Technology', 'Data Science', 'Cyber Security', 'Artificial Intelligence']
+}
+const educationSpecializationOptionsForBranch = (branch) => (branch ? ['', ...(educationSpecializationByBranch[branch] || []), 'Other'] : [''])
+const referenceDesignationOptions = ['', 'TPO', 'Other']
+const instituteReferenceFields = [
+  { name: 'trainingPlacementDepartment', label: 'Training and Placement Department' },
+  { name: 'collegeName', label: 'College Name' },
+  { name: 'professorName', label: 'College Representative Name' },
+  { name: 'collegeEducationBranch', label: 'College Education Branch', optionsFor: () => educationBranchOptions },
+  { name: 'collegeEducationBranchOther', label: 'Other College Education Branch', showWhen: { name: 'collegeEducationBranch', value: 'Other' } },
+  { name: 'instituteDesignation', label: 'Designation', optionsFor: () => referenceDesignationOptions },
+  { name: 'instituteDesignationOther', label: 'Other Designation', showWhen: { name: 'instituteDesignation', value: 'Other' } },
+  { name: 'professorContactNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true }
+]
+const postGraduateReferenceFields = [
+  { name: 'postGraduateInstituteName', label: 'College Name' },
+  { name: 'postGraduateRepresentativeName', label: 'College Representative Name' },
+  { name: 'postGraduateEducationBranch', label: 'College Education Branch', optionsFor: () => educationBranchOptions },
+  { name: 'postGraduateEducationBranchOther', label: 'Other College Education Branch', showWhen: { name: 'postGraduateEducationBranch', value: 'Other' } },
+  { name: 'postGraduateDesignation', label: 'Designation', optionsFor: () => referenceDesignationOptions },
+  { name: 'postGraduateDesignationOther', label: 'Other Designation', showWhen: { name: 'postGraduateDesignation', value: 'Other' } },
+  { name: 'postGraduateMobileNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true }
+]
+const preferredDepartmentOptions = ['', 'Accounts', 'Sales', 'Quality', 'HR', 'Admin', 'Production', 'Operations', 'Purchase', 'Store', 'Logistics', 'Dispatch', 'Customer Support', 'Marketing', 'Finance', 'IT', 'Design', 'Maintenance', 'Research & Development', 'Safety', 'Front Office', 'Back Office', 'Warehouse', 'Other']
 const preferredIndustryOptions = ['', 'Manufacturing', 'Banking', 'Finance', 'Insurance', 'IT', 'Non IT', 'Services', 'Educational', 'Healthcare', 'Pharmaceutical', 'Automobile', 'FMCG', 'Retail', 'Real Estate', 'Construction', 'Logistics', 'Telecom', 'Hospitality', 'Textile', 'Chemical', 'Food Processing', 'E-commerce', 'Consulting', 'Other']
 const industrySpecializationOptions = ['', 'Manufacturing', 'Food', 'Pharma', 'Polymer', 'FMCG', 'Chemical', 'Cosmetics', 'Plastic', 'Engineering', 'Automobile', 'Any Industry', 'Textile', 'Packaging', 'Electrical', 'Electronics', 'Agriculture', 'Healthcare', 'Construction', 'Logistics', 'Other']
 const jobWorkingStatusOptions = ['', 'Working', 'Jobless']
@@ -247,6 +310,7 @@ const interviewModeOptions = ['', 'Online', 'Offline', 'Face to Face']
 const reasonForJobChangeOptions = ['', 'Looking for financial and personal growth', 'Looking for opportunity in native place', 'Facing challenge in current company', 'Any Other']
 const referenceSourceOptions = ['Social Media', 'WhatsApp', 'Facebook', 'Instagram', 'LinkedIn', 'Friend', 'Relatives', 'Other']
 const referenceProfileOptions = ['', 'Professional', 'Farmer', 'Student', 'Other']
+const referenceRelationOptions = ['', 'Brother', 'Sister', 'Father', 'Mother', 'Spouse', 'Relative', 'Friend', 'Colleague', 'Neighbor', 'Teacher', 'Other']
 
 const requiredFields = ['candidateName', 'mobileNumber', 'emailId']
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -254,6 +318,7 @@ const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/
 const MAX_DOCUMENT_FILES_PER_TYPE = 10
 
 const createEmptyAddressParts = () => ({
+  addressLine: '',
   village: '',
   taluka: '',
   district: '',
@@ -269,7 +334,7 @@ const formatAddressParts = (parts) =>
 
 const getSelectedOptionValue = (value, otherValue) => {
   const selected = String(value || '').trim()
-  if (selected !== 'Other') return selected
+  if (selected !== 'Other' && selected !== 'Any Other') return selected
   return String(otherValue || '').trim() || selected
 }
 
@@ -301,20 +366,30 @@ const formatComputerCourses = (form) => {
 
 const formatInstituteReferenceDetails = (form, instituteAddress) =>
   [
-    form.collegeName?.trim() ? `Institute Name: ${form.collegeName.trim()}` : '',
-    form.professorName?.trim() ? `Institute Representative Name: ${form.professorName.trim()}` : '',
-    form.instituteDesignation?.trim() ? `Designation: ${form.instituteDesignation.trim()}` : '',
-    form.professorContactNumber?.trim() ? `Institute Mobile Number: ${form.professorContactNumber.trim()}` : '',
-    instituteAddress ? `Institute Address: ${instituteAddress}` : ''
+    form.trainingPlacementDepartment?.trim() ? `Training and Placement Department: ${form.trainingPlacementDepartment.trim()}` : '',
+    form.collegeName?.trim() ? `College Name: ${form.collegeName.trim()}` : '',
+    form.professorName?.trim() ? `College Representative Name: ${form.professorName.trim()}` : '',
+    getSelectedOptionValue(form.collegeEducationBranch, form.collegeEducationBranchOther) ? `College Education Branch: ${getSelectedOptionValue(form.collegeEducationBranch, form.collegeEducationBranchOther)}` : '',
+    getSelectedOptionValue(form.instituteDesignation, form.instituteDesignationOther) ? `Designation: ${getSelectedOptionValue(form.instituteDesignation, form.instituteDesignationOther)}` : '',
+    form.professorContactNumber?.trim() ? `College Mobile Number: ${form.professorContactNumber.trim()}` : '',
+    instituteAddress ? `College Address: ${instituteAddress}` : ''
   ].filter(Boolean).join('\n')
 
-const formatInstituteCollegeDetails = (form, collegeAddress) =>
+const formatPostGraduateReferenceDetails = (form) =>
+  [
+    form.postGraduateInstituteName?.trim() ? `Post Graduate College Name: ${form.postGraduateInstituteName.trim()}` : '',
+    form.postGraduateRepresentativeName?.trim() ? `Post Graduate College Representative Name: ${form.postGraduateRepresentativeName.trim()}` : '',
+    getSelectedOptionValue(form.postGraduateEducationBranch, form.postGraduateEducationBranchOther) ? `Post Graduate Education Branch: ${getSelectedOptionValue(form.postGraduateEducationBranch, form.postGraduateEducationBranchOther)}` : '',
+    getSelectedOptionValue(form.postGraduateDesignation, form.postGraduateDesignationOther) ? `Post Graduate Designation: ${getSelectedOptionValue(form.postGraduateDesignation, form.postGraduateDesignationOther)}` : '',
+    form.postGraduateMobileNumber?.trim() ? `Post Graduate Mobile Number: ${form.postGraduateMobileNumber.trim()}` : ''
+  ].filter(Boolean).join('\n')
+
+const formatInstituteCollegeDetails = (form) =>
   [
     form.collegeTeacherName?.trim() ? `Teacher: ${form.collegeTeacherName.trim()}` : '',
     form.collegeDesignation?.trim() ? `Designation: ${form.collegeDesignation.trim()}` : '',
     form.collegeMobileNumber?.trim() ? `College Mobile Number: ${form.collegeMobileNumber.trim()}` : '',
-    form.collegeReference?.trim() ? `Reference: ${form.collegeReference.trim()}` : '',
-    collegeAddress ? `College Address: ${collegeAddress}` : ''
+    form.collegeReference?.trim() ? `Reference: ${form.collegeReference.trim()}` : ''
   ].filter(Boolean).join('\n')
 
 const formatCareerSummary = (form) => {
@@ -338,7 +413,8 @@ const formatInterviewAvailability = (form) =>
   [
     form.availabilityInterviewStartDate?.trim() ? `Available From: ${form.availabilityInterviewStartDate.trim()}` : '',
     form.availabilityInterviewEndDate?.trim() ? `Available To: ${form.availabilityInterviewEndDate.trim()}` : '',
-    form.interviewMode?.trim() ? `Interview Mode: ${form.interviewMode.trim()}` : ''
+    form.interviewMode?.trim() ? `Interview Mode: ${form.interviewMode.trim()}` : '',
+    form.interviewMode === 'Online' && form.onlineInterviewMode?.trim() ? `Online Interview Mode: ${form.onlineInterviewMode.trim()}` : ''
   ].filter(Boolean).join('\n')
 
 const getNoticePeriodDays = (noticePeriod) => {
@@ -370,6 +446,40 @@ const calculateAgeFromDate = (value) => {
   return age >= 0 ? String(age) : ''
 }
 
+const siblingHasValue = (sibling = {}) =>
+  Object.values(sibling).some((value) => String(value ?? '').trim())
+
+const normalizeSiblingRows = (siblings) => {
+  const rows = Array.isArray(siblings) && siblings.length ? siblings : [createEmptySibling()]
+  return rows.map((sibling) => ({ ...createEmptySibling(), ...(sibling || {}) }))
+}
+
+const sanitizedSiblingRows = (siblings) =>
+  normalizeSiblingRows(siblings)
+    .map((sibling) => ({
+      ...sibling,
+      siblingStudyStandard: sibling.siblingCareerProfile === 'Studying' ? sibling.siblingStudyStandard : '',
+      siblingStudyStandardOther: sibling.siblingCareerProfile === 'Studying' && sibling.siblingStudyStandard === 'Other' ? sibling.siblingStudyStandardOther : '',
+      siblingCareerProfileOther: sibling.siblingCareerProfile === 'Other' ? sibling.siblingCareerProfileOther : ''
+    }))
+    .filter(siblingHasValue)
+
+const firstSiblingFields = (siblings) => {
+  const firstSibling = sanitizedSiblingRows(siblings)[0] || createEmptySibling()
+  return {
+    siblingName: firstSibling.siblingName,
+    siblingEducation: firstSibling.siblingEducation,
+    siblingMobileNumber: firstSibling.siblingMobileNumber,
+    siblingDateOfBirth: firstSibling.siblingDateOfBirth,
+    siblingAge: firstSibling.siblingAge,
+    siblingGender: firstSibling.siblingGender,
+    siblingCareerProfile: firstSibling.siblingCareerProfile,
+    siblingStudyStandard: firstSibling.siblingStudyStandard,
+    siblingStudyStandardOther: firstSibling.siblingStudyStandardOther,
+    siblingCareerProfileOther: firstSibling.siblingCareerProfileOther
+  }
+}
+
 const formatCurrentSalaryDetails = (form) =>
   [
     form.netInHandSalary?.trim() ? `NET / In-hand Salary: ${form.netInHandSalary.trim()}` : '',
@@ -381,7 +491,8 @@ const formatExpectedSalaryDetails = (form) =>
   [
     form.expectedNetInHandSalary?.trim() ? `Expected NET / In-hand Salary: ${form.expectedNetInHandSalary.trim()}` : '',
     form.expectedGrossSalaryPerMonth?.trim() ? `Expected Gross Per Month: ${form.expectedGrossSalaryPerMonth.trim()}` : '',
-    form.expectedCtcSalaryPerMonth?.trim() ? `Expected CTC Per Month: ${form.expectedCtcSalaryPerMonth.trim()}` : ''
+    form.expectedCtcSalaryPerMonth?.trim() ? `Expected CTC Per Month: ${form.expectedCtcSalaryPerMonth.trim()}` : '',
+    form.expectedSalaryNegotiable?.trim() ? `Expected Salary Negotiable: ${form.expectedSalaryNegotiable.trim()}` : ''
   ].filter(Boolean).join('\n')
 
 const formatKeyResponsibilities = (form) =>
@@ -395,10 +506,12 @@ const formatReferenceSuccessDetails = (sources, form) => {
     ? sources.map((source) => (source === 'Other' && form.referenceSourceOther?.trim() ? `Other: ${form.referenceSourceOther.trim()}` : source)).join(', ')
     : ''
   const profile = getSelectedOptionValue(form.referenceProfile, form.referenceProfileOther)
+  const relation = getSelectedOptionValue(form.referenceRelation, form.referenceRelationOther)
 
   return [
     sourceText ? `Reference Source: ${sourceText}` : '',
-    profile ? `Reference Profile: ${profile}` : ''
+    profile ? `Reference Profile: ${profile}` : '',
+    relation ? `Reference Relation: ${relation}` : ''
   ].filter(Boolean).join('\n')
 }
 
@@ -465,6 +578,31 @@ export default function StudentForm() {
         next.siblingStudyStandardOther = ''
       }
 
+      if (field === 'educationBranch') {
+        next.educationSpecialization = ''
+        next.educationSpecializationOther = ''
+      }
+
+      if (field === 'collegeEducationBranch' && value !== 'Other') {
+        next.collegeEducationBranchOther = ''
+      }
+
+      if (field === 'instituteDesignation' && value !== 'Other') {
+        next.instituteDesignationOther = ''
+      }
+
+      if (field === 'postGraduateEducationBranch' && value !== 'Other') {
+        next.postGraduateEducationBranchOther = ''
+      }
+
+      if (field === 'postGraduateDesignation' && value !== 'Other') {
+        next.postGraduateDesignationOther = ''
+      }
+
+      if (field === 'interestedDepartment' && value !== 'Other') {
+        next.interestedDepartmentOther = ''
+      }
+
       if (field === 'currentJobLocation' && value !== 'Other') {
         next.currentJobLocationOther = ''
       }
@@ -475,6 +613,16 @@ export default function StudentForm() {
 
       return next
     })
+  }
+
+  const updateSiblings = (siblings) => {
+    if (submitError) setSubmitError('')
+    const nextSiblings = normalizeSiblingRows(siblings)
+    setForm((current) => ({
+      ...current,
+      ...firstSiblingFields(nextSiblings),
+      siblings: nextSiblings
+    }))
   }
 
   const updateCurrentAddressPart = (field, value) => {
@@ -577,19 +725,31 @@ export default function StudentForm() {
     return true
   }
 
+  const validateSiblingPhones = () => {
+    const invalidIndex = normalizeSiblingRows(form.siblings).findIndex(
+      (sibling) => sibling.siblingMobileNumber.trim() && sibling.siblingMobileNumber.trim().length !== 10
+    )
+    if (invalidIndex >= 0) {
+      toast.error(`Sibling ${invalidIndex + 1} mobile number must be 10 digits`)
+      return false
+    }
+    return true
+  }
+
   const validateCurrentStep = () => {
     if (currentStep === 0) {
       return (
         validatePersonalStep() &&
         validatePhoneField('fatherMobileNumber', 'Father mobile number') &&
         validatePhoneField('motherMobileNumber', 'Mother mobile number') &&
-        validatePhoneField('siblingMobileNumber', 'Sibling mobile number')
+        validateSiblingPhones()
       )
     }
     if (currentStep === 1) {
       return (
         validatePhoneField('professorContactNumber', 'Institute mobile number') &&
-        validatePhoneField('collegeMobileNumber', 'College mobile number')
+        validatePhoneField('collegeMobileNumber', 'College mobile number') &&
+        validatePhoneField('postGraduateMobileNumber', 'Post graduate mobile number')
       )
     }
     if (currentStep === 3) {
@@ -602,10 +762,11 @@ export default function StudentForm() {
     if (!validatePersonalStep()) return false
     if (!validatePhoneField('professorContactNumber', 'Institute mobile number')) return false
     if (!validatePhoneField('collegeMobileNumber', 'College mobile number')) return false
+    if (!validatePhoneField('postGraduateMobileNumber', 'Post graduate mobile number')) return false
     if (!validatePhoneField('referenceContactNumber', 'Reference mobile number')) return false
     if (!validatePhoneField('fatherMobileNumber', 'Father mobile number')) return false
     if (!validatePhoneField('motherMobileNumber', 'Mother mobile number')) return false
-    if (!validatePhoneField('siblingMobileNumber', 'Sibling mobile number')) return false
+    if (!validateSiblingPhones()) return false
 
     return true
   }
@@ -694,10 +855,28 @@ export default function StudentForm() {
       const currentAddress = formatAddressParts(effectiveCurrentAddressParts)
       const permanentAddress = formatAddressParts(permanentAddressParts)
       const instituteAddress = formatAddressParts(instituteAddressParts)
-      const collegeAddress = formatAddressParts(collegeAddressParts)
       const instituteReferenceDetails = formatInstituteReferenceDetails(form, instituteAddress)
-      const instituteCollegeDetails = formatInstituteCollegeDetails(form, collegeAddress)
+      const postGraduateReferenceDetails = formatPostGraduateReferenceDetails(form)
+      const instituteCollegeDetails = formatInstituteCollegeDetails(form)
       const referenceSuccessDetails = formatReferenceSuccessDetails(referenceSuccessSources, form)
+      const siblingRows = sanitizedSiblingRows(form.siblings)
+      const firstSibling = firstSiblingFields(siblingRows)
+      const familyDetails = {
+        fatherOrHusbandName: form.fatherOrHusbandName,
+        fatherOccupation: form.fatherOccupation,
+        fatherMobileNumber: form.fatherMobileNumber,
+        motherOrWifeName: form.motherOrWifeName,
+        motherOccupation: form.motherOccupation,
+        motherMobileNumber: form.motherMobileNumber,
+        ...firstSibling,
+        siblings: siblingRows
+      }
+      const placementReference = {
+        professorName: form.professorName,
+        professorContactNumber: form.professorContactNumber,
+        referenceBy: form.referenceBy,
+        referenceContactNumber: form.referenceContactNumber
+      }
       const applicationDetails = {
         personal: {
           candidateName: form.candidateName,
@@ -713,24 +892,7 @@ export default function StudentForm() {
           currentAddress: effectiveCurrentAddressParts,
           permanentAddress: permanentAddressParts,
           sameAsCurrentAddress,
-          familyDetails: {
-            fatherOrHusbandName: form.fatherOrHusbandName,
-            fatherOccupation: form.fatherOccupation,
-            fatherMobileNumber: form.fatherMobileNumber,
-            motherOrWifeName: form.motherOrWifeName,
-            motherOccupation: form.motherOccupation,
-            motherMobileNumber: form.motherMobileNumber,
-            siblingName: form.siblingName,
-            siblingEducation: form.siblingEducation,
-            siblingMobileNumber: form.siblingMobileNumber,
-            siblingDateOfBirth: form.siblingDateOfBirth,
-            siblingAge: form.siblingAge,
-            siblingGender: form.siblingGender,
-            siblingCareerProfile: form.siblingCareerProfile,
-            siblingStudyStandard: form.siblingCareerProfile === 'Studying' ? form.siblingStudyStandard : '',
-            siblingStudyStandardOther: form.siblingCareerProfile === 'Studying' && form.siblingStudyStandard === 'Other' ? form.siblingStudyStandardOther : '',
-            siblingCareerProfileOther: form.siblingCareerProfile === 'Other' ? form.siblingCareerProfileOther : ''
-          }
+          familyDetails
         },
         education: {
           educationSector: form.educationSector,
@@ -749,14 +911,29 @@ export default function StudentForm() {
           certificationCourseOther: form.certificationCourseOther,
           instituteReference: {
             instituteName: form.collegeName,
+            trainingPlacementDepartment: form.trainingPlacementDepartment,
             representativeName: form.professorName,
-            designation: form.instituteDesignation,
+            educationBranch: getSelectedOptionValue(form.collegeEducationBranch, form.collegeEducationBranchOther),
+            educationBranchRaw: form.collegeEducationBranch,
+            educationBranchOther: form.collegeEducationBranchOther,
+            designation: getSelectedOptionValue(form.instituteDesignation, form.instituteDesignationOther),
+            designationRaw: form.instituteDesignation,
+            designationOther: form.instituteDesignationOther,
             mobileNumber: form.professorContactNumber,
             address: instituteAddressParts
           },
+          postGraduateReference: {
+            instituteName: form.postGraduateInstituteName,
+            representativeName: form.postGraduateRepresentativeName,
+            educationBranch: getSelectedOptionValue(form.postGraduateEducationBranch, form.postGraduateEducationBranchOther),
+            educationBranchRaw: form.postGraduateEducationBranch,
+            educationBranchOther: form.postGraduateEducationBranchOther,
+            designation: getSelectedOptionValue(form.postGraduateDesignation, form.postGraduateDesignationOther),
+            designationRaw: form.postGraduateDesignation,
+            designationOther: form.postGraduateDesignationOther,
+            mobileNumber: form.postGraduateMobileNumber
+          },
           instituteCollege: {
-            college12GraduateName: form.college12GraduateName,
-            postGraduateCollegeName: form.postGraduateCollegeName,
             teacherName: form.collegeTeacherName,
             designation: form.collegeDesignation,
             mobileNumber: form.collegeMobileNumber,
@@ -765,7 +942,9 @@ export default function StudentForm() {
           }
         },
         professional: {
-          preferredDepartment: form.interestedDepartment,
+          preferredDepartment: getSelectedOptionValue(form.interestedDepartment, form.interestedDepartmentOther),
+          preferredDepartmentRaw: form.interestedDepartment,
+          preferredDepartmentOther: form.interestedDepartmentOther,
           preferredIndustry: getSelectedOptionValue(form.preferredIndustry, form.preferredIndustryOther),
           preferredIndustryRaw: form.preferredIndustry,
           preferredIndustryOther: form.preferredIndustryOther,
@@ -780,8 +959,10 @@ export default function StudentForm() {
           expectedSalary: {
             netInHand: form.expectedNetInHandSalary,
             grossPerMonth: form.expectedGrossSalaryPerMonth,
-            ctcPerMonth: form.expectedCtcSalaryPerMonth
+            ctcPerMonth: form.expectedCtcSalaryPerMonth,
+            negotiable: form.expectedSalaryNegotiable
           },
+          expectedSalaryNegotiable: form.expectedSalaryNegotiable,
           currentJobLocation: form.currentJobLocation,
           currentJobLocationOther: form.currentJobLocation === 'Other' ? form.currentJobLocationOther : '',
           currentJobLocationMidcArea: form.currentJobLocationMidcArea,
@@ -797,6 +978,7 @@ export default function StudentForm() {
           availabilityInterviewStartDate: form.availabilityInterviewStartDate,
           availabilityInterviewEndDate: form.availabilityInterviewEndDate,
           interviewMode: form.interviewMode,
+          onlineInterviewMode: form.interviewMode === 'Online' ? form.onlineInterviewMode : '',
           reasonForJobChange: getSelectedOptionValue(form.reasonForJobChange, form.reasonForJobChangeOther),
           reasonForJobChangeRaw: form.reasonForJobChange,
           reasonForJobChangeOther: form.reasonForJobChangeOther,
@@ -810,24 +992,26 @@ export default function StudentForm() {
           referenceProfile: getSelectedOptionValue(form.referenceProfile, form.referenceProfileOther),
           referenceProfileRaw: form.referenceProfile,
           referenceProfileOther: form.referenceProfileOther,
+          referenceRelation: getSelectedOptionValue(form.referenceRelation, form.referenceRelationOther),
+          referenceRelationRaw: form.referenceRelation,
+          referenceRelationOther: form.referenceRelationOther,
           referenceSources: referenceSuccessSources,
           referenceSourceOther: referenceSuccessSources.includes('Other') ? form.referenceSourceOther : ''
         }
       }
       const preparedForm = {
         ...form,
-        siblingStudyStandard: form.siblingCareerProfile === 'Studying' ? form.siblingStudyStandard : '',
-        siblingStudyStandardOther: form.siblingCareerProfile === 'Studying' && form.siblingStudyStandard === 'Other' ? form.siblingStudyStandardOther : '',
-        siblingCareerProfileOther: form.siblingCareerProfile === 'Other' ? form.siblingCareerProfileOther : '',
+        ...firstSibling,
         currentJobLocationOther: form.currentJobLocation === 'Other' ? form.currentJobLocationOther : '',
         currentJobLocationMidcAreaOther: form.currentJobLocationMidcArea === 'Other' ? form.currentJobLocationMidcAreaOther : '',
-        professorName: referenceSuccessDetails,
-        professorContactNumber: '',
+        professorName: form.professorName,
+        professorContactNumber: form.professorContactNumber,
         currentAddress,
         permanentAddress,
         education: formatEducationDetails(form),
         computerCourses: formatComputerCourses(form),
-        interestedDepartment: form.interestedDepartment,
+        appliedFor: getSelectedOptionValue(form.interestedDepartment, form.interestedDepartmentOther),
+        interestedDepartment: getSelectedOptionValue(form.interestedDepartment, form.interestedDepartmentOther),
         preferredIndustry: getSelectedOptionValue(form.preferredIndustry, form.preferredIndustryOther),
         careerSummary: formatCareerSummary(form),
         totalExperience: form.experienceType === 'Fresher' ? '0' : form.totalExperience,
@@ -838,11 +1022,13 @@ export default function StudentForm() {
         expectedSalary: formatExpectedSalaryDetails(form),
         keyResponsibilities: formatKeyResponsibilities(form),
         reasonForJobChange: getSelectedOptionValue(form.reasonForJobChange, form.reasonForJobChangeOther),
-        otherAchievements: [instituteReferenceDetails, instituteCollegeDetails].filter(Boolean).join('\n\n')
+        otherAchievements: [instituteReferenceDetails, postGraduateReferenceDetails, instituteCollegeDetails].filter(Boolean).join('\n\n')
       }
 
       const payload = {
         ...preparedForm,
+        familyDetails,
+        placementReference,
         applicationDetails,
         advisorCode: advisorCode.trim().toLowerCase() || undefined
       }
@@ -949,6 +1135,13 @@ export default function StudentForm() {
                   <div className="border-t border-slate-200 pt-5">
                     <h3 className="mb-4 text-sm font-bold text-slate-800">Family Details</h3>
                     <FieldGrid fields={familyFields} form={form} update={update} normalizeFieldValue={normalizeFieldValue} />
+                    <div className="mt-5">
+                      <SiblingDetailsEditor
+                        siblings={form.siblings}
+                        onChange={updateSiblings}
+                        normalizeFieldValue={normalizeFieldValue}
+                      />
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -1177,6 +1370,13 @@ function ProfessionalDetails({ form, update, normalizeFieldValue }) {
             onChange={(value) => update('interestedDepartment', value)}
             options={preferredDepartmentOptions}
           />
+          {form.interestedDepartment === 'Other' ? (
+            <Field
+              field={{ name: 'interestedDepartmentOther', label: 'Other Department' }}
+              value={form.interestedDepartmentOther}
+              onChange={(value) => update('interestedDepartmentOther', value)}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -1297,9 +1497,20 @@ function ProfessionalDetails({ form, update, normalizeFieldValue }) {
           <SelectField
             label="Interview Mode"
             value={form.interviewMode}
-            onChange={(value) => update('interviewMode', value)}
+            onChange={(value) => {
+              update('interviewMode', value)
+              if (value !== 'Online') update('onlineInterviewMode', '')
+            }}
             options={interviewModeOptions}
           />
+          {form.interviewMode === 'Online' ? (
+            <SelectField
+              label="Online Interview Mode"
+              value={form.onlineInterviewMode}
+              onChange={(value) => update('onlineInterviewMode', value)}
+              options={['', 'Audio', 'Video']}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -1381,6 +1592,22 @@ function ReferenceSuccessDetails({ form, update, normalizeFieldValue, selectedSo
               onChange={(value) => update('referenceProfileOther', value)}
             />
           ) : null}
+          <SelectField
+            label="Reference Relation"
+            value={form.referenceRelation}
+            onChange={(value) => {
+              update('referenceRelation', value)
+              if (value !== 'Other') update('referenceRelationOther', '')
+            }}
+            options={referenceRelationOptions}
+          />
+          {form.referenceRelation === 'Other' ? (
+            <Field
+              field={{ name: 'referenceRelationOther', label: 'Other Reference Relation' }}
+              value={form.referenceRelationOther}
+              onChange={(value) => update('referenceRelationOther', value)}
+            />
+          ) : null}
           <label className="block text-sm font-semibold leading-5 text-slate-700">
             Business Advisor Code
             <input
@@ -1433,7 +1660,7 @@ function AddressSection({ title, values, onChange, disabled = false, action = nu
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {addressPartFields.map((field) => (
-          <label key={field.name} className="block min-w-0 text-sm font-semibold leading-5 text-slate-700">
+          <label key={field.name} className={`block min-w-0 text-sm font-semibold leading-5 text-slate-700 ${field.full ? 'md:col-span-2' : ''}`}>
             <span className="break-words">{field.label}</span>
             <input
               type="text"
@@ -1511,7 +1738,7 @@ function EducationDetails({
               label="Special Subject / Remark"
               value={form.educationSpecialization}
               onChange={(value) => update('educationSpecialization', value)}
-              options={educationSpecializationOptions}
+              options={educationSpecializationOptionsForBranch(form.educationBranch)}
             />
             {form.educationSpecialization === 'Other' ? (
               <Field
@@ -1522,6 +1749,25 @@ function EducationDetails({
             ) : null}
         </div>
       </div>
+
+      <InstituteReferenceDetails
+        form={form}
+        update={update}
+        normalizeFieldValue={normalizeFieldValue}
+      />
+
+      <PostGraduateReferenceDetails form={form} update={update} normalizeFieldValue={normalizeFieldValue} />
+
+      <CollegeAddressDetails
+        addressParts={instituteAddressParts}
+        onAddressChange={updateInstituteAddressPart}
+      />
+
+      <InstituteCollegeDetails
+        form={form}
+        update={update}
+        normalizeFieldValue={normalizeFieldValue}
+      />
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Other Computer Class Or Certification Details</h3>
@@ -1554,74 +1800,54 @@ function EducationDetails({
           ) : null}
         </div>
       </div>
-
-      <InstituteReferenceDetails
-        form={form}
-        update={update}
-        normalizeFieldValue={normalizeFieldValue}
-        addressParts={instituteAddressParts}
-        onAddressChange={updateInstituteAddressPart}
-      />
-
-      <InstituteCollegeDetails
-        form={form}
-        update={update}
-        normalizeFieldValue={normalizeFieldValue}
-        addressParts={collegeAddressParts}
-        onAddressChange={updateCollegeAddressPart}
-      />
     </div>
   )
 }
 
-function InstituteReferenceDetails({ form, update, normalizeFieldValue, addressParts, onAddressChange }) {
+function InstituteReferenceDetails({ form, update, normalizeFieldValue }) {
   return (
     <div className="border-t border-slate-200 pt-5">
-      <h3 className="mb-4 text-sm font-bold text-slate-800">Institute Reference Details</h3>
+      <h3 className="mb-4 text-sm font-bold text-slate-800">College Reference Details (Like 12th, ITI, Diploma, Graduate)</h3>
       <FieldGrid fields={instituteReferenceFields} form={form} update={update} normalizeFieldValue={normalizeFieldValue} singleColumn />
+    </div>
+  )
+}
 
-      <div className="mt-5">
-        <h4 className="mb-4 text-sm font-bold text-slate-800">Institute Address</h4>
-        <div className="grid gap-4">
-          {addressPartFields.map((field) => (
-            <label key={field.name} className="block min-w-0 text-sm font-semibold leading-5 text-slate-700">
-              <span className="break-words">{field.label}</span>
-              <input
-                type="text"
-                value={addressParts[field.name] || ''}
-                onChange={(event) => onAddressChange(field.name, event.target.value)}
-                className={inputClassName}
-              />
-            </label>
-          ))}
-        </div>
+function PostGraduateReferenceDetails({ form, update, normalizeFieldValue }) {
+  return (
+    <div className="border-t border-slate-200 pt-5">
+      <h3 className="mb-4 text-sm font-bold text-slate-800">Post Graduate Reference Details</h3>
+      <FieldGrid fields={postGraduateReferenceFields} form={form} update={update} normalizeFieldValue={normalizeFieldValue} singleColumn />
+    </div>
+  )
+}
+
+function CollegeAddressDetails({ addressParts, onAddressChange }) {
+  return (
+    <div className="border-t border-slate-200 pt-5">
+      <h3 className="mb-4 text-sm font-bold text-slate-800">College Address</h3>
+      <div className="grid gap-4">
+        {collegeAddressPartFields.map((field) => (
+          <label key={field.name} className="block min-w-0 text-sm font-semibold leading-5 text-slate-700">
+            <span className="break-words">College {field.label}</span>
+            <input
+              type="text"
+              value={addressParts[field.name] || ''}
+              onChange={(event) => onAddressChange(field.name, event.target.value)}
+              className={inputClassName}
+            />
+          </label>
+        ))}
       </div>
     </div>
   )
 }
 
-function InstituteCollegeDetails({ form, update, normalizeFieldValue, addressParts, onAddressChange }) {
+function InstituteCollegeDetails({ form, update, normalizeFieldValue }) {
   return (
     <div className="border-t border-slate-200 pt-5">
-      <h3 className="mb-4 text-sm font-bold text-slate-800">Institute Details</h3>
+      <h3 className="mb-4 text-sm font-bold text-slate-800">Institute Details (Private Coaching Classes)</h3>
       <FieldGrid fields={instituteCollegeFields} form={form} update={update} normalizeFieldValue={normalizeFieldValue} singleColumn />
-
-      <div className="mt-5">
-        <h4 className="mb-4 text-sm font-bold text-slate-800">College Address</h4>
-        <div className="grid gap-4">
-          {addressPartFields.map((field) => (
-            <label key={field.name} className="block min-w-0 text-sm font-semibold leading-5 text-slate-700">
-              <span className="break-words">{field.label}</span>
-              <input
-                type="text"
-                value={addressParts[field.name] || ''}
-                onChange={(event) => onAddressChange(field.name, event.target.value)}
-                className={inputClassName}
-              />
-            </label>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
@@ -1631,13 +1857,107 @@ function FieldGrid({ fields, form, update, normalizeFieldValue, singleColumn = f
 
   return (
     <div className={`grid gap-4 ${singleColumn ? '' : 'md:grid-cols-2'}`}>
-      {visibleFields.map((field) => (
-        <Field
-          key={field.name}
-          field={field}
-          value={form[field.name]}
-          onChange={(value) => update(field.name, normalizeFieldValue(field, value))}
-        />
+      {visibleFields.map((field) => {
+        const resolvedField = {
+          ...field,
+          options: field.optionsFor ? field.optionsFor(form) : field.options
+        }
+        return (
+          <Field
+            key={field.name}
+            field={resolvedField}
+            value={form[field.name]}
+            onChange={(value) => update(field.name, normalizeFieldValue(field, value))}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+function SiblingDetailsEditor({ siblings, onChange, normalizeFieldValue }) {
+  const rows = normalizeSiblingRows(siblings)
+
+  const updateSibling = (index, field, value) => {
+    const nextRows = rows.map((row, rowIndex) => (rowIndex === index ? { ...row } : row))
+    const nextSibling = {
+      ...nextRows[index],
+      [field.name]: normalizeFieldValue(field, value)
+    }
+
+    if (field.name === 'siblingDateOfBirth') {
+      nextSibling.siblingAge = calculateAgeFromDate(value)
+    }
+
+    if (field.name === 'siblingCareerProfile') {
+      if (value !== 'Studying') {
+        nextSibling.siblingStudyStandard = ''
+        nextSibling.siblingStudyStandardOther = ''
+      }
+      if (value !== 'Other') {
+        nextSibling.siblingCareerProfileOther = ''
+      }
+    }
+
+    if (field.name === 'siblingStudyStandard' && value !== 'Other') {
+      nextSibling.siblingStudyStandardOther = ''
+    }
+
+    nextRows[index] = nextSibling
+    onChange(nextRows)
+  }
+
+  const addSibling = () => onChange([...rows, createEmptySibling()])
+  const removeSibling = (index) => {
+    const nextRows = rows.filter((_, rowIndex) => rowIndex !== index)
+    onChange(nextRows.length ? nextRows : [createEmptySibling()])
+  }
+
+  return (
+    <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h4 className="text-sm font-bold text-slate-800">Sibling Details</h4>
+          <p className="mt-1 text-xs font-semibold text-slate-500">Add each sibling separately.</p>
+        </div>
+        <button
+          type="button"
+          onClick={addSibling}
+          className="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-md bg-sky-600 px-3 text-xs font-bold text-white hover:bg-sky-700 sm:w-auto"
+        >
+          <Plus className="h-4 w-4" />
+          Add Sibling
+        </button>
+      </div>
+
+      {rows.map((sibling, siblingIndex) => (
+        <div key={siblingIndex} className="rounded-lg border border-slate-200 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h5 className="text-sm font-bold text-slate-700">Sibling {siblingIndex + 1}</h5>
+            {rows.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => removeSibling(siblingIndex)}
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-rose-200 px-3 text-xs font-bold text-rose-600 hover:bg-rose-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remove
+              </button>
+            ) : null}
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {siblingFields
+              .filter((field) => !field.showWhen || sibling[field.showWhen.name] === field.showWhen.value)
+              .map((field) => (
+                <Field
+                  key={field.name}
+                  field={field}
+                  value={sibling[field.name]}
+                  onChange={(value) => updateSibling(siblingIndex, field, value)}
+                />
+              ))}
+          </div>
+        </div>
       ))}
     </div>
   )

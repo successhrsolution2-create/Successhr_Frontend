@@ -8,9 +8,21 @@
     "dev:apply": "vite --host 0.0.0.0 --mode apply",
     "build": "vite build",
     "build:apply": "vite build --mode apply",
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "cy:run:auth": "cypress run --spec \"cypress/e2e/auth/**\"",
+    "cy:run:advisor": "cypress run --spec \"cypress/e2e/advisor/**\"",
+    "cy:run:crm": "cypress run --spec \"cypress/e2e/crm/**\"",
+    "cy:run:ems": "cypress run --spec \"cypress/e2e/ems/**\"",
+    "cy:run:payroll": "cypress run --spec \"cypress/e2e/payroll/**\"",
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "cypress": "^15.15.0",
+    "cypress-axe": "^1.7.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.10"
   },
@@ -30,6 +42,7 @@
     "react-hot-toast": "^2.6.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^6.30.3",
+    "recharts": "^3.8.1",
     "socket.io-client": "^4.8.3",
     "tailwindcss": "^4.2.4",
     "zod": "^4.4.3"

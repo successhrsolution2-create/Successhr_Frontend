@@ -52,6 +52,57 @@ const selectedOptionValue = (value, otherValue) => {
   return text === 'Other' ? textValue(otherValue) : text
 }
 
+const visitHasContent = (visit = {}) =>
+  Boolean(
+    textValue(visit.visitDateTime || visit.dateTime || visit.date) ||
+      textValue(visit.purpose) ||
+      textValue(visit.purposeOther) ||
+      textValue(visit.meetingStaffName || visit.staffName) ||
+      textValue(visit.communicationDetails || visit.communication)
+  )
+
+const candidateVisitsFromItem = (item = {}) => {
+  const rootVisits = Array.isArray(item.candidateVisits) ? item.candidateVisits : []
+  const applicationVisits = Array.isArray(item.applicationDetails?.candidateVisits)
+    ? item.applicationDetails.candidateVisits
+    : []
+  return (rootVisits.length ? rootVisits : applicationVisits)
+    .map((visit) => ({
+      id: visit?._id || visit?.id || '',
+      visitDateTime: textValue(visit?.visitDateTime || visit?.dateTime || visit?.date),
+      purpose: textValue(visit?.purpose),
+      purposeOther: textValue(visit?.purposeOther),
+      meetingStaffName: textValue(visit?.meetingStaffName || visit?.staffName),
+      communicationDetails: textValue(visit?.communicationDetails || visit?.communication)
+    }))
+    .filter(visitHasContent)
+}
+
+const lastCandidateVisit = (visits = []) => {
+  const filledVisits = (Array.isArray(visits) ? visits : []).filter(visitHasContent)
+  return filledVisits.length ? filledVisits[filledVisits.length - 1] : null
+}
+
+const formatVisitDateTime = (value) => {
+  const raw = textValue(value)
+  if (!raw) return { date: '-', time: '' }
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return { date: raw, time: '' }
+
+  return {
+    date: date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }),
+    time: date.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
+}
+
 const highestEducationFromText = (value) => {
   const education = textValue(value)
   const match = education.match(
@@ -133,6 +184,7 @@ const toLegacyShape = (item, index = 0, total = 0) => ({
   remarks: item.remarks || {},
   successUpdate: item.successUpdate || item.successRemarks || {},
   selectionStatus: item.selectionStatus || item.placement?.selectionStatus || '',
+  candidateVisits: candidateVisitsFromItem(item),
   interviews: Array.isArray(item.interviews) ? item.interviews.map(toLegacyInterviewShape) : [],
   interviewCount: Number(item.interviewCount || item.interviews?.length || 0),
   createdAt: item.createdAt
@@ -381,6 +433,7 @@ export default function CandidatesList() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [dateRange, setDateRange] = useState(defaultDateRange)
+  const [visitDateRange, setVisitDateRange] = useState(defaultDateRange)
   const [importing, setImporting] = useState(false)
   const [confirmingImport, setConfirmingImport] = useState(false)
   const [importPreview, setImportPreview] = useState(null)
@@ -406,6 +459,8 @@ export default function CandidatesList() {
           education: candidateFilters.education || undefined,
           dateFrom: dateRange.from || undefined,
           dateTo: dateRange.to || undefined,
+          visitDateFrom: visitDateRange.from || undefined,
+          visitDateTo: visitDateRange.to || undefined,
           tile: tileFilter === 'all' ? undefined : tileFilter
         }
       })
@@ -427,7 +482,7 @@ export default function CandidatesList() {
     } finally {
       setLoading(false)
     }
-  }, [candidateFilters, dateRange, page, pageSize, search, tileFilter])
+  }, [candidateFilters, dateRange, page, pageSize, search, tileFilter, visitDateRange])
 
   useEffect(() => {
     loadCandidates(page)
@@ -435,7 +490,7 @@ export default function CandidatesList() {
 
   useEffect(() => {
     setPage(1)
-  }, [candidateFilters, search, dateRange, pageSize, tileFilter])
+  }, [candidateFilters, search, dateRange, pageSize, tileFilter, visitDateRange])
 
   const paginated = candidates
   const visibleCandidateIds = paginated.map((candidate) => candidate.id).filter(Boolean)
@@ -449,6 +504,7 @@ export default function CandidatesList() {
 
   const resetFilters = () => {
     setDateRange(defaultDateRange)
+    setVisitDateRange(defaultDateRange)
     setSearch('')
     setCandidateFilters(defaultCandidateFilters)
     setTileFilter('all')
@@ -463,6 +519,13 @@ export default function CandidatesList() {
 
   const updateDateRange = (key, value) => {
     setDateRange((current) => ({
+      ...current,
+      [key]: value
+    }))
+  }
+
+  const updateVisitDateRange = (key, value) => {
+    setVisitDateRange((current) => ({
       ...current,
       [key]: value
     }))
@@ -743,23 +806,51 @@ export default function CandidatesList() {
             <MetricChip icon={UserRoundPlus} label="Interviews" value={stats.activeInterviews} tone="orange" active={tileFilter === 'interviews'} onClick={() => setTileFilter('interviews')} />
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-            <input
-              type="date"
-              value={dateRange.from}
-              onChange={(e) => updateDateRange('from', e.target.value)}
-              className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[160px]"
-              aria-label="Filter candidates from registration date"
-              title="From registration date"
-            />
-            <input
-              type="date"
-              value={dateRange.to}
-              onChange={(e) => updateDateRange('to', e.target.value)}
-              className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[160px]"
-              aria-label="Filter candidates to registration date"
-              title="To registration date"
-            />
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-end">
+            <label className="grid gap-1 text-xs font-semibold text-slate-500">
+              Registration From
+              <input
+                type="date"
+                value={dateRange.from}
+                onChange={(e) => updateDateRange('from', e.target.value)}
+                className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[150px]"
+                aria-label="Filter candidates from registration date"
+                title="From registration date"
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-semibold text-slate-500">
+              Registration To
+              <input
+                type="date"
+                value={dateRange.to}
+                onChange={(e) => updateDateRange('to', e.target.value)}
+                className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[150px]"
+                aria-label="Filter candidates to registration date"
+                title="To registration date"
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-semibold text-slate-500">
+              Visit From
+              <input
+                type="date"
+                value={visitDateRange.from}
+                onChange={(e) => updateVisitDateRange('from', e.target.value)}
+                className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[150px]"
+                aria-label="Filter candidates from visit date"
+                title="From visit date"
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-semibold text-slate-500">
+              Visit To
+              <input
+                type="date"
+                value={visitDateRange.to}
+                onChange={(e) => updateVisitDateRange('to', e.target.value)}
+                className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[150px]"
+                aria-label="Filter candidates to visit date"
+                title="To visit date"
+              />
+            </label>
             <button
               type="button"
               onClick={resetFilters}
@@ -790,16 +881,17 @@ export default function CandidatesList() {
         {loading ? (
           <div className="border-b border-[#d4dde8] px-5 py-6 text-slate-600">Loading candidates...</div>
         ) : null}
-        <div className="overflow-x-hidden">
-          <table className="w-full table-fixed text-sm text-slate-900">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1280px] table-fixed text-sm text-slate-900">
             <colgroup>
               <col className="w-[4%]" />
               <col className="w-[8%]" />
-              <col className="w-[13%]" />
-              <col className="w-[22%]" />
               <col className="w-[12%]" />
-              <col className="w-[21%]" />
-              <col className="w-[20%]" />
+              <col className="w-[19%]" />
+              <col className="w-[10%]" />
+              <col className="w-[14%]" />
+              <col className="w-[16%]" />
+              <col className="w-[17%]" />
             </colgroup>
             <thead className="bg-white text-left text-sm font-semibold text-slate-950">
               <tr className="border-b border-[#d4dde8]">
@@ -818,6 +910,7 @@ export default function CandidatesList() {
                 <th className="border-r border-[#d4dde8] px-3 py-4 whitespace-nowrap">Name</th>
                 <th className="border-r border-[#d4dde8] px-3 py-4 whitespace-nowrap">Education</th>
                 <th className="border-r border-[#d4dde8] px-3 py-4 whitespace-nowrap">Job Role/Department</th>
+                <th className="border-r border-[#d4dde8] px-3 py-4 whitespace-nowrap">Visits</th>
                 <th className="px-3 py-4 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
@@ -863,6 +956,36 @@ export default function CandidatesList() {
                   <td className="truncate border-r border-[#d4dde8] px-3 py-4 leading-5 text-slate-900" title={candidate.jobRole || candidate.appliedFor || '-'}>
                     {candidate.jobRole || candidate.appliedFor || '-'}
                   </td>
+                  <td className="border-r border-[#d4dde8] px-3 py-4">
+                    {(() => {
+                      const visits = Array.isArray(candidate.candidateVisits) ? candidate.candidateVisits : []
+                      const lastVisit = lastCandidateVisit(visits)
+                      const visitDate = formatVisitDateTime(lastVisit?.visitDateTime)
+                      const purpose = lastVisit ? selectedOptionValue(lastVisit.purpose, lastVisit.purposeOther) : ''
+                      return (
+                        <div className="min-w-0 space-y-1 leading-5">
+                          <span className="inline-flex rounded-full bg-[#eef6ff] px-2 py-0.5 text-xs font-bold text-[#00427d]">
+                            {visits.length} Visit{visits.length === 1 ? '' : 's'}
+                          </span>
+                          {lastVisit ? (
+                            <div className="min-w-0 text-xs font-semibold text-slate-600">
+                              <span className="block truncate text-slate-900" title={`${visitDate.date} ${visitDate.time}`.trim()}>
+                                Last: {visitDate.date}{visitDate.time ? `, ${visitDate.time}` : ''}
+                              </span>
+                              <span className="block truncate" title={purpose || '-'}>
+                                {purpose || '-'}
+                              </span>
+                              <span className="block truncate" title={lastVisit.meetingStaffName || '-'}>
+                                Staff: {lastVisit.meetingStaffName || '-'}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="block text-xs font-semibold text-slate-400">No visit added</span>
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </td>
                   <td className="px-3 py-4">
                     <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
                       <button
@@ -895,7 +1018,7 @@ export default function CandidatesList() {
               ))}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
+                  <td colSpan={8} className="px-5 py-12 text-center text-slate-500">
                     No candidates found.
                   </td>
                 </tr>

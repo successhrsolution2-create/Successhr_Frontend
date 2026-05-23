@@ -52,13 +52,18 @@ import {
   SUCCESS_INFO_FIELDS,
   WITNESS_FIELDS,
   COMPUTER_COURSE_ASSESSMENT_COURSES,
+  TYPING_LANGUAGE_OPTIONS,
+  TYPING_SPEED_OPTIONS,
   calculateQuestionMarksResult,
   emptyCandidateForm,
   emptyInterviewRow,
+  emptyCandidateVisit,
   emptyQuestionRow,
+  emptySiblingDetails,
   emptyWitnessDetails,
   buildQuestionRows,
   interviewHasContent,
+  candidateVisitHasContent,
   isMongoId,
   mapApiToCandidateForm,
   mapCandidateFormToApi,
@@ -74,14 +79,17 @@ const textAreaClass =
   'mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100'
 const labelClass = 'block min-w-0 text-sm font-semibold text-slate-700'
 const cardClass = 'rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5'
-const editablePanels = new Set(['details', 'documents', 'successInfo', 'assessment', 'interviews'])
+const directorAssessmentLabel = 'MR Ganesh Avhad - Director Assessment'
+const editablePanels = new Set(['details', 'documents', 'successInfo', 'assessment', 'interviews', 'visits'])
 const panelLabels = {
   details: 'Candidate Details',
   documents: 'Documents',
   successInfo: 'Success Info For Candidate',
   assessment: 'Success Interviewer Remark',
-  interviews: 'Company Interviews'
+  interviews: 'Company Interviews',
+  visits: 'Number of Visits'
 }
+const visitPurposeOptions = ['', 'Registration', 'Counselling', 'Document Submission', 'Interview Update', 'Job Discussion', 'Follow-up', 'Payment / Fees', 'Training / Placement Discussion', 'Other']
 const emptyDirectorUnlockCredentials = { password: '' }
 const panelFromSearch = (searchParams) => {
   const panel = searchParams.get('panel')
@@ -468,48 +476,37 @@ const createSuccessRemarkPdf = (candidate) => {
   }
   const drawComputerCourseAssessment = () => {
     const assessment = candidate.interviewForm.computerCourseAssessment || {}
-    const selectedCourses = Array.isArray(assessment.courses) ? assessment.courses : []
-    const height = 154
+    const courseRows = computerCourseRowsForDisplay(assessment)
+    const typingSpeed = typingSpeedText(assessment)
+    const height = 150
     ensureSpace(height + 18)
     drawRect(margin, y, pageWidth - margin * 2, height, { stroke: [0.06, 0.09, 0.16], lineWidth: 1.1 })
     drawRect(margin, y, pageWidth - margin * 2, 30, { stroke: [0.06, 0.09, 0.16], fill: [0.97, 0.98, 0.99] })
     drawText('Computer Courses Assessment', margin + 12, y + 9, { size: 11, bold: true, maxWidth: pageWidth - margin * 2 - 24 })
 
-    let courseX = margin + 12
-    const courseY = y + 44
-    drawText('Computer Courses:', courseX, courseY, { size: 9.5, bold: true, maxWidth: 110 })
-    courseX += 118
-    COMPUTER_COURSE_ASSESSMENT_COURSES.forEach((course) => {
-      drawText(course, courseX, courseY, { size: 8.7, bold: true, maxWidth: 76 })
-      drawCheckbox(courseX + Math.min(74, course.length * 5 + 8), courseY - 1, selectedCourses.includes(course))
-      courseX += course === 'Advance Excel' ? 112 : 78
+    const x = margin + 12
+    const contentW = pageWidth - margin * 2 - 24
+    const colW = (contentW - 24) / 3
+    const courseText = courseRows.length ? courseRows.map((row) => `${row.course || 'Course'}: ${row.score || '-'} / 10`).join(' | ') : '-'
+
+    drawText('Course Scores', x, y + 44, { size: 9.5, bold: true, maxWidth: 110 })
+    drawRect(x + 120, y + 38, contentW - 120, 28, { stroke: [0.78, 0.83, 0.9] })
+    drawText(courseText, x + 128, y + 47, { size: 8.8, bold: true, maxWidth: contentW - 136 })
+
+    const typingY = y + 78
+    ;[
+      ['Typing Language', assessment.typingLanguage || '-'],
+      ['Typing Speed', typingSpeed ? `${typingSpeed} WPM` : '-'],
+      ['Typing Accuracy', assessment.typingAccuracy ? `${assessment.typingAccuracy} / 100` : '-']
+    ].forEach(([label, value], index) => {
+      const fieldX = x + index * (colW + 12)
+      drawText(label, fieldX, typingY, { size: 9, bold: true, fill: [0.2, 0.28, 0.39], maxWidth: colW })
+      drawRect(fieldX, typingY + 16, colW, 26, { stroke: [0.78, 0.83, 0.9] })
+      drawText(value, fieldX + 8, typingY + 24, { size: 9, bold: true, maxWidth: colW - 16 })
     })
 
-    const tableY = y + 72
-    const tableW = pageWidth - margin * 2 - 24
-    const x = margin + 12
-    const speedW = 260
-    const colW = (tableW - speedW) / 3
-    drawRect(x, tableY, tableW, 54, { stroke: [0.06, 0.09, 0.16] })
-    drawLine(x + speedW, tableY, x + speedW, tableY + 54, [0.06, 0.09, 0.16], 0.8)
-    drawLine(x + speedW + colW, tableY, x + speedW + colW, tableY + 54, [0.06, 0.09, 0.16], 0.8)
-    drawLine(x + speedW + colW * 2, tableY, x + speedW + colW * 2, tableY + 54, [0.06, 0.09, 0.16], 0.8)
-    drawLine(x, tableY + 24, x + speedW, tableY + 24, [0.06, 0.09, 0.16], 0.8)
-    drawLine(x + speedW / 2, tableY + 24, x + speedW / 2, tableY + 54, [0.06, 0.09, 0.16], 0.8)
-    drawText('Typing Speed', x + 86, tableY + 7, { size: 9.5, bold: true, maxWidth: 120 })
-    drawText('Word', x + speedW + 12, tableY + 7, { size: 9.5, bold: true, maxWidth: colW - 24 })
-    drawText('Excel', x + speedW + colW + 12, tableY + 7, { size: 9.5, bold: true, maxWidth: colW - 24 })
-    drawText('Tally', x + speedW + colW * 2 + 12, tableY + 7, { size: 9.5, bold: true, maxWidth: colW - 24 })
-    drawText('Accuracy', x + 12, tableY + 31, { size: 9, bold: true, maxWidth: 84 })
-    drawText(`${assessment.typingAccuracy || ''} %`, x + 92, tableY + 31, { size: 9.5, bold: true, maxWidth: 58 })
-    drawText('Speed', x + speedW / 2 + 12, tableY + 31, { size: 9, bold: true, maxWidth: 66 })
-    drawText(`${assessment.typingSpeed || ''} WPM`, x + speedW / 2 + 88, tableY + 31, { size: 9.5, bold: true, maxWidth: 80 })
-    drawText(`${assessment.word || ''} %`, x + speedW + 58, tableY + 31, { size: 9.5, bold: true, maxWidth: 72 })
-    drawText(`${assessment.excel || ''} %`, x + speedW + colW + 58, tableY + 31, { size: 9.5, bold: true, maxWidth: 72 })
-    drawText(`${assessment.tally || ''} %`, x + speedW + colW * 2 + 58, tableY + 31, { size: 9.5, bold: true, maxWidth: 72 })
-
-    drawText('Remark:', x, y + 136, { size: 9.5, bold: true, maxWidth: 64 })
-    drawText(assessment.remark || '', x + 64, y + 136, { size: 9, maxWidth: tableW - 70 })
+    drawText('Remark:', x, y + 132, { size: 9.5, bold: true, maxWidth: 64 })
+    drawText(assessment.remark || '', x + 64, y + 132, { size: 9, maxWidth: contentW - 70 })
     y += height + 18
   }
   const drawQuestions = () => {
@@ -728,11 +725,9 @@ function GlobalFieldSearch({ value, results, onChange, onSelect }) {
   )
 }
 
-const candidateDetailRequiredPaths = ['fullName', 'mobile']
-
 const educationSectorOptions = ['', '10th', '12th', 'Graduate', 'PG', 'PHD', 'ITI', 'Diploma', 'Degree', 'Other']
 const higherEducationYearOptions = ['', ...Array.from({ length: 67 }, (_, index) => String(new Date().getFullYear() + 4 - index))]
-const educationBranchOptions = ['', 'Arts', 'Commerce', 'Science', 'Diploma/BE', 'Pharmacy', 'MBA', 'Nursing', 'ITI', 'Computer Application', 'Computer Science']
+const educationBranchOptions = ['', 'Arts', 'Commerce', 'Science', 'Diploma/BE', 'Pharmacy', 'MBA', 'Nursing', 'ITI', 'Computer Application', 'Computer Science', 'Other']
 const computerCourseOptions = ['', 'MS-CIT', 'CCC', 'Advanced Excel', 'PowerPoint', 'Tally', 'AutoCAD', 'Typing', 'Other']
 const certificationCourseOptions = ['', 'Graphic Design', 'C++', 'Java', 'PHP', 'Python', 'Web Development', 'Digital Marketing', 'Data Analytics', 'Other']
 const educationSpecializationByBranch = {
@@ -747,7 +742,8 @@ const educationSpecializationByBranch = {
   'Computer Application': ['BCA', 'MCA', 'Computer Application', 'Information Technology', 'Software Development'],
   'Computer Science': ['Computer Science', 'Information Technology', 'Data Science', 'Cyber Security', 'Artificial Intelligence']
 }
-const educationSpecializationOptionsForBranch = (branch) => ['', ...(educationSpecializationByBranch[branch] || [])]
+const educationSpecializationOptionsForBranch = (branch) => ['', ...(educationSpecializationByBranch[branch] || []), 'Other']
+const referenceDesignationOptions = ['', 'TPO', 'Other']
 const preferredDepartmentOptions = ['', 'Accounts', 'Sales', 'Quality', 'HR', 'Admin', 'Production', 'Operations', 'Purchase', 'Store', 'Logistics', 'Dispatch', 'Customer Support', 'Marketing', 'Finance', 'IT', 'Design', 'Maintenance', 'Research & Development', 'Safety', 'Front Office', 'Back Office', 'Warehouse', 'Other']
 const preferredIndustryOptions = ['', 'Manufacturing', 'Banking', 'Finance', 'Insurance', 'IT', 'Non IT', 'Services', 'Educational', 'Healthcare', 'Pharmaceutical', 'Automobile', 'FMCG', 'Retail', 'Real Estate', 'Construction', 'Logistics', 'Telecom', 'Hospitality', 'Textile', 'Chemical', 'Food Processing', 'E-commerce', 'Consulting', 'Other']
 const industrySpecializationOptions = ['', 'Manufacturing', 'Food', 'Pharma', 'Polymer', 'FMCG', 'Chemical', 'Cosmetics', 'Plastic', 'Engineering', 'Automobile', 'Any Industry', 'Textile', 'Packaging', 'Electrical', 'Electronics', 'Agriculture', 'Healthcare', 'Construction', 'Logistics', 'Other']
@@ -755,6 +751,7 @@ const currentJobLocationTalukaOptions = ['', 'Sinnar', 'Nashik', 'Mumbai', 'Pune
 const currentJobLocationMidcAreaOptions = ['', 'Musalgaon', 'Malegaon', 'Ambad', 'Satpur', 'Other']
 const interviewModeOptions = ['', 'Online', 'Offline', 'Face to Face']
 const referenceSourceOptions = ['Social Media', 'WhatsApp', 'Facebook', 'Instagram', 'LinkedIn', 'Friend', 'Relatives', 'Other']
+const referenceRelationOptions = ['', 'Brother', 'Sister', 'Father', 'Mother', 'Spouse', 'Relative', 'Friend', 'Colleague', 'Neighbor', 'Teacher', 'Other']
 const siblingCareerProfileOptions = ['', 'Studying', 'Own Business', 'Doing Government Job Preparation', 'Housewife', 'Farmer', 'Doing Government Job', 'Doing Private Job', 'Other']
 const siblingStudyStandardOptions = [
   '',
@@ -776,6 +773,19 @@ const siblingStudyStandardOptions = [
   'Other'
 ]
 
+const siblingDetailFields = [
+  { key: 'siblingName', label: 'Sibling / Brother / Sister Name' },
+  { key: 'siblingEducation', label: 'Sibling / Brother / Sister Education' },
+  { key: 'siblingMobileNumber', label: 'Sibling / Brother / Sister Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
+  { key: 'siblingDateOfBirth', label: 'Sibling / Brother / Sister DOB', type: 'date' },
+  { key: 'siblingAge', label: 'Sibling / Brother / Sister Age', type: 'number', readOnly: true },
+  { key: 'siblingGender', label: 'Sibling / Brother / Sister Gender', options: ['', 'Male', 'Female', 'Other'] },
+  { key: 'siblingCareerProfile', label: 'Sibling / Brother / Sister Career Profile', options: siblingCareerProfileOptions },
+  { key: 'siblingStudyStandard', label: 'Sibling / Brother / Sister Study Standard', options: siblingStudyStandardOptions, showWhen: { key: 'siblingCareerProfile', value: 'Studying' } },
+  { key: 'siblingStudyStandardOther', label: 'Other Sibling / Brother / Sister Study Standard', showWhen: { key: 'siblingStudyStandard', value: 'Other' } },
+  { key: 'siblingCareerProfileOther', label: 'Other Sibling / Brother / Sister Career Profile', showWhen: { key: 'siblingCareerProfile', value: 'Other' } }
+]
+
 const candidateDetailPanels = [
   {
     title: 'Personal Details',
@@ -793,33 +803,26 @@ const candidateDetailPanels = [
       { path: 'gender', label: 'Gender', options: ['', 'Male', 'Female', 'Other'] },
       { path: 'marriageStatus', label: 'Marital Status', options: ['', 'Married', 'Unmarried', 'Single', 'Widow'] },
       { key: 'personal-permanent-address', kind: 'section', label: 'Permanent Address' },
+      { path: 'permanentAddressLine', label: 'Permanent Flat No / House No, Society, Landmark', full: true },
       { path: 'permanentAddressVillage', label: 'Permanent Village' },
       { path: 'permanentAddressTaluka', label: 'Permanent Taluka' },
       { path: 'permanentAddressDistrict', label: 'Permanent District' },
       { path: 'permanentAddressState', label: 'Permanent State' },
       { key: 'personal-current-address', kind: 'section', label: 'Current Address' },
       { path: 'sameAsCurrentAddress', label: 'Current address same as permanent address', kind: 'checkbox', full: true },
+      { path: 'currentAddressLine', label: 'Current Flat No / House No, Society, Landmark', full: true, hideWhen: { path: 'sameAsCurrentAddress', value: true } },
       { path: 'currentAddressVillage', label: 'Current Village', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
       { path: 'currentAddressTaluka', label: 'Current Taluka', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
       { path: 'currentAddressDistrict', label: 'Current District', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
       { path: 'currentAddressState', label: 'Current State', hideWhen: { path: 'sameAsCurrentAddress', value: true } },
       { key: 'personal-family-details', kind: 'section', label: 'Family Details' },
       { path: 'familyDetails.fatherOrHusbandName', label: 'Father / Husband Name' },
-      { path: 'familyDetails.fatherOccupation', label: 'Father Occupation' },
-      { path: 'familyDetails.fatherMobileNumber', label: 'Father Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
+      { path: 'familyDetails.fatherOccupation', label: 'Father / Husband Occupation' },
+      { path: 'familyDetails.fatherMobileNumber', label: 'Father / Husband Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
       { path: 'familyDetails.motherOrWifeName', label: 'Mother / Wife Name' },
-      { path: 'familyDetails.motherOccupation', label: 'Mother Occupation' },
-      { path: 'familyDetails.motherMobileNumber', label: 'Mother Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
-      { path: 'familyDetails.siblingName', label: 'Sibling Name' },
-      { path: 'familyDetails.siblingEducation', label: 'Sibling Education' },
-      { path: 'familyDetails.siblingMobileNumber', label: 'Sibling Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
-      { path: 'familyDetails.siblingDateOfBirth', label: 'Sibling DOB', type: 'date' },
-      { path: 'familyDetails.siblingAge', label: 'Sibling Age', type: 'number', readOnly: true },
-      { path: 'familyDetails.siblingGender', label: 'Sibling Gender', options: ['', 'Male', 'Female', 'Other'] },
-      { path: 'familyDetails.siblingCareerProfile', label: 'Sibling Career Profile', options: siblingCareerProfileOptions },
-      { path: 'familyDetails.siblingStudyStandard', label: 'Sibling Study Standard', options: siblingStudyStandardOptions, showWhen: { path: 'familyDetails.siblingCareerProfile', value: 'Studying' } },
-      { path: 'familyDetails.siblingStudyStandardOther', label: 'Other Study Standard', showWhen: { path: 'familyDetails.siblingStudyStandard', value: 'Other' } },
-      { path: 'familyDetails.siblingCareerProfileOther', label: 'Other Career Profile', showWhen: { path: 'familyDetails.siblingCareerProfile', value: 'Other' } }
+      { path: 'familyDetails.motherOccupation', label: 'Mother / Wife Occupation' },
+      { path: 'familyDetails.motherMobileNumber', label: 'Mother / Wife Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
+      { key: 'familyDetails.siblings', kind: 'siblings', label: 'Sibling Details', full: true }
     ]
   },
   {
@@ -832,19 +835,33 @@ const candidateDetailPanels = [
       { path: 'educationSectorOther', label: 'Other Highest Education', showWhen: { path: 'educationSector', value: 'Other' } },
       { key: 'education-branch', kind: 'section', label: 'Education Branch' },
       { path: 'educationBranch', label: 'Education Branch', options: educationBranchOptions },
+      { path: 'educationBranchOther', label: 'Mention Your Other Branch', showWhen: { path: 'educationBranch', value: 'Other' } },
       { key: 'education-specialization', kind: 'section', label: 'Education Specialization' },
       { path: 'educationSpecialization', label: 'Special Subject / Remark', optionsFor: (candidate) => educationSpecializationOptionsForBranch(candidate.educationBranch), disabledWhenEmptyPath: 'educationBranch' },
-      { key: 'education-institute-reference', kind: 'section', label: 'Institute Reference Details' },
-      { path: 'collegeName', label: 'Institute Name' },
-      { path: 'placementReference.professorName', label: 'Institute Representative Name' },
-      { path: 'instituteDesignation', label: 'Designation' },
+      { path: 'educationSpecializationOther', label: 'Other Special Subject / Remark', showWhen: { path: 'educationSpecialization', value: 'Other' } },
+      { key: 'education-institute-reference', kind: 'section', label: 'College Reference Details (Like 12th, ITI, Diploma, Graduate)' },
+      { path: 'trainingPlacementDepartment', label: 'Training and Placement Department' },
+      { path: 'collegeName', label: 'College Name' },
+      { path: 'placementReference.professorName', label: 'College Representative Name' },
+      { path: 'collegeEducationBranch', label: 'College Education Branch', options: educationBranchOptions },
+      { path: 'collegeEducationBranchOther', label: 'Other College Education Branch', showWhen: { path: 'collegeEducationBranch', value: 'Other' } },
+      { path: 'instituteDesignation', label: 'Designation', options: referenceDesignationOptions },
+      { path: 'instituteDesignationOther', label: 'Other Designation', showWhen: { path: 'instituteDesignation', value: 'Other' } },
       { path: 'placementReference.professorContactNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
-      { key: 'education-institute-address', kind: 'section', label: 'Institute/College Address' },
-      { path: 'instituteAddressVillage', label: 'Institute/College Village' },
-      { path: 'instituteAddressTaluka', label: 'Institute/College Taluka' },
-      { path: 'instituteAddressDistrict', label: 'Institute/College District' },
-      { path: 'instituteAddressState', label: 'Institute/College State' },
-      { key: 'education-college-details', kind: 'section', label: 'Institute Details' },
+      { key: 'education-post-graduate-reference', kind: 'section', label: 'Post Graduate Reference Details' },
+      { path: 'postGraduateReference.instituteName', label: 'College Name' },
+      { path: 'postGraduateReference.representativeName', label: 'College Representative Name' },
+      { path: 'postGraduateReference.educationBranch', label: 'College Education Branch', options: educationBranchOptions },
+      { path: 'postGraduateReference.educationBranchOther', label: 'Other College Education Branch', showWhen: { path: 'postGraduateReference.educationBranch', value: 'Other' } },
+      { path: 'postGraduateReference.designation', label: 'Designation', options: referenceDesignationOptions },
+      { path: 'postGraduateReference.designationOther', label: 'Other Designation', showWhen: { path: 'postGraduateReference.designation', value: 'Other' } },
+      { path: 'postGraduateReference.mobileNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
+      { key: 'education-institute-address', kind: 'section', label: 'College Address' },
+      { path: 'instituteAddressVillage', label: 'College Village' },
+      { path: 'instituteAddressTaluka', label: 'College Taluka' },
+      { path: 'instituteAddressDistrict', label: 'College District' },
+      { path: 'instituteAddressState', label: 'College State' },
+      { key: 'education-college-details', kind: 'section', label: 'Institute Details (Private Coaching Classes)' },
       { path: 'collegeTeacherName', label: 'Teacher' },
       { path: 'collegeDesignation', label: 'Designation' },
       { path: 'collegeMobileNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
@@ -873,6 +890,7 @@ const candidateDetailPanels = [
       { path: 'expectedNetInHandSalary', label: 'Expected NET / In-hand Salary' },
       { path: 'expectedGrossSalaryPerMonth', label: 'Expected Gross Per Month' },
       { path: 'expectedCtcSalaryPerMonth', label: 'Expected CTC Per Month' },
+      { path: 'expectedSalaryNegotiable', label: 'Expected Salary Negotiable', options: ['', 'Yes', 'No'] },
       { key: 'professional-current-salary', kind: 'section', label: 'Current Salary Per Month' },
       { path: 'netInHandSalary', label: 'NET / In-hand Salary' },
       { path: 'grossSalaryPerMonth', label: 'Gross Per Month' },
@@ -894,6 +912,7 @@ const candidateDetailPanels = [
       { path: 'availabilityInterviewStartDate', label: 'Available From', type: 'date', maxToday: false },
       { path: 'availabilityInterviewEndDate', label: 'Available To', type: 'date', maxToday: false },
       { path: 'interviewMode', label: 'Interview Mode', options: interviewModeOptions },
+      { path: 'onlineInterviewMode', label: 'Online Interview Mode', options: ['', 'Audio', 'Video'], showWhen: { path: 'interviewMode', value: 'Online' } },
       { key: 'professional-job-change', kind: 'section', label: 'Reason for Job Change' },
       { path: 'reasonForJobChange', label: 'Reason For Job Change', options: ['', 'Looking for financial and personal growth', 'Looking for opportunity in native place', 'Facing challenge in current company', 'Any Other'] },
       { path: 'reasonForJobChangeOther', label: 'Other Reason', showWhen: { path: 'reasonForJobChange', value: 'Any Other' } },
@@ -912,6 +931,8 @@ const candidateDetailPanels = [
       { path: 'placementReference.referenceContactNumber', label: 'Reference Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
       { path: 'referenceProfile', label: 'Reference Profile', options: ['', 'Professional', 'Farmer', 'Student', 'Other'] },
       { path: 'referenceProfileOther', label: 'Other Reference Profile', showWhen: { path: 'referenceProfile', value: 'Other' } },
+      { path: 'referenceRelation', label: 'Reference Relation', options: referenceRelationOptions },
+      { path: 'referenceRelationOther', label: 'Other Reference Relation', showWhen: { path: 'referenceRelation', value: 'Other' } },
       { path: 'advisorCode', label: 'Business Advisor Code' },
       { key: 'reference-source', kind: 'section', label: 'Reference Source' },
       { path: 'referenceSources', label: 'Reference Source', kind: 'checkboxes', options: referenceSourceOptions, full: true },
@@ -925,7 +946,8 @@ const globalSearchPanelLabels = {
   documents: 'Documents',
   successInfo: 'Success Info For Candidate',
   assessment: 'Success Interviewer Remark',
-  interviews: 'Company Interviews'
+  interviews: 'Company Interviews',
+  visits: 'Number of Visits'
 }
 
 const interviewFieldSearchItems = [
@@ -948,6 +970,14 @@ const interviewFieldSearchItems = [
   { label: 'Note', interviewKeys: ['note'] },
   { label: 'Update By', interviewKeys: ['updatedBy'] },
   { label: 'Company-wise Interview Documents', interviewDocumentType: '*' }
+]
+
+const candidateVisitFieldSearchItems = [
+  { label: 'Number of Visits', valuePath: 'candidateVisits' },
+  { label: 'Date and Time of Visit', valuePath: 'candidateVisits.0.visitDateTime' },
+  { label: 'Purpose for Visit', valuePath: 'candidateVisits.0.purpose' },
+  { label: 'Meeting Staff Name', valuePath: 'candidateVisits.0.meetingStaffName' },
+  { label: 'Communication Details', valuePath: 'candidateVisits.0.communicationDetails' }
 ]
 
 const createGlobalSearchItem = ({
@@ -1011,19 +1041,19 @@ const globalSearchItems = [
     })
   ),
   ...DIRECTOR_ASSESSMENT_FIELDS.map((field) =>
-    createGlobalSearchItem({ label: field.label, panel: 'assessment', group: 'Director Assessment', key: `Director Assessment-${field.key}`, valuePath: `interviewForm.directorAssessment.${field.key}` })
+    createGlobalSearchItem({ label: field.label, panel: 'assessment', group: directorAssessmentLabel, key: `Director Assessment-${field.key}`, valuePath: `interviewForm.directorAssessment.${field.key}` })
   ),
   createGlobalSearchItem({
     label: 'Counseling Of Candidate',
     panel: 'assessment',
-    group: 'Director Assessment',
+    group: directorAssessmentLabel,
     key: 'Director Assessment-counselingOfCandidate',
     valuePath: 'interviewForm.directorAssessment.counselingOfCandidate'
   }),
   createGlobalSearchItem({
     label: 'Counseling Mode',
     panel: 'assessment',
-    group: 'Director Assessment',
+    group: directorAssessmentLabel,
     key: 'Director Assessment-counselingOfCandidate',
     valuePath: 'interviewForm.directorAssessment.counselingMode'
   }),
@@ -1050,13 +1080,12 @@ const globalSearchItems = [
   ...PERSONALITY_RATING_FIELDS.map((field) =>
     createGlobalSearchItem({ label: field.label, panel: 'assessment', group: 'Personality Assessment', key: `Personality Assessment-${field.key}`, valuePath: `interviewForm.personalityRatings.${field.key}` })
   ),
-  createGlobalSearchItem({ label: 'Computer Courses', panel: 'assessment', group: 'Computer Courses Assessment', key: 'Computer Courses Assessment-courses', valuePath: 'interviewForm.computerCourseAssessment.courses' }),
   ...[
-    { label: 'Typing Accuracy', valuePath: 'interviewForm.computerCourseAssessment.typingAccuracy' },
+    { label: 'Course Scores', valuePath: 'interviewForm.computerCourseAssessment.courseScores' },
+    { label: 'Typing Language', valuePath: 'interviewForm.computerCourseAssessment.typingLanguage' },
     { label: 'Typing Speed', valuePath: 'interviewForm.computerCourseAssessment.typingSpeed' },
-    { label: 'Word', valuePath: 'interviewForm.computerCourseAssessment.word' },
-    { label: 'Excel', valuePath: 'interviewForm.computerCourseAssessment.excel' },
-    { label: 'Tally', valuePath: 'interviewForm.computerCourseAssessment.tally' },
+    { label: 'Typing Custom Speed', valuePath: 'interviewForm.computerCourseAssessment.typingSpeedOther' },
+    { label: 'Typing Accuracy', valuePath: 'interviewForm.computerCourseAssessment.typingAccuracy' },
     { label: 'Computer Course Remark', valuePath: 'interviewForm.computerCourseAssessment.remark' }
   ].map((item) => createGlobalSearchItem({ ...item, panel: 'assessment', group: 'Computer Courses Assessment', key: `Computer Courses Assessment-${item.label}` })),
   ...[
@@ -1065,7 +1094,8 @@ const globalSearchItems = [
     { label: 'HR Interviewer', valuePath: 'interviewForm.hrInterviewer' },
     { label: 'Remark', valuePath: 'interviewForm.remark' }
   ].map((item) => createGlobalSearchItem({ ...item, panel: 'assessment', group: 'Success Interviewer Remark', key: item.label })),
-  ...interviewFieldSearchItems.map((item) => createGlobalSearchItem({ ...item, panel: 'interviews', group: 'Interview Update', key: item.label }))
+  ...interviewFieldSearchItems.map((item) => createGlobalSearchItem({ ...item, panel: 'interviews', group: 'Interview Update', key: item.label })),
+  ...candidateVisitFieldSearchItems.map((item) => createGlobalSearchItem({ ...item, panel: 'visits', group: 'Candidate Visits', key: item.label }))
 ]
 
 const getCandidatePathValue = (candidate, path) => {
@@ -1233,6 +1263,24 @@ const isExportFieldVisible = (field, candidate) => {
 }
 
 const fieldExportValue = (candidate, field) => {
+  if (field.kind === 'siblings') {
+    return normalizeSiblingRows(candidate.familyDetails?.siblings)
+      .filter(siblingHasValue)
+      .map((sibling, index) => [
+        `Sibling ${index + 1}`,
+        sibling.siblingName ? `Name: ${sibling.siblingName}` : '',
+        sibling.siblingEducation ? `Education: ${sibling.siblingEducation}` : '',
+        sibling.siblingMobileNumber ? `Mobile: ${sibling.siblingMobileNumber}` : '',
+        sibling.siblingDateOfBirth ? `DOB: ${sibling.siblingDateOfBirth}` : '',
+        sibling.siblingAge ? `Age: ${sibling.siblingAge}` : '',
+        sibling.siblingGender ? `Gender: ${sibling.siblingGender}` : '',
+        sibling.siblingCareerProfile ? `Career Profile: ${sibling.siblingCareerProfile}` : '',
+        sibling.siblingStudyStandard ? `Study Standard: ${sibling.siblingStudyStandard}` : '',
+        sibling.siblingStudyStandardOther ? `Other Sibling / Brother / Sister Study Standard: ${sibling.siblingStudyStandardOther}` : '',
+        sibling.siblingCareerProfileOther ? `Other Sibling / Brother / Sister Career Profile: ${sibling.siblingCareerProfileOther}` : ''
+      ].filter(Boolean).join(', '))
+      .join('\n')
+  }
   if (!field.path) return ''
   return excelValue(getCandidatePathValue(candidate, field.path))
 }
@@ -1274,7 +1322,7 @@ const successInfoExportRows = (candidate) => {
       })
     })
   })
-  let section = 'Other Details'
+  let section = 'Details'
   SUCCESS_INFO_FIELDS.forEach((field) => {
     if (field.kind === 'section') {
       section = field.label
@@ -1293,24 +1341,57 @@ const successInfoExportRows = (candidate) => {
 
 const selectedExportValue = (value) => excelValue(Array.isArray(value) ? value.join(', ') : value)
 
+const computerCourseRowsForDisplay = (assessment = {}) => {
+  const rows = Array.isArray(assessment.courseScores)
+    ? assessment.courseScores
+        .map((row) => ({
+          course: String(row?.course || '').trim(),
+          score: String(row?.score || '').trim()
+        }))
+        .filter((row) => row.course || row.score)
+    : []
+
+  if (rows.length) return rows
+
+  return [
+    { course: 'Word', score: assessment.word },
+    { course: 'Excel', score: assessment.excel },
+    { course: 'Tally', score: assessment.tally }
+  ]
+    .map((row) => ({ course: row.course, score: String(row.score || '').trim() }))
+    .filter((row) => row.score)
+}
+
+const computerCourseScoresText = (assessment = {}) => {
+  const rows = computerCourseRowsForDisplay(assessment)
+  return rows.length ? rows.map((row) => `${row.course || 'Course'}: ${row.score || '-'} / 10`).join(' | ') : '-'
+}
+
+const typingSpeedText = (assessment = {}) =>
+  assessment.typingSpeed === 'Other'
+    ? String(assessment.typingSpeedOther || '').trim()
+    : String(assessment.typingSpeed || '').trim()
+
 const assessmentExportRows = (candidate) => {
   const form = candidate.interviewForm || {}
   const computerAssessment = form.computerCourseAssessment || {}
+  const computerCourseRows = computerCourseRowsForDisplay(computerAssessment)
+  const typingSpeed = typingSpeedText(computerAssessment)
   const rows = [
     ...DIRECTOR_ASSESSMENT_FIELDS.map((field) => ({
-      category: 'Director Assessment',
+      category: directorAssessmentLabel,
       parameter: field.label,
       selected: selectedExportValue(form.directorAssessment?.[field.key]),
       scale: DIRECTOR_RATING_VALUES.join(' / ')
     })),
     {
-      category: 'Director Assessment',
+      category: directorAssessmentLabel,
       parameter: 'Counseling Of Candidate',
       selected: selectedExportValue(form.directorAssessment?.counselingOfCandidate),
       scale: DIRECTOR_YES_NO_VALUES.join(' / ')
     },
     {
-      category: 'Director Assessment',
+      category: directorAssessmentLabel,
       parameter: 'Counseling Mode',
       selected: selectedExportValue(form.directorAssessment?.counselingMode),
       scale: DIRECTOR_MODE_VALUES.join(' / ')
@@ -1345,12 +1426,17 @@ const assessmentExportRows = (candidate) => {
       selected: selectedExportValue(form.personalityRatings?.[field.key]),
       scale: RATING_VALUES.join(' / ')
     })),
-    { category: 'Computer Courses Assessment', parameter: 'Computer Courses', selected: selectedExportValue(computerAssessment.courses), scale: COMPUTER_COURSE_ASSESSMENT_COURSES.join(' / ') },
-    { category: 'Computer Courses Assessment', parameter: 'Typing Accuracy', selected: excelValue(computerAssessment.typingAccuracy), scale: '%' },
-    { category: 'Computer Courses Assessment', parameter: 'Typing Speed', selected: excelValue(computerAssessment.typingSpeed), scale: 'WPM' },
-    { category: 'Computer Courses Assessment', parameter: 'Word', selected: excelValue(computerAssessment.word), scale: '%' },
-    { category: 'Computer Courses Assessment', parameter: 'Excel', selected: excelValue(computerAssessment.excel), scale: '%' },
-    { category: 'Computer Courses Assessment', parameter: 'Tally', selected: excelValue(computerAssessment.tally), scale: '%' },
+    ...(computerCourseRows.length
+      ? computerCourseRows.map((row, index) => ({
+          category: 'Computer Courses Assessment',
+          parameter: row.course || `Course ${index + 1}`,
+          selected: excelValue(row.score),
+          scale: 'Out of 10'
+        }))
+      : [{ category: 'Computer Courses Assessment', parameter: 'Course Score', selected: '-', scale: 'Out of 10' }]),
+    { category: 'Computer Courses Assessment', parameter: 'Typing Language', selected: excelValue(computerAssessment.typingLanguage), scale: 'English / Marathi' },
+    { category: 'Computer Courses Assessment', parameter: 'Typing Speed', selected: excelValue(typingSpeed), scale: 'WPM' },
+    { category: 'Computer Courses Assessment', parameter: 'Typing Accuracy', selected: excelValue(computerAssessment.typingAccuracy), scale: 'Out of 100' },
     { category: 'Computer Courses Assessment', parameter: 'Remark', selected: excelValue(computerAssessment.remark), scale: '' },
     { category: 'Success Interviewer Remark', parameter: 'Suitable Industry', selected: excelValue(form.suitableIndustry), scale: '' },
     { category: 'Success Interviewer Remark', parameter: 'Suitable Department', selected: excelValue(form.suitableDepartment), scale: '' },
@@ -1466,6 +1552,17 @@ const flatExportPairs = (candidate) => {
     ].forEach(([label, value]) => pairs.push([`${prefix} / ${label}`, value]))
   })
 
+  ;(candidate.candidateVisits || []).filter(candidateVisitHasContent).forEach((row, index) => {
+    const purpose = row.purpose === 'Other' ? row.purposeOther : row.purpose
+    const prefix = `Visit ${index + 1}`
+    ;[
+      ['Date and Time of Visit', row.visitDateTime],
+      ['Purpose for Visit', purpose],
+      ['Meeting Staff Name', row.meetingStaffName],
+      ['Communication Details', row.communicationDetails]
+    ].forEach(([label, value]) => pairs.push([`${prefix} / ${label}`, value]))
+  })
+
   return pairs
 }
 
@@ -1474,8 +1571,9 @@ const createCandidateExcelWorkbook = (candidate) => {
   const detailRows = candidateDetailExportRows(candidate)
   const subtitle = `Candidate: ${candidate.fullName || '-'} | ID: ${candidate.candidateCode || '-'} | Exported: ${exportedAt}`
   const rowsForPanel = (panelTitle) => detailRows.filter((row) => row.panel === panelTitle)
+  const visitRows = (candidate.candidateVisits || []).filter(candidateVisitHasContent)
 
-  const sheets = candidateDetailPanels.map((panel) =>
+  const detailSheets = candidateDetailPanels.map((panel) =>
     excelWorksheet({
       name: panel.title,
       freezeRows: 4,
@@ -1489,6 +1587,23 @@ const createCandidateExcelWorkbook = (candidate) => {
       ]
     })
   )
+  const sheets = [
+    ...detailSheets,
+    excelWorksheet({
+      name: 'Number of Visits',
+      freezeRows: 4,
+      columns: [80, 185, 220, 220, 430],
+      rows: [
+        excelRow([{ value: 'Number of Visits', style: 'Title', mergeAcross: 4 }]),
+        excelRow([{ value: `${subtitle} | Total Visits: ${visitRows.length}`, style: 'Subtitle', mergeAcross: 4 }]),
+        excelBlankRow(),
+        excelRow(['#', 'Date and Time of Visit', 'Purpose for Visit', 'Meeting Staff Name', 'Communication Details'], 'Header'),
+        ...(visitRows.length
+          ? visitRows.map((row, index) => excelRow([index + 1, row.visitDateTime, row.purpose === 'Other' ? row.purposeOther : row.purpose, row.meetingStaffName, row.communicationDetails]))
+          : [excelRow(['', '', '', '', 'No candidate visits added yet.'])])
+      ]
+    })
+  ]
 
   const workbook = `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -2138,6 +2253,30 @@ const calculateAgeFromDate = (value) => {
   return age >= 0 ? String(age) : ''
 }
 
+const siblingHasValue = (sibling = {}) =>
+  Object.values(sibling).some((value) => String(value ?? '').trim())
+
+const normalizeSiblingRows = (siblings) => {
+  const rows = Array.isArray(siblings) && siblings.length ? siblings : [emptySiblingDetails()]
+  return rows.map((sibling) => ({ ...emptySiblingDetails(), ...(sibling || {}) }))
+}
+
+const siblingLegacyFieldsFromRows = (siblings) => {
+  const firstSibling = normalizeSiblingRows(siblings)[0] || emptySiblingDetails()
+  return {
+    siblingName: firstSibling.siblingName || '',
+    siblingEducation: firstSibling.siblingEducation || '',
+    siblingMobileNumber: firstSibling.siblingMobileNumber || '',
+    siblingDateOfBirth: firstSibling.siblingDateOfBirth || '',
+    siblingAge: firstSibling.siblingAge || '',
+    siblingGender: firstSibling.siblingGender || '',
+    siblingCareerProfile: firstSibling.siblingCareerProfile || '',
+    siblingStudyStandard: firstSibling.siblingCareerProfile === 'Studying' ? firstSibling.siblingStudyStandard || '' : '',
+    siblingStudyStandardOther: firstSibling.siblingCareerProfile === 'Studying' && firstSibling.siblingStudyStandard === 'Other' ? firstSibling.siblingStudyStandardOther || '' : '',
+    siblingCareerProfileOther: firstSibling.siblingCareerProfile === 'Other' ? firstSibling.siblingCareerProfileOther || '' : ''
+  }
+}
+
 function CandidateApplicationField({ field, candidate, errors, onPathChange }) {
   if (field.showWhen && getCandidatePathValue(candidate, field.showWhen.path) !== field.showWhen.value) return null
   if (field.showWhenIncludes) {
@@ -2159,6 +2298,17 @@ function CandidateApplicationField({ field, candidate, errors, onPathChange }) {
   const disabled = field.disabledWhenEmptyPath ? !getCandidatePathValue(candidate, field.disabledWhenEmptyPath) : false
   const className = field.full ? 'md:col-span-2 xl:col-span-3' : field.kind === 'area' ? 'md:col-span-2' : ''
   const error = field.errorKey ? errors[field.errorKey] : ''
+
+  if (field.kind === 'siblings') {
+    return (
+      <div className={className} data-global-field={globalFieldKey('details', field.path || field.key || field.label)}>
+        <SiblingDetailsEditor
+          siblings={candidate.familyDetails?.siblings}
+          onChange={(siblings) => onPathChange('familyDetails.siblings', siblings)}
+        />
+      </div>
+    )
+  }
 
   if (field.kind === 'checkbox') {
     return (
@@ -2237,6 +2387,120 @@ function CandidateApplicationField({ field, candidate, errors, onPathChange }) {
   )
 }
 
+function SiblingDetailsEditor({ siblings, onChange }) {
+  const rows = normalizeSiblingRows(siblings)
+
+  const updateSibling = (index, field, value) => {
+    const nextRows = rows.map((row, rowIndex) => (rowIndex === index ? { ...row } : row))
+    const nextSibling = {
+      ...nextRows[index],
+      [field.key]: normalizeApplicationFieldValue(field, value)
+    }
+
+    if (field.key === 'siblingDateOfBirth') {
+      nextSibling.siblingAge = calculateAgeFromDate(value)
+    }
+
+    if (field.key === 'siblingCareerProfile') {
+      if (value !== 'Studying') {
+        nextSibling.siblingStudyStandard = ''
+        nextSibling.siblingStudyStandardOther = ''
+      }
+      if (value !== 'Other') {
+        nextSibling.siblingCareerProfileOther = ''
+      }
+    }
+
+    if (field.key === 'siblingStudyStandard' && value !== 'Other') {
+      nextSibling.siblingStudyStandardOther = ''
+    }
+
+    nextRows[index] = nextSibling
+    onChange(nextRows)
+  }
+
+  const addSibling = () => onChange([...rows, emptySiblingDetails()])
+
+  const removeSibling = (index) => {
+    const nextRows = rows.filter((_, rowIndex) => rowIndex !== index)
+    onChange(nextRows.length ? nextRows : [emptySiblingDetails()])
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h4 className="text-sm font-bold text-slate-800">Sibling Details</h4>
+          <p className="mt-1 text-xs font-semibold text-slate-500">Add each brother or sister separately.</p>
+        </div>
+        <button
+          type="button"
+          onClick={addSibling}
+          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-700 sm:w-auto"
+        >
+          <Plus className="h-4 w-4" />
+          Add Sibling
+        </button>
+      </div>
+
+      {rows.map((sibling, siblingIndex) => (
+        <div key={siblingIndex} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h5 className="text-sm font-bold text-slate-700">Sibling {siblingIndex + 1}</h5>
+            {rows.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => removeSibling(siblingIndex)}
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remove
+              </button>
+            ) : null}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {siblingDetailFields.map((field) => {
+              if (field.showWhen && sibling[field.showWhen.key] !== field.showWhen.value) return null
+
+              return (
+                <label key={field.key} className="block text-sm font-semibold text-slate-700">
+                  {field.label}
+                  {field.options ? (
+                    <select
+                      className={inputClass}
+                      value={sibling[field.key] || ''}
+                      onChange={(event) => updateSibling(siblingIndex, field, event.target.value)}
+                    >
+                      {field.options.map((option) => (
+                        <option key={option || 'empty'} value={option}>
+                          {option || 'Select'}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.type || 'text'}
+                      value={sibling[field.key] || ''}
+                      min={field.type === 'number' ? '0' : undefined}
+                      max={field.type === 'date' ? dateInputToday() : undefined}
+                      inputMode={field.inputMode}
+                      maxLength={field.maxLength}
+                      readOnly={field.readOnly}
+                      onChange={(event) => updateSibling(siblingIndex, field, event.target.value)}
+                      className={`${inputClass} ${field.readOnly ? 'bg-slate-50 text-slate-600' : ''}`}
+                    />
+                  )}
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const isCandidateApplicationFieldVisible = (field, candidate) => {
   if (field.showWhen && getCandidatePathValue(candidate, field.showWhen.path) !== field.showWhen.value) return false
   if (field.hideWhen && getCandidatePathValue(candidate, field.hideWhen.path) === field.hideWhen.value) return false
@@ -2260,62 +2524,38 @@ const groupCandidateApplicationFields = (panel, candidate) => {
   })
 
   if (currentGroup.fields.length) groups.push(currentGroup)
-  return groups
+  return groups.map((group, index) => ({ ...group, sectionNumber: index + 1 }))
 }
 
-function CandidateDetailsSidebar({ currentStep, progress, candidate, onStep }) {
-  const completedRequired = candidateDetailRequiredPaths.filter((path) => String(getCandidatePathValue(candidate, path) || '').trim()).length
-  const referenceLabel =
-    String(candidate.advisorCode || '').trim() ||
-    String(candidate.referenceName || '').trim() ||
-    String(candidate.placementReference?.referenceBy || '').trim() ||
-    'Walk-in'
-  const documentLabel = candidate.documents?.length ? `${candidate.documents.length} uploaded` : 'Optional'
-
+function CandidateDetailsSidebar({ currentStep, onStep }) {
   return (
-    <aside className="h-fit rounded-lg bg-white p-4 ring-1 ring-slate-200 lg:sticky lg:top-4">
-      <div className="mb-4">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-          <span>Progress</span>
-          <span>{progress}%</span>
-        </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full rounded-full bg-sky-600 transition-all" style={{ width: `${progress}%` }} />
-        </div>
-      </div>
-
-      <nav className="grid gap-1 sm:grid-cols-2 lg:block lg:space-y-1">
-        {candidateDetailPanels.map((panel, index) => {
-          const PanelIcon = panel.icon
-          const active = index === currentStep
-          const complete = index < currentStep
-          return (
-            <button
-              key={panel.title}
-              type="button"
-              onClick={() => onStep(index)}
-              className={`flex min-h-11 w-full min-w-0 items-center gap-3 rounded-md px-3 text-left text-sm transition ${
-                active
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : complete
-                    ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-                    : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${active ? 'bg-white/15' : 'bg-white ring-1 ring-slate-200'}`}>
-                <PanelIcon className="h-4 w-4" />
-              </span>
-              <span className="min-w-0 flex-1 leading-5">{panel.title}</span>
-            </button>
-          )
-        })}
+    <aside className="rounded-lg bg-white p-2 ring-1 ring-slate-200">
+      <nav className="grid gap-1.5 sm:grid-cols-2 xl:flex xl:min-w-0 xl:flex-wrap">
+          {candidateDetailPanels.map((panel, index) => {
+            const PanelIcon = panel.icon
+            const active = index === currentStep
+            const complete = index < currentStep
+            return (
+              <button
+                key={panel.title}
+                type="button"
+                onClick={() => onStep(index)}
+                className={`flex min-h-8 min-w-0 items-center gap-1.5 rounded-md px-2 text-left text-xs font-semibold transition xl:min-w-[150px] ${
+                  active
+                    ? 'bg-sky-600 text-white shadow-sm'
+                    : complete
+                      ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                      : 'text-slate-600 ring-1 ring-slate-100 hover:bg-slate-50'
+                  }`}
+              >
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${active ? 'bg-white/15' : 'bg-white ring-1 ring-slate-200'}`}>
+                  <PanelIcon className="h-3 w-3" />
+                </span>
+                <span className="min-w-0 flex-1 truncate leading-5">{panel.title}</span>
+              </button>
+            )
+          })}
       </nav>
-
-      <div className="mt-5 space-y-2 border-t border-slate-200 pt-4 text-sm text-slate-600">
-        <div className="flex justify-between gap-3"><span>Required</span><strong className="text-slate-950">{completedRequired}/{candidateDetailRequiredPaths.length}</strong></div>
-        <div className="flex justify-between gap-3"><span>Reference</span><strong className="truncate text-slate-950">{referenceLabel}</strong></div>
-        <div className="flex justify-between gap-3"><span>Documents</span><strong className="text-slate-950">{documentLabel}</strong></div>
-      </div>
     </aside>
   )
 }
@@ -2324,13 +2564,12 @@ function CandidateDetailsApplicationPanel({ candidate, errors, currentStep, onSt
   const panel = candidateDetailPanels[currentStep] || candidateDetailPanels[0]
   const panelGroups = groupCandidateApplicationFields(panel, candidate)
   const PanelIcon = panel.icon
-  const progress = Math.round(((currentStep + 1) / candidateDetailPanels.length) * 100)
   const isFirst = currentStep === 0
   const isLast = currentStep === candidateDetailPanels.length - 1
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-      <CandidateDetailsSidebar currentStep={currentStep} progress={progress} candidate={candidate} onStep={onStep} />
+    <div className="space-y-4">
+      <CandidateDetailsSidebar currentStep={currentStep} onStep={onStep} />
 
       <div className="min-w-0 space-y-4">
         <section className="overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
@@ -2348,7 +2587,7 @@ function CandidateDetailsApplicationPanel({ candidate, errors, currentStep, onSt
           <div className="space-y-6 px-4 py-5 sm:px-6">
             {panelGroups.map((group) => (
               <section key={group.title} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0" data-global-field={globalFieldKey('details', `section-${group.title}`)}>
-                <h3 className="text-sm font-bold text-slate-900">{group.title}</h3>
+                <h3 className="text-sm font-bold text-slate-900">{group.sectionNumber}. {group.title}</h3>
                 <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {group.fields.map((field) => (
                     <CandidateApplicationField
@@ -2398,6 +2637,8 @@ function CandidateDocumentsPanel({
   documentsByTypeList,
   documentCountsByType,
   extraDocuments,
+  documentAvailability,
+  onDocumentAvailabilityChange,
   uploadingDocumentType,
   deletingDocumentId,
   uploadDocuments,
@@ -2407,22 +2648,10 @@ function CandidateDocumentsPanel({
 }) {
   const [activeDocumentType, setActiveDocumentType] = useState('')
   const [documentSearchTerm, setDocumentSearchTerm] = useState('')
-  const [enabledDocumentTypes, setEnabledDocumentTypes] = useState(() => {
-    const initial = {}
-    allCandidateDocumentTypes.forEach((item) => {
-      initial[item.key] = Boolean(documentCountsByType[item.key])
-    })
-    return initial
-  })
-  useEffect(() => {
-    setEnabledDocumentTypes((current) => {
-      const next = { ...current }
-      allCandidateDocumentTypes.forEach((item) => {
-        if (documentCountsByType[item.key]) next[item.key] = true
-      })
-      return next
-    })
-  }, [documentCountsByType])
+  const enabledDocumentTypes = allCandidateDocumentTypes.reduce((acc, item) => {
+    acc[item.key] = documentAvailability?.[item.key] !== false
+    return acc
+  }, {})
   const normalizedDocumentSearchTerm = normalizeDocumentSearch(documentSearchTerm)
   const matchesDocumentType = (item, label = item.label, groupTitle = '') =>
     documentMatchesSearch({
@@ -2453,11 +2682,7 @@ function CandidateDocumentsPanel({
     removeDocument,
     openDocumentsDialog: setActiveDocumentType,
     enabledDocumentTypes,
-    setDocumentEnabled: (key, enabled) =>
-      setEnabledDocumentTypes((current) => ({
-        ...current,
-        [key]: enabled
-      }))
+    setDocumentEnabled: onDocumentAvailabilityChange
   }
 
   return (
@@ -2970,89 +3195,175 @@ function RatingGrid({ title, fields, ratings, onToggle }) {
   )
 }
 
-function ComputerCourseAssessmentSection({ assessment = {}, onCourseToggle, onChange }) {
-  const courses = Array.isArray(assessment.courses) ? assessment.courses : []
-  const scoreFields = [
-    { key: 'typingAccuracy', label: 'Typing Accuracy', suffix: '%' },
-    { key: 'typingSpeed', label: 'Typing Speed', suffix: 'WPM' },
-    { key: 'word', label: 'Word', suffix: '%' },
-    { key: 'excel', label: 'Excel', suffix: '%' },
-    { key: 'tally', label: 'Tally', suffix: '%' }
-  ]
+function ComputerCourseAssessmentSection({ assessment = {}, onChange }) {
+  const courseRows = Array.isArray(assessment.courseScores) && assessment.courseScores.length
+    ? assessment.courseScores
+    : [{ course: '', score: '' }]
+
+  const normalizeNumberInput = (value, max) => {
+    const normalized = String(value || '').replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1')
+    if (!normalized) return ''
+    const numeric = Number(normalized)
+    if (!Number.isFinite(numeric)) return ''
+    const clamped = Math.max(0, Math.min(max, numeric))
+    return Number.isInteger(clamped) ? String(clamped) : String(clamped)
+  }
+
+  const updateCourseRow = (index, key, value) => {
+    const nextRows = courseRows.map((row, rowIndex) => (rowIndex === index ? { ...row } : row))
+    nextRows[index] = {
+      ...(nextRows[index] || {}),
+      [key]: key === 'score' ? normalizeNumberInput(value, 10) : value
+    }
+    onChange('courseScores', nextRows)
+  }
+
+  const addCourseRow = () => onChange('courseScores', [...courseRows, { course: '', score: '' }])
+
+  const removeCourseRow = (index) => {
+    const nextRows = courseRows.filter((_, rowIndex) => rowIndex !== index)
+    onChange('courseScores', nextRows.length ? nextRows : [{ course: '', score: '' }])
+  }
+
+  const updateTypingSpeed = (value) => {
+    onChange('typingSpeed', value)
+    if (value !== 'Other') onChange('typingSpeedOther', '')
+  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200" data-global-field={globalFieldKey('assessment', 'Computer Courses Assessment')}>
       <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
         <h3 className="text-sm font-bold text-slate-900">Computer Courses Assessment</h3>
-        <p className="mt-1 text-xs text-slate-500">Record computer course selection, typing speed, software scores, and final remark.</p>
+        <p className="mt-1 text-xs text-slate-500">Add software course marks out of 10 and typing speed/accuracy separately.</p>
       </div>
 
       <div className="space-y-4 p-4">
-        <div>
-          <p className="text-xs font-bold uppercase text-slate-500">Computer Courses</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {COMPUTER_COURSE_ASSESSMENT_COURSES.map((course) => (
-              <label key={course} className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700" data-global-field={globalFieldKey('assessment', `Computer Courses Assessment-${course}`)}>
-                <input
-                  type="checkbox"
-                  checked={courses.includes(course)}
-                  onChange={() => onCourseToggle(course)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600"
-                />
-                {course}
-              </label>
-            ))}
+        <div className="space-y-3" data-global-field={globalFieldKey('assessment', 'Computer Courses Assessment-Course Scores')}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-bold uppercase text-slate-500">Software Course Marks</p>
+            <button
+              type="button"
+              onClick={addCourseRow}
+              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700 sm:w-auto"
+            >
+              <Plus className="h-4 w-4" />
+              Add Course
+            </button>
           </div>
+
+          {courseRows.map((row, index) => (
+            <div key={index} className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] md:items-end">
+              <label className="block text-sm font-semibold text-slate-700">
+                Course
+                <select
+                  className={inputClass}
+                  value={row.course || ''}
+                  onChange={(event) => updateCourseRow(index, 'course', event.target.value)}
+                >
+                  <option value="">Select Course</option>
+                  {COMPUTER_COURSE_ASSESSMENT_COURSES.map((course) => (
+                    <option key={course} value={course}>
+                      {course}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block text-sm font-semibold text-slate-700">
+                Marks
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    value={row.score || ''}
+                    inputMode="decimal"
+                    aria-label="Course marks out of 10"
+                    onChange={(event) => updateCourseRow(index, 'score', event.target.value)}
+                    className="h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    placeholder="Out of 10"
+                  />
+                  <span className="shrink-0 text-xs font-bold text-slate-500">/ 10</span>
+                </div>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => removeCourseRow(index)}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 md:w-11"
+                aria-label="Remove course"
+                title="Remove course"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="md:hidden">Remove</span>
+              </button>
+            </div>
+          ))}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-[760px] w-full table-fixed overflow-hidden rounded-lg border border-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-              <tr>
-                <th className="w-72 px-4 py-3">Typing Speed</th>
-                <th className="px-4 py-3">Word</th>
-                <th className="px-4 py-3">Excel</th>
-                <th className="px-4 py-3">Tally</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              <tr className="bg-white">
-                <td className="px-4 py-3">
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-4">
-                    {scoreFields.slice(0, 2).map((field) => (
-                      <label key={field.key} className="block" data-global-field={globalFieldKey('assessment', `Computer Courses Assessment-${field.label}`)}>
-                        <span className="text-xs font-bold text-slate-500">{field.label.replace('Typing ', '')}</span>
-                        <div className="mt-1 flex items-center gap-2">
-                          <input
-                            value={assessment[field.key] || ''}
-                            inputMode="decimal"
-                            aria-label={field.label}
-                            onChange={(event) => onChange(field.key, event.target.value)}
-                            className="h-10 w-full min-w-0 flex-1 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                          />
-                          <span className="shrink-0 text-xs font-bold text-slate-500">{field.suffix}</span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </td>
-                {scoreFields.slice(2).map((field) => (
-                  <td key={field.key} className="px-4 py-3" data-global-field={globalFieldKey('assessment', `Computer Courses Assessment-${field.label}`)}>
-                    <div className="flex items-center gap-2">
-                      <input
-                        value={assessment[field.key] || ''}
-                        inputMode="decimal"
-                        aria-label={field.label}
-                        onChange={(event) => onChange(field.key, event.target.value)}
-                        className="h-10 min-w-0 flex-1 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                      />
-                      <span className="shrink-0 text-xs font-bold text-slate-500">{field.suffix}</span>
-                    </div>
-                  </td>
+        <div className="rounded-xl border border-slate-200 bg-white p-4" data-global-field={globalFieldKey('assessment', 'Computer Courses Assessment-Typing')}>
+          <p className="text-xs font-bold uppercase text-slate-500">Typing Course</p>
+          <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <label className="block text-sm font-semibold text-slate-700">
+              Language
+              <select
+                className={inputClass}
+                value={assessment.typingLanguage || ''}
+                onChange={(event) => onChange('typingLanguage', event.target.value)}
+              >
+                <option value="">Select</option>
+                {TYPING_LANGUAGE_OPTIONS.map((language) => (
+                  <option key={language} value={language}>
+                    {language}
+                  </option>
                 ))}
-              </tr>
-            </tbody>
-          </table>
+              </select>
+            </label>
+
+            <label className="block text-sm font-semibold text-slate-700">
+              Speed
+              <select
+                className={inputClass}
+                value={assessment.typingSpeed || ''}
+                onChange={(event) => updateTypingSpeed(event.target.value)}
+              >
+                <option value="">Select</option>
+                {TYPING_SPEED_OPTIONS.map((speed) => (
+                  <option key={speed} value={speed}>
+                    {speed} WPM
+                  </option>
+                ))}
+                <option value="Other">Other</option>
+              </select>
+            </label>
+
+            {assessment.typingSpeed === 'Other' ? (
+              <label className="block text-sm font-semibold text-slate-700">
+                Other Speed
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    value={assessment.typingSpeedOther || ''}
+                    inputMode="decimal"
+                    onChange={(event) => onChange('typingSpeedOther', normalizeNumberInput(event.target.value, 200))}
+                    className="h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    placeholder="Speed"
+                  />
+                  <span className="shrink-0 text-xs font-bold text-slate-500">WPM</span>
+                </div>
+              </label>
+            ) : null}
+
+            <label className="block text-sm font-semibold text-slate-700">
+              Accuracy
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  value={assessment.typingAccuracy || ''}
+                  inputMode="decimal"
+                  onChange={(event) => onChange('typingAccuracy', normalizeNumberInput(event.target.value, 100))}
+                  className="h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  placeholder="Out of 100"
+                />
+                <span className="shrink-0 text-xs font-bold text-slate-500">/ 100</span>
+              </div>
+            </label>
+          </div>
         </div>
 
         <label className="block text-sm font-semibold text-slate-700" data-global-field={globalFieldKey('assessment', 'Computer Courses Assessment-Remark')}>
@@ -3667,6 +3978,109 @@ function InterviewUpdatePanel({
   )
 }
 
+function CandidateVisitsPanel({ visits, onAdd, onChange, onRemove }) {
+  const rows = Array.isArray(visits) ? visits : []
+  const visitCount = rows.filter(candidateVisitHasContent).length
+
+  return (
+    <Section title="Number of Visits" icon={ClipboardList} searchKey={globalFieldKey('visits', 'Number of Visits')}>
+      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase text-slate-500">Candidate Visit Count</p>
+          <p className="mt-1 text-lg font-bold text-slate-950">{visitCount}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 sm:w-auto"
+        >
+          <Plus className="h-4 w-4" />
+          Add Visit
+        </button>
+      </div>
+
+      {rows.length ? (
+        <div className="space-y-4">
+          {rows.map((visit, index) => (
+            <div key={visit.id || index} className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-sm font-bold text-slate-900">Visit {index + 1}</h3>
+                <button
+                  type="button"
+                  onClick={() => onRemove(index)}
+                  className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 sm:w-auto"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remove
+                </button>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <Field label="Date and Time of Visit" searchKey={globalFieldKey('visits', 'Date and Time of Visit')}>
+                  <input
+                    type="datetime-local"
+                    className={inputClass}
+                    value={visit.visitDateTime || ''}
+                    onChange={(event) => onChange(index, 'visitDateTime', event.target.value)}
+                  />
+                </Field>
+
+                <Field label="Purpose for Visit" searchKey={globalFieldKey('visits', 'Purpose for Visit')}>
+                  <select
+                    className={inputClass}
+                    value={visit.purpose || ''}
+                    onChange={(event) => {
+                      onChange(index, 'purpose', event.target.value)
+                      if (event.target.value !== 'Other') onChange(index, 'purposeOther', '')
+                    }}
+                  >
+                    {visitPurposeOptions.map((option) => (
+                      <option key={option || 'empty'} value={option}>
+                        {option || 'Select'}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+
+                {visit.purpose === 'Other' ? (
+                  <Field label="Other Purpose for Visit" searchKey={globalFieldKey('visits', 'Other Purpose for Visit')}>
+                    <input
+                      className={inputClass}
+                      value={visit.purposeOther || ''}
+                      onChange={(event) => onChange(index, 'purposeOther', event.target.value)}
+                    />
+                  </Field>
+                ) : null}
+
+                <Field label="Meeting Staff Name" searchKey={globalFieldKey('visits', 'Meeting Staff Name')}>
+                  <input
+                    className={inputClass}
+                    value={visit.meetingStaffName || ''}
+                    onChange={(event) => onChange(index, 'meetingStaffName', event.target.value)}
+                  />
+                </Field>
+
+                <Field label="Communication Details" className="md:col-span-2 xl:col-span-3" searchKey={globalFieldKey('visits', 'Communication Details')}>
+                  <textarea
+                    rows={4}
+                    className={textAreaClass}
+                    value={visit.communicationDetails || ''}
+                    onChange={(event) => onChange(index, 'communicationDetails', event.target.value)}
+                  />
+                </Field>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-lg bg-slate-50 px-3 py-4 text-sm font-semibold text-slate-500">
+          No candidate visits added yet. Use Add Visit to record each visit.
+        </p>
+      )}
+    </Section>
+  )
+}
+
 export default function AddCandidate() {
   const authUser = useSelector((state) => state.auth.user)
   const navigate = useNavigate()
@@ -3818,6 +4232,18 @@ export default function AddCandidate() {
 
   const updateCandidatePath = (path, value) =>
     setCandidate((current) => {
+      if (path === 'familyDetails.siblings') {
+        const siblings = normalizeSiblingRows(value)
+        return {
+          ...current,
+          familyDetails: {
+            ...current.familyDetails,
+            ...siblingLegacyFieldsFromRows(siblings),
+            siblings
+          }
+        }
+      }
+
       const keys = path.split('.')
       const next = { ...current }
       let target = next
@@ -3867,6 +4293,28 @@ export default function AddCandidate() {
         next.educationSpecializationOther = ''
       }
 
+      if (path === 'collegeEducationBranch' && value !== 'Other') {
+        next.collegeEducationBranchOther = ''
+      }
+
+      if (path === 'instituteDesignation' && value !== 'Other') {
+        next.instituteDesignationOther = ''
+      }
+
+      if (path === 'postGraduateReference.educationBranch' && value !== 'Other') {
+        next.postGraduateReference = {
+          ...next.postGraduateReference,
+          educationBranchOther: ''
+        }
+      }
+
+      if (path === 'postGraduateReference.designation' && value !== 'Other') {
+        next.postGraduateReference = {
+          ...next.postGraduateReference,
+          designationOther: ''
+        }
+      }
+
       if (path === 'currentJobLocation' && value !== 'Other') {
         next.currentJobLocationOther = ''
       }
@@ -3875,11 +4323,20 @@ export default function AddCandidate() {
         next.currentJobLocationMidcAreaOther = ''
       }
 
+      if (path === 'interviewMode' && value !== 'Online') {
+        next.onlineInterviewMode = ''
+      }
+
       if (path === 'referenceSources' && (!Array.isArray(value) || !value.includes('Other'))) {
         next.referenceSourceOther = ''
       }
 
+      if (path === 'referenceRelation' && value !== 'Other') {
+        next.referenceRelationOther = ''
+      }
+
       if (path === 'sameAsCurrentAddress' && value) {
+        next.currentAddressLine = current.permanentAddressLine
         next.currentAddressVillage = current.permanentAddressVillage
         next.currentAddressTaluka = current.permanentAddressTaluka
         next.currentAddressDistrict = current.permanentAddressDistrict
@@ -3892,6 +4349,26 @@ export default function AddCandidate() {
 
       return next
     })
+
+  const addCandidateVisit = () =>
+    setCandidate((current) => ({
+      ...current,
+      candidateVisits: [...(Array.isArray(current.candidateVisits) ? current.candidateVisits : []), emptyCandidateVisit()]
+    }))
+
+  const updateCandidateVisit = (index, key, value) =>
+    setCandidate((current) => ({
+      ...current,
+      candidateVisits: (Array.isArray(current.candidateVisits) ? current.candidateVisits : []).map((visit, visitIndex) =>
+        visitIndex === index ? { ...visit, [key]: value } : visit
+      )
+    }))
+
+  const removeCandidateVisit = (index) =>
+    setCandidate((current) => ({
+      ...current,
+      candidateVisits: (Array.isArray(current.candidateVisits) ? current.candidateVisits : []).filter((_, visitIndex) => visitIndex !== index)
+    }))
 
   const updateMeta = (key, value) =>
     setCandidate((current) => ({
@@ -3961,6 +4438,7 @@ export default function AddCandidate() {
         ...emptyWitnessDetails(),
         ...(witnesses[index] || {}),
         [key]: value,
+        ...(key === 'witnessEducation' && value !== 'Other' ? { witnessEducationOther: '' } : {}),
         ...(key === 'witnessRelation' && value !== 'Other' ? { witnessRelationOther: '' } : {})
       }
       witnesses[index] = nextWitness
@@ -4501,6 +4979,15 @@ export default function AddCandidate() {
     if (!candidate.fullName.trim()) nextErrors.fullName = 'Candidate name is required'
     if (!candidate.mobile.trim()) nextErrors.mobile = 'Mobile number is required'
     setErrors(nextErrors)
+    const invalidSiblingIndex = normalizeSiblingRows(candidate.familyDetails?.siblings).findIndex(
+      (sibling) => sibling.siblingMobileNumber && sibling.siblingMobileNumber.length !== 10
+    )
+    if (invalidSiblingIndex >= 0) {
+      setActivePanel('details')
+      setCandidateDetailsStep(0)
+      toast.error(`Sibling ${invalidSiblingIndex + 1} mobile number must be 10 digits`)
+      return false
+    }
     return Object.keys(nextErrors).length === 0
   }
 
@@ -4878,6 +5365,7 @@ export default function AddCandidate() {
         <FormTabButton active={activePanel === 'successInfo'} label="Success Info For Candidate" onClick={() => changeActivePanel('successInfo')} />
         <FormTabButton active={activePanel === 'assessment'} label="Success Interviewer Remark" onClick={() => changeActivePanel('assessment')} />
         <FormTabButton active={activePanel === 'interviews'} label="Company Interviews" onClick={() => changeActivePanel('interviews')} />
+        <FormTabButton active={activePanel === 'visits'} label="Number of Visits" onClick={() => changeActivePanel('visits')} />
       </div>
 
       {activePanel === 'details' ? (
@@ -4897,6 +5385,8 @@ export default function AddCandidate() {
             documentsByTypeList={documentsByTypeList}
             documentCountsByType={documentCountsByType}
             extraDocuments={extraDocuments}
+            documentAvailability={candidate.documentAvailability}
+            onDocumentAvailabilityChange={(key, enabled) => updateCandidatePath(`documentAvailability.${key}`, Boolean(enabled))}
             uploadingDocumentType={uploadingDocumentType}
             deletingDocumentId={deletingDocumentId}
             uploadDocuments={uploadDocuments}
@@ -4954,6 +5444,58 @@ export default function AddCandidate() {
       {activePanel === 'successInfo' ? (
         <Section title="Success Info For Candidate" icon={ClipboardList} searchKey={globalFieldKey('successInfo', 'section-Success Info For Candidate')}>
           <div className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {SUCCESS_INFO_FIELDS.map((field) => {
+                if (field.kind === 'section') {
+                  return (
+                    <div key={field.label} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0 md:col-span-2 xl:col-span-3" data-global-field={globalFieldKey('successInfo', `section-${field.label}`)}>
+                      <h3 className="text-sm font-bold text-slate-800">{field.label}</h3>
+                    </div>
+                  )
+                }
+                if (field.showWhen && candidate.successInfo?.[field.showWhen.key] !== field.showWhen.value) return null
+                const multiline = ['candidateDataSource', 'hrContactDetails'].includes(field.key)
+
+                return (
+                  <Field key={field.key} label={field.label} className={multiline ? 'xl:col-span-3' : ''} searchKey={globalFieldKey('successInfo', field.key || field.label)}>
+                    {field.options ? (
+                      <select
+                        className={inputClass}
+                        value={candidate.successInfo?.[field.key] || ''}
+                        onChange={(event) => updateSuccessInfo(field.key, event.target.value)}
+                      >
+                        {field.options.map((option) => (
+                          <option key={option || 'empty'} value={option}>
+                            {option || 'Select'}
+                          </option>
+                        ))}
+                      </select>
+                    ) : multiline ? (
+                      <textarea
+                        className={textAreaClass}
+                        rows={3}
+                        value={candidate.successInfo?.[field.key] || ''}
+                        placeholder={field.label}
+                        onChange={(event) => updateSuccessInfo(field.key, event.target.value)}
+                      />
+                    ) : (
+                      <input
+                        className={inputClass}
+                        value={candidate.successInfo?.[field.key] || ''}
+                        placeholder={field.label}
+                        inputMode={field.inputMode}
+                        maxLength={field.maxLength}
+                        onChange={(event) => {
+                          const rawValue = field.digitsOnly ? event.target.value.replace(/\D/g, '') : event.target.value
+                          updateSuccessInfo(field.key, field.maxLength ? rawValue.slice(0, field.maxLength) : rawValue)
+                        }}
+                      />
+                    )}
+                  </Field>
+                )
+              })}
+            </div>
+
             <div className="space-y-4" data-global-field={globalFieldKey('successInfo', 'section-Witness Details')}>
               <div className="flex flex-col gap-3 border-b border-slate-200 pb-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-sm font-bold text-slate-800">Witness Details</h3>
@@ -5020,58 +5562,6 @@ export default function AddCandidate() {
                 </div>
               ))}
             </div>
-
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {SUCCESS_INFO_FIELDS.map((field) => {
-              if (field.kind === 'section') {
-                return (
-                  <div key={field.label} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0 md:col-span-2 xl:col-span-3" data-global-field={globalFieldKey('successInfo', `section-${field.label}`)}>
-                    <h3 className="text-sm font-bold text-slate-800">{field.label}</h3>
-                  </div>
-                )
-              }
-              if (field.showWhen && candidate.successInfo?.[field.showWhen.key] !== field.showWhen.value) return null
-              const multiline = ['candidateDataSource', 'hrContactDetails'].includes(field.key)
-
-              return (
-                <Field key={field.key} label={field.label} className={multiline ? 'xl:col-span-3' : ''} searchKey={globalFieldKey('successInfo', field.key || field.label)}>
-                  {field.options ? (
-                    <select
-                      className={inputClass}
-                      value={candidate.successInfo?.[field.key] || ''}
-                      onChange={(event) => updateSuccessInfo(field.key, event.target.value)}
-                    >
-                      {field.options.map((option) => (
-                        <option key={option || 'empty'} value={option}>
-                          {option || 'Select'}
-                        </option>
-                      ))}
-                    </select>
-                  ) : multiline ? (
-                    <textarea
-                      className={textAreaClass}
-                      rows={3}
-                      value={candidate.successInfo?.[field.key] || ''}
-                      placeholder={field.label}
-                      onChange={(event) => updateSuccessInfo(field.key, event.target.value)}
-                    />
-                  ) : (
-                    <input
-                      className={inputClass}
-                      value={candidate.successInfo?.[field.key] || ''}
-                      placeholder={field.label}
-                      inputMode={field.inputMode}
-                      maxLength={field.maxLength}
-                      onChange={(event) => {
-                        const rawValue = field.digitsOnly ? event.target.value.replace(/\D/g, '') : event.target.value
-                        updateSuccessInfo(field.key, field.maxLength ? rawValue.slice(0, field.maxLength) : rawValue)
-                      }}
-                    />
-                  )}
-                </Field>
-              )
-            })}
-            </div>
           </div>
         </Section>
       ) : null}
@@ -5084,7 +5574,7 @@ export default function AddCandidate() {
           </div>
 
           <AssessmentForm
-            title="Director Assessment"
+            title={directorAssessmentLabel}
             fields={DIRECTOR_ASSESSMENT_FIELDS}
             assessment={candidate.interviewForm.directorAssessment}
             onToggle={toggleDirectorAssessment}
@@ -5113,7 +5603,6 @@ export default function AddCandidate() {
 
           <ComputerCourseAssessmentSection
             assessment={candidate.interviewForm.computerCourseAssessment}
-            onCourseToggle={toggleComputerCourseAssessmentCourse}
             onChange={updateComputerCourseAssessment}
           />
 
@@ -5249,6 +5738,15 @@ export default function AddCandidate() {
             onDocumentDelete={requestRemoveInterviewDocument}
           />
         </Section>
+      ) : null}
+
+      {activePanel === 'visits' ? (
+        <CandidateVisitsPanel
+          visits={candidate.candidateVisits}
+          onAdd={addCandidateVisit}
+          onChange={updateCandidateVisit}
+          onRemove={removeCandidateVisit}
+        />
       ) : null}
 
       <div className="flex flex-col justify-end gap-2 sm:flex-row">
