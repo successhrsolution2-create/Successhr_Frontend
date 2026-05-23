@@ -14,12 +14,14 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined
-          if (id.includes('recharts')) return 'charts'
-          if (id.includes('@reduxjs/toolkit') || id.includes('react-redux')) return 'state'
-          if (id.includes('react-hook-form') || id.includes('@hookform/resolvers') || id.includes('zod')) return 'forms'
-          if (id.includes('socket.io-client')) return 'realtime'
-          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) return 'vendor'
+          const normalizedId = id.replace(/\\/g, '/')
+          if (!normalizedId.includes('node_modules')) return undefined
+          if (normalizedId.includes('@hello-pangea/dnd')) return 'drag-drop'
+          if (normalizedId.includes('recharts')) return 'charts'
+          if (normalizedId.includes('@reduxjs/toolkit') || normalizedId.includes('react-redux')) return 'state'
+          if (normalizedId.includes('react-hook-form') || normalizedId.includes('@hookform/resolvers') || normalizedId.includes('zod')) return 'forms'
+          if (normalizedId.includes('socket.io-client')) return 'realtime'
+          if (normalizedId.includes('react') || normalizedId.includes('react-dom') || normalizedId.includes('react-router-dom')) return 'vendor'
           return 'vendor'
         }
       }
