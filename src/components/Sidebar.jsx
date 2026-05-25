@@ -58,8 +58,8 @@ const employeeManagementLinks = [
 ]
 
 const SIDEBAR_DEFAULT_WIDTH = 224
-const CANDIDATE_SIDEBAR_DEFAULT_WIDTH = 224
-const SIDEBAR_MIN_WIDTH = 204
+const CANDIDATE_SIDEBAR_DEFAULT_WIDTH = 216
+const SIDEBAR_MIN_WIDTH = 196
 const SIDEBAR_MAX_WIDTH = 340
 const SIDEBAR_WIDTH_KEY = 'admin_sidebar_width_compact'
 const CANDIDATE_SIDEBAR_WIDTH_KEY = 'candidate_admin_sidebar_width_compact'
@@ -173,16 +173,16 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
       {open && <button type="button" aria-label="Close sidebar overlay" className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setOpen(false)} />}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[min(224px,86vw)] max-w-[86vw] transform overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,#09264a_0%,#071f3d_42%,#06172c_100%)] text-white transition-transform duration-300 ease-out lg:max-w-none ${
+        className={`fixed inset-y-0 left-0 z-50 w-[min(280px,88vw)] max-w-[88vw] transform overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,#09264a_0%,#071f3d_42%,#06172c_100%)] text-white transition-transform duration-300 ease-out lg:max-w-none ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{ width: isDesktop ? `${sidebarWidth}px` : 'min(224px, 86vw)' }}
+        style={{ width: isDesktop ? `${sidebarWidth}px` : 'min(280px, 88vw)' }}
       >
-        <div className="border-b border-white/10 px-4 pb-5 pt-14">
-          <BrandLogo className="mx-auto h-auto w-[168px] object-contain" />
+        <div className="border-b border-white/10 px-3 pb-4 pt-12">
+          <BrandLogo className="mx-auto h-auto w-[150px] object-contain" />
         </div>
 
-        <nav className="space-y-5 overflow-x-hidden px-3 py-5" onClick={() => !isDesktop && setOpen(false)}>
+        <nav className="space-y-4 overflow-x-hidden px-3 py-4" onClick={() => !isDesktop && setOpen(false)}>
           {/* Only show main links for non-superAdmin */}
           {!isSuperAdmin && links.map((item) => (
             <NavLink
@@ -411,7 +411,7 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
       <button
         type="button"
         aria-label={open ? 'Close sidebar' : 'Open sidebar'}
-        className="fixed left-3 top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-md border border-white/15 bg-[#06172c]/95 text-white transition hover:bg-[#0b2546] focus:outline-none focus:ring-2 focus:ring-white/25"
+        className="fixed left-3 top-3 z-[60] flex h-8 w-8 items-center justify-center rounded-md border border-white/15 bg-[#06172c]/95 text-white transition hover:bg-[#0b2546] focus:outline-none focus:ring-2 focus:ring-white/25"
         onClick={() => setOpen((value) => !value)}
       >
         {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -419,7 +419,7 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
 
       <div
         className="flex min-h-screen min-w-0 flex-col transition-[padding] duration-300"
-        style={{ paddingLeft: isDesktop && open ? `${sidebarWidth}px` : !open ? '56px' : undefined }}
+        style={{ paddingLeft: isDesktop && open ? `${sidebarWidth}px` : isDesktop && !open ? '56px' : undefined }}
       >
         {hideTopbar ? null : <Topbar onMenuClick={() => setOpen((value) => !value)} showMenuButton={false} />}
         <main
@@ -427,7 +427,7 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
             isCandidateAdmin
               ? hideTopbar
                 ? 'px-3 py-3 sm:p-4 lg:p-5'
-                : 'px-4 py-6 lg:px-10'
+                : 'px-4 py-4 lg:px-6'
               : hideTopbar
                 ? 'px-3 py-3 sm:p-4 lg:p-5'
                 : 'px-3 py-4 sm:p-5 lg:p-6'

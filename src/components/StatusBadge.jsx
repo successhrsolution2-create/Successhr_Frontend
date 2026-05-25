@@ -14,6 +14,26 @@ const statusConfig = {
   done: {
     label: 'Done',
     classes: 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+  },
+  shortlisted: {
+    label: 'Shortlisted',
+    classes: 'bg-sky-50 text-sky-700 ring-sky-200'
+  },
+  selected: {
+    label: 'Selected',
+    classes: 'bg-indigo-50 text-indigo-700 ring-indigo-200'
+  },
+  joined: {
+    label: 'Joined',
+    classes: 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+  },
+  rejected: {
+    label: 'Rejected',
+    classes: 'bg-rose-50 text-rose-700 ring-rose-200'
+  },
+  on_hold: {
+    label: 'On Hold',
+    classes: 'bg-amber-50 text-amber-700 ring-amber-200'
   }
 }
 

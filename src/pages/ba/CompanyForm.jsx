@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
-import { X } from 'lucide-react'
+import { ArrowLeft, X } from 'lucide-react'
 import api from '../../api/axios'
 import { ConfirmDialog } from '../../components/ActionDialogs'
 
@@ -130,8 +130,9 @@ export default function CompanyForm() {
   return (
     <form onSubmit={handleSubmit(requestSubmit)} className="space-y-4 sm:space-y-6">
       <div>
-        <Link to="/ba/companies" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
-          ← My Companies
+        <Link to="/ba/companies" className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+          <ArrowLeft className="h-4 w-4" />
+          My Companies
         </Link>
         <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Add Company Reference</h1>
         <p className="mt-1 text-sm text-slate-500">Capture company details and manpower requirements.</p>
@@ -198,7 +199,7 @@ export default function CompanyForm() {
             Marriage Criteria
             <select
               {...register('marriageCriteria')}
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
+              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
             >
               <option value="Married">Married</option>
               <option value="Unmarried">Unmarried</option>
@@ -223,13 +224,15 @@ export default function CompanyForm() {
         </div>
       </section>
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
-      >
-        {submitting ? 'Submitting...' : 'Submit Reference'}
-      </button>
+      <div className="sticky bottom-3 z-20 rounded-lg bg-white/95 p-3 shadow-lg shadow-slate-900/10 ring-1 ring-slate-200 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:ring-0">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
+        >
+          {submitting ? 'Submitting...' : 'Submit Reference'}
+        </button>
+      </div>
       <ConfirmDialog
         open={Boolean(pendingValues)}
         title="Submit Company Reference"
@@ -281,7 +284,7 @@ function ChoiceGroup({ label, values, register }) {
       {label}
       <div className="mt-2 flex flex-wrap gap-3">
         {values.map((value) => (
-          <label key={value} className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2">
+          <label key={value} className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 py-2">
             <input type="radio" value={value} {...register} className="h-4 w-4 text-sky-600" />
             {value}
           </label>
@@ -295,9 +298,9 @@ function CheckboxGrid({ label, values, selected, onToggle }) {
   return (
     <div className="sm:col-span-2 text-sm font-semibold text-slate-700">
       {label}
-      <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-2 grid gap-2 min-[380px]:grid-cols-2 lg:grid-cols-4">
         {values.map((value) => (
-          <label key={value} className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2">
+          <label key={value} className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 py-2">
             <input type="checkbox" checked={selected.includes(value)} onChange={() => onToggle(value)} className="h-4 w-4 rounded text-sky-600" />
             {value}
           </label>

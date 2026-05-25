@@ -195,14 +195,59 @@ export default function Earnings() {
         <p className="mt-1 text-sm text-slate-500">Once candidates are placed, your earnings and payouts appear here live.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <SummaryCard label="Candidates Placed" value={summary.studentsPlaced} />
         <SummaryCard label="Total I Earn" value={formatMoney(summary.totalIEarn)} />
         <SummaryCard label="Received" value={formatMoney(summary.received)} />
         <SummaryCard label="Pending Payment" value={formatMoney(summary.pending)} />
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <div className="space-y-3 md:hidden">
+        {earningRows.map((placement) => {
+          const earning = placement.earningAmount || 0
+          const paymentStatus = placement.earningStatus
+          const paidDate = placement.earningPaidDate
+
+          return (
+            <button
+              key={placement.rowId || placement._id}
+              type="button"
+              onClick={() => setActivePlacement(placement)}
+              className="w-full rounded-xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200 transition hover:ring-indigo-200"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-950">{placement.studentName || 'Candidate'}</p>
+                  <p className="mt-1 truncate text-xs text-slate-500">{placement.companyName || 'Company'}</p>
+                </div>
+                <PaymentBadge status={paymentStatus} paidDate={paidDate} />
+              </div>
+
+              <dl className="mt-4 grid grid-cols-2 gap-2">
+                <MobileField label="I Earn" value={formatMoney(earning)} strong />
+                <MobileField label="Offered Salary" value={`${formatMoney(placement.offeredSalaryPM || 0)} PM`} />
+                <MobileField label="My %" value={`${placement.earningPercent || 0}%`} />
+                <div className="rounded-lg bg-slate-50 px-3 py-2">
+                  <dt className="text-[11px] font-bold uppercase text-slate-500">Selection</dt>
+                  <dd className="mt-1"><SelectionBadge status={placement.selectionStatus} /></dd>
+                </div>
+              </dl>
+
+              <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2">
+                <p className="text-[11px] font-bold uppercase text-slate-500">Next Process</p>
+                <p className="mt-1 text-sm font-medium text-slate-800">{processStageLabel[placement.processStage] || placement.processStage || '-'}</p>
+              </div>
+            </button>
+          )
+        })}
+        {!earningRows.length ? (
+          <div className="rounded-xl bg-white px-4 py-10 text-center text-sm text-slate-500 shadow-sm ring-1 ring-slate-200">
+            No earnings yet. Once your referred candidates are placed by the admin, your earnings will appear here.
+          </div>
+        ) : null}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200 md:block">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
@@ -279,7 +324,7 @@ function EarningDetailModal({ placement, onClose }) {
   return (
     <div className="fixed inset-0 z-50">
       <button className="absolute inset-0 bg-slate-950/45" onClick={onClose} />
-      <div className="absolute left-1/2 top-1/2 max-h-[calc(100dvh-1.5rem)] w-[94vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white shadow-2xl">
+      <div className="absolute inset-x-0 bottom-0 max-h-[90dvh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[94vw] sm:max-w-2xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl">
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900 sm:text-xl">
@@ -331,9 +376,18 @@ function EarningDetailModal({ placement, onClose }) {
 
 function SummaryCard({ label, value }) {
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
-      <p className="text-sm font-semibold text-slate-500">{label}</p>
+    <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200 sm:p-5">
+      <p className="text-xs font-semibold leading-5 text-slate-500 sm:text-sm">{label}</p>
       <p className="mt-2 text-xl font-bold text-slate-900 sm:mt-3 sm:text-2xl">{value}</p>
+    </div>
+  )
+}
+
+function MobileField({ label, value, strong = false }) {
+  return (
+    <div className="rounded-lg bg-slate-50 px-3 py-2">
+      <dt className="text-[11px] font-bold uppercase text-slate-500">{label}</dt>
+      <dd className={`mt-1 break-words text-sm ${strong ? 'font-bold text-emerald-700' : 'font-medium text-slate-800'}`}>{value}</dd>
     </div>
   )
 }

@@ -52,6 +52,8 @@ const EMSPayslipView = lazy(() => import('./modules/ems/pages/payroll/PayslipVie
 const EMSDocumentManager = lazy(() => import('./modules/ems/pages/documents/DocumentManager'))
 const EMSReportsPage = lazy(() => import('./modules/ems/pages/reports/ReportsPage'))
 
+const cmsRoles = ['superAdmin', 'candidateAdmin']
+
 function HomeRedirect() {
   const { token, user, checking } = useSelector((state) => state.auth)
 
@@ -170,7 +172,7 @@ export default function App() {
         <Route
           path="/admin/cms/candidates"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin">
                 <CmsCandidatesList />
               </AppShell>
@@ -180,7 +182,7 @@ export default function App() {
         <Route
           path="/admin/cms/companies"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin">
                 <CmsCompaniesList />
               </AppShell>
@@ -190,7 +192,7 @@ export default function App() {
         <Route
           path="/admin/cms/candidates/new"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin" hideTopbar>
                 <CmsAddCandidate />
               </AppShell>
@@ -200,7 +202,7 @@ export default function App() {
         <Route
           path="/admin/cms/candidates/add"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin" hideTopbar>
                 <CmsAddCandidate />
               </AppShell>
@@ -210,7 +212,7 @@ export default function App() {
         <Route
           path="/admin/cms/candidates/:id"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin" hideTopbar>
                 <CmsCandidateDetail />
               </AppShell>
@@ -220,7 +222,7 @@ export default function App() {
         <Route
           path="/admin/cms/candidates/:id/edit"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin" hideTopbar>
                 <CmsAddCandidate />
               </AppShell>
@@ -230,7 +232,7 @@ export default function App() {
         <Route
           path="/admin/process-panel"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin">
                 <CmsProcessPanel />
               </AppShell>
@@ -240,7 +242,7 @@ export default function App() {
         <Route
           path="/admin/cms/companies/new"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin">
                 <CmsCompanyForm />
               </AppShell>
@@ -250,7 +252,7 @@ export default function App() {
         <Route
           path="/admin/cms/companies/:id/edit"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin">
                 <CmsCompanyForm />
               </AppShell>
@@ -260,7 +262,7 @@ export default function App() {
         <Route
           path="/admin/cms/interviews"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin">
                 <CmsInterviewList />
               </AppShell>
@@ -270,7 +272,7 @@ export default function App() {
         <Route
           path="/admin/cms/interviews/:id"
           element={
-            <ProtectedRoute roles={['candidateAdmin']}>
+            <ProtectedRoute roles={cmsRoles}>
               <AppShell role="candidateAdmin">
                 <CmsInterviewDetails />
               </AppShell>
@@ -325,7 +327,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/admin/process-panel" element={<Navigate to="/admin/references" replace />} />
         <Route
           path="/admin/companies"
           element={
@@ -566,9 +567,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
-        <Route path="/admin/cms/companies/new" element={<Navigate to="/admin/references" replace />} />
-        <Route path="/admin/cms/companies/:id/edit" element={<Navigate to="/admin/references" replace />} />
         <Route
           path="/ba/students"
           element={

@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { useSelector } from 'react-redux'
 import toast from 'react-hot-toast'
-import { Eye } from 'lucide-react'
+import { Eye, UserRoundPlus } from 'lucide-react'
 import api from '../../api/axios'
 import socket, { connectSocket, disconnectSocket } from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
+import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
 
 const formatMoney = (amount) =>
@@ -204,30 +205,31 @@ export default function Students() {
         </div>
         <Link
           to="/ba/students/new"
-          className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 sm:w-auto"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 sm:w-auto"
         >
+          <UserRoundPlus className="h-4 w-4" />
           Add Candidate
         </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard label="Total Submitted" value={stats.totalSubmitted} />
         <StatCard label="Selected / Joined" value={stats.selectedJoined} />
         <StatCard label="Total Earned" value={formatMoney(stats.totalEarned)} />
         <StatCard label="Pending Payment" value={formatMoney(stats.pending)} />
       </div>
 
-      <div className="grid gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 md:grid-cols-3">
+      <div className="grid gap-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200 sm:p-4 md:grid-cols-3">
         <input
           value={filters.search}
           onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
           placeholder="Search by name, phone, aadhaar, email, job, company..."
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
         />
         <select
           value={filters.status}
           onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
         >
           <option value="all">All Statuses</option>
           <option value="not_viewed">Not Viewed</option>
@@ -241,7 +243,7 @@ export default function Students() {
         <select
           value={filters.earning}
           onChange={(event) => setFilters((current) => ({ ...current, earning: event.target.value }))}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
         >
           <option value="all">All Earnings</option>
           <option value="recorded">Earning recorded</option>
@@ -250,7 +252,49 @@ export default function Students() {
         </select>
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <div className="space-y-3 md:hidden">
+        {filtered.map((student) => (
+          <button
+            key={student._id}
+            type="button"
+            onClick={() => setSelected(student)}
+            className="w-full rounded-xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200 transition hover:ring-indigo-200"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <p className="truncate font-semibold text-slate-950">{student.candidateName}</p>
+                  {student.source === 'public_form' ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-700">Via form</span> : null}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{student.mobileNumber || 'No phone'}</p>
+              </div>
+              <StatusBadge status={student.effectiveStatus} />
+            </div>
+
+            <dl className="mt-4 grid grid-cols-2 gap-2">
+              <MobileField label="Applied For" value={student.appliedFor || 'Not provided'} />
+              <MobileField label="Submitted" value={format(new Date(student.createdAt), 'dd MMM yyyy')} />
+              <MobileField label="Documents" value={student.documents?.length ? `${student.documents.length} files` : 'No files'} />
+              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <dt className="text-[11px] font-bold uppercase text-slate-500">My Earning</dt>
+                <dd className="mt-1 text-sm text-slate-800"><EarningCell earning={student.earning} /></dd>
+              </div>
+            </dl>
+
+            <span className="mt-4 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white">
+              <Eye className="h-3.5 w-3.5" />
+              View Details
+            </span>
+          </button>
+        ))}
+        {!filtered.length ? (
+          <div className="rounded-xl bg-white px-4 py-10 text-center text-sm text-slate-500 shadow-sm ring-1 ring-slate-200">
+            No candidates found for current filters.
+          </div>
+        ) : null}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200 md:block">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
@@ -329,9 +373,18 @@ export default function Students() {
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
-      <p className="text-sm font-semibold text-slate-500">{label}</p>
+    <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200 sm:p-5">
+      <p className="text-xs font-semibold leading-5 text-slate-500 sm:text-sm">{label}</p>
       <p className="mt-2 text-xl font-bold text-slate-900 sm:mt-3 sm:text-2xl">{value}</p>
+    </div>
+  )
+}
+
+function MobileField({ label, value }) {
+  return (
+    <div className="rounded-lg bg-slate-50 px-3 py-2">
+      <dt className="text-[11px] font-bold uppercase text-slate-500">{label}</dt>
+      <dd className="mt-1 break-words text-sm font-medium text-slate-800">{value}</dd>
     </div>
   )
 }

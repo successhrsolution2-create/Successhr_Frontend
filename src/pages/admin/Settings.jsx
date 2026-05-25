@@ -268,7 +268,7 @@ export default function AdminSettings() {
 
       <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-900">Profile & Email</h2>
-        <form onSubmit={saveProfile} className="mt-4 grid gap-4 sm:grid-cols-2">
+        <form onSubmit={saveProfile} className="mt-4 grid gap-4 md:grid-cols-2">
           <Field
             label="Name"
             required
@@ -298,7 +298,7 @@ export default function AdminSettings() {
 
       <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-900">Change Password</h2>
-        <form onSubmit={savePassword} className="mt-4 grid gap-4 sm:grid-cols-2">
+        <form onSubmit={savePassword} className="mt-4 grid gap-4 md:grid-cols-2">
           <Field
             label="Current Password"
             required
@@ -306,7 +306,7 @@ export default function AdminSettings() {
             value={passwordForm.currentPassword}
             onChange={(value) => setPasswordForm((current) => ({ ...current, currentPassword: value }))}
           />
-          <div />
+          <div className="hidden md:block" />
           <Field
             label="New Password"
             required

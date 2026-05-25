@@ -267,13 +267,13 @@ function MetricChip({ icon: Icon, label, value, tone = 'violet', active = false,
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-semibold transition hover:border-[#0b65ac] hover:bg-[#eef6ff] ${
+      className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition hover:border-[#0b65ac] hover:bg-[#eef6ff] ${
         active ? 'border-[#0b65ac] bg-[#eef6ff] ring-2 ring-[#d9ecff]' : ''
       } ${metricTone[tone]}`}
     >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="text-xs font-semibold text-slate-600">{label}</span>
-      <span className="text-sm font-bold text-slate-950">{value}</span>
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <span className="text-[11px] font-semibold text-slate-600">{label}</span>
+      <span className="text-xs font-bold text-slate-950">{value}</span>
     </button>
   )
 }
@@ -284,7 +284,7 @@ function CandidateFilterSelect({ label, value, options, onChange }) {
       aria-label={`Filter by ${label}`}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-12 min-w-0 rounded-md border border-[#d4dde8] bg-white px-3 text-sm font-medium text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff]"
+      className="h-9 min-w-0 rounded-md border border-[#d4dde8] bg-white px-3 text-[13px] font-medium text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff]"
     >
       <option value="">All {label}</option>
       {options.map((option) => (
@@ -711,20 +711,20 @@ export default function CandidatesList() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap justify-end gap-2">
         <button
           type="button"
           disabled={importing}
           onClick={() => importInputRef.current?.click()}
-          className="inline-flex h-10 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-9 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {importing ? 'Scanning...' : 'Import Excel'}
         </button>
         <button
           type="button"
           onClick={() => navigate('/admin/cms/candidates/add')}
-          className="inline-flex h-10 items-center justify-center rounded-md bg-[#0b65ac] px-5 text-sm font-semibold text-white transition hover:bg-[#00427d]"
+          className="inline-flex h-9 items-center justify-center rounded-md bg-[#0b65ac] px-4 text-sm font-semibold text-white transition hover:bg-[#00427d]"
         >
           Add Candidate
         </button>
@@ -765,12 +765,12 @@ export default function CandidatesList() {
       </div>
 
       <form className="rounded-md border border-[#d4dde8] bg-white p-3 shadow-sm" onSubmit={(event) => event.preventDefault()}>
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(0,1fr))]">
+        <div className="grid gap-2 xl:grid-cols-[minmax(0,1.25fr)_repeat(4,minmax(0,1fr))]">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search by ID, name, mobile, email, skills"
-            className="h-12 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff]"
+            className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-[13px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff]"
           />
           <CandidateFilterSelect
             label="ID"
@@ -813,7 +813,7 @@ export default function CandidatesList() {
                 type="date"
                 value={dateRange.from}
                 onChange={(e) => updateDateRange('from', e.target.value)}
-                className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[150px]"
+                className="h-8 w-full rounded-md border border-[#d4dde8] bg-white px-2.5 text-[13px] text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[140px]"
                 aria-label="Filter candidates from registration date"
                 title="From registration date"
               />
@@ -824,7 +824,7 @@ export default function CandidatesList() {
                 type="date"
                 value={dateRange.to}
                 onChange={(e) => updateDateRange('to', e.target.value)}
-                className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[150px]"
+                className="h-8 w-full rounded-md border border-[#d4dde8] bg-white px-2.5 text-[13px] text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[140px]"
                 aria-label="Filter candidates to registration date"
                 title="To registration date"
               />
@@ -835,7 +835,7 @@ export default function CandidatesList() {
                 type="date"
                 value={visitDateRange.from}
                 onChange={(e) => updateVisitDateRange('from', e.target.value)}
-                className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[150px]"
+                className="h-8 w-full rounded-md border border-[#d4dde8] bg-white px-2.5 text-[13px] text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[140px]"
                 aria-label="Filter candidates from visit date"
                 title="From visit date"
               />
@@ -846,7 +846,7 @@ export default function CandidatesList() {
                 type="date"
                 value={visitDateRange.to}
                 onChange={(e) => updateVisitDateRange('to', e.target.value)}
-                className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[150px]"
+                className="h-8 w-full rounded-md border border-[#d4dde8] bg-white px-2.5 text-[13px] text-slate-900 outline-none transition focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff] sm:w-[140px]"
                 aria-label="Filter candidates to visit date"
                 title="To visit date"
               />
@@ -854,7 +854,7 @@ export default function CandidatesList() {
             <button
               type="button"
               onClick={resetFilters}
-              className="inline-flex h-9 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d]"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d]"
             >
               Reset
             </button>
@@ -864,12 +864,12 @@ export default function CandidatesList() {
 
       <section className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-xl font-bold text-[#00427d]">Active Candidates</h2>
+          <h2 className="text-lg font-bold text-[#00427d]">Active Candidates</h2>
           {selectedVisibleCandidateIds.length > 0 ? (
             <button
               type="button"
               onClick={requestBulkDelete}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 sm:w-auto"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 sm:w-auto"
             >
               <Trash2 size={16} />
               Delete Selected ({selectedVisibleCandidateIds.length})
@@ -879,10 +879,10 @@ export default function CandidatesList() {
 
         <div className="overflow-hidden rounded-md border border-[#d4dde8] bg-white">
         {loading ? (
-          <div className="border-b border-[#d4dde8] px-5 py-6 text-slate-600">Loading candidates...</div>
+          <div className="border-b border-[#d4dde8] px-4 py-4 text-sm text-slate-600">Loading candidates...</div>
         ) : null}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1280px] table-fixed text-sm text-slate-900">
+          <table className="w-full min-w-[1160px] table-fixed text-[13px] text-slate-900">
             <colgroup>
               <col className="w-[4%]" />
               <col className="w-[8%]" />
@@ -893,9 +893,9 @@ export default function CandidatesList() {
               <col className="w-[16%]" />
               <col className="w-[17%]" />
             </colgroup>
-            <thead className="bg-white text-left text-sm font-semibold text-slate-950">
+            <thead className="bg-white text-left text-xs font-semibold uppercase text-slate-600">
               <tr className="border-b border-[#d4dde8]">
-                <th className="border-r border-[#d4dde8] px-3 py-4 text-center whitespace-nowrap">
+                <th className="border-r border-[#d4dde8] px-3 py-3 text-center whitespace-nowrap">
                   <input
                     type="checkbox"
                     aria-label="Select all visible candidates"
@@ -905,19 +905,19 @@ export default function CandidatesList() {
                     className="h-4 w-4 rounded border-[#d4dde8] accent-[#0b65ac]"
                   />
                 </th>
-                <th className="border-r border-[#d4dde8] px-3 py-4 whitespace-nowrap">ID</th>
-                <th className="border-r border-[#d4dde8] px-3 py-4 whitespace-nowrap">Registration</th>
-                <th className="border-r border-[#d4dde8] px-3 py-4 whitespace-nowrap">Name</th>
-                <th className="border-r border-[#d4dde8] px-3 py-4 whitespace-nowrap">Education</th>
-                <th className="border-r border-[#d4dde8] px-3 py-4 whitespace-nowrap">Job Role/Department</th>
-                <th className="border-r border-[#d4dde8] px-3 py-4 whitespace-nowrap">Visits</th>
-                <th className="px-3 py-4 whitespace-nowrap">Actions</th>
+                <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">ID</th>
+                <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">Registration</th>
+                <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">Name</th>
+                <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">Education</th>
+                <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">Job Role/Department</th>
+                <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">Visits</th>
+                <th className="px-3 py-3 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginated.map((candidate) => (
                 <tr key={candidate.id} className="border-b border-[#d4dde8] bg-white hover:bg-[#f8fbff]">
-                  <td className="border-r border-[#d4dde8] px-3 py-4 text-center">
+                  <td className="border-r border-[#d4dde8] px-3 py-3 text-center">
                     <input
                       type="checkbox"
                       aria-label={`Select ${candidate.fullName || 'candidate'}`}
@@ -927,8 +927,8 @@ export default function CandidatesList() {
                       className="h-4 w-4 rounded border-[#d4dde8] accent-[#0b65ac]"
                     />
                   </td>
-                  <td className="whitespace-nowrap border-r border-[#d4dde8] px-3 py-4 font-semibold text-slate-700">{candidate.code}</td>
-                  <td className="whitespace-nowrap border-r border-[#d4dde8] px-3 py-4">
+                  <td className="whitespace-nowrap border-r border-[#d4dde8] px-3 py-3 font-semibold text-slate-700">{candidate.code}</td>
+                  <td className="whitespace-nowrap border-r border-[#d4dde8] px-3 py-3">
                     {(() => {
                       const registered = registrationDateTime(candidate.createdAt)
                       return (
@@ -939,36 +939,36 @@ export default function CandidatesList() {
                       )
                     })()}
                   </td>
-                  <td className="border-r border-[#d4dde8] px-3 py-4">
+                  <td className="border-r border-[#d4dde8] px-3 py-3">
                     <div className="flex items-center gap-2">
-                      <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${avatarPalette[candidate.fullName.length % avatarPalette.length]}`}>
+                      <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${avatarPalette[candidate.fullName.length % avatarPalette.length]}`}>
                         {(candidate.fullName || 'C').charAt(0).toUpperCase()}
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate font-semibold leading-5 text-slate-900">{candidate.fullName}</span>
-                        <span className="block truncate text-xs font-semibold text-slate-500">{candidate.mobile || '-'}</span>
+                        <span className="block truncate text-[11px] font-semibold text-slate-500">{candidate.mobile || '-'}</span>
                       </span>
                     </div>
                   </td>
-                  <td className="truncate border-r border-[#d4dde8] px-3 py-4 text-slate-900" title={candidate.highestEducation || '-'}>
+                  <td className="truncate border-r border-[#d4dde8] px-3 py-3 text-slate-900" title={candidate.highestEducation || '-'}>
                     {candidate.highestEducation || '-'}
                   </td>
-                  <td className="truncate border-r border-[#d4dde8] px-3 py-4 leading-5 text-slate-900" title={candidate.jobRole || candidate.appliedFor || '-'}>
+                  <td className="truncate border-r border-[#d4dde8] px-3 py-3 leading-5 text-slate-900" title={candidate.jobRole || candidate.appliedFor || '-'}>
                     {candidate.jobRole || candidate.appliedFor || '-'}
                   </td>
-                  <td className="border-r border-[#d4dde8] px-3 py-4">
+                  <td className="border-r border-[#d4dde8] px-3 py-3">
                     {(() => {
                       const visits = Array.isArray(candidate.candidateVisits) ? candidate.candidateVisits : []
                       const lastVisit = lastCandidateVisit(visits)
                       const visitDate = formatVisitDateTime(lastVisit?.visitDateTime)
                       const purpose = lastVisit ? selectedOptionValue(lastVisit.purpose, lastVisit.purposeOther) : ''
                       return (
-                        <div className="min-w-0 space-y-1 leading-5">
-                          <span className="inline-flex rounded-full bg-[#eef6ff] px-2 py-0.5 text-xs font-bold text-[#00427d]">
+                        <div className="min-w-0 space-y-1 leading-4">
+                          <span className="inline-flex rounded-full bg-[#eef6ff] px-2 py-0.5 text-[11px] font-bold text-[#00427d]">
                             {visits.length} Visit{visits.length === 1 ? '' : 's'}
                           </span>
                           {lastVisit ? (
-                            <div className="min-w-0 text-xs font-semibold text-slate-600">
+                            <div className="min-w-0 text-[11px] font-semibold text-slate-600">
                               <span className="block truncate text-slate-900" title={`${visitDate.date} ${visitDate.time}`.trim()}>
                                 Last: {visitDate.date}{visitDate.time ? `, ${visitDate.time}` : ''}
                               </span>
@@ -980,18 +980,18 @@ export default function CandidatesList() {
                               </span>
                             </div>
                           ) : (
-                            <span className="block text-xs font-semibold text-slate-400">No visit added</span>
+                            <span className="block text-[11px] font-semibold text-slate-400">No visit added</span>
                           )}
                         </div>
                       )
                     })()}
                   </td>
-                  <td className="px-3 py-4">
+                  <td className="px-3 py-3">
                     <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/cms/candidates/${candidate.id}`)}
-                        className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-3 text-xs font-semibold text-[#00427d] transition hover:border-[#0b65ac] hover:bg-[#eef6ff]"
+                        className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-2.5 text-xs font-semibold text-[#00427d] transition hover:border-[#0b65ac] hover:bg-[#eef6ff]"
                         aria-label="View candidate"
                       >
                         View
@@ -999,7 +999,7 @@ export default function CandidatesList() {
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/cms/candidates/${candidate.id}/edit`)}
-                        className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d]"
+                        className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d]"
                         aria-label="Edit candidate"
                       >
                         Update
@@ -1007,7 +1007,7 @@ export default function CandidatesList() {
                       <button
                         type="button"
                         onClick={() => setDeleting(candidate)}
-                        className="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-rose-600 px-3 text-xs font-semibold text-white transition hover:bg-rose-700"
+                        className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-rose-600 px-2.5 text-xs font-semibold text-white transition hover:bg-rose-700"
                         aria-label="Delete candidate"
                       >
                         Delete

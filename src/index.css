@@ -80,6 +80,14 @@ select {
   min-width: 0;
 }
 
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
@@ -96,6 +104,13 @@ th {
 }
 
 @media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    min-height: 2.75rem;
+  }
+
   .overflow-x-auto > table[class*="min-w-full"] {
     min-width: 44rem;
   }

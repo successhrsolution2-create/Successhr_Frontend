@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
+import { ArrowLeft } from 'lucide-react'
 import api from '../../api/axios'
 
 const schema = z.object({
@@ -67,7 +68,7 @@ export default function CandidateForm() {
       await api.post('/candidates', payload)
 
       toast.success('Reference submitted successfully!')
-      navigate('/ba/candidates')
+      navigate('/ba/students')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not submit reference')
     } finally {
@@ -78,8 +79,9 @@ export default function CandidateForm() {
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-4 sm:space-y-6">
       <div>
-        <Link to="/ba/candidates" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
-          ← My Candidates
+        <Link to="/ba/students" className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+          <ArrowLeft className="h-4 w-4" />
+          My Candidates
         </Link>
         <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Add Candidate Reference</h1>
         <p className="mt-1 text-sm text-slate-500">Submit candidate details and professional context.</p>
@@ -121,13 +123,15 @@ export default function CandidateForm() {
         </div>
       </section>
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
-      >
-        {submitting ? 'Submitting...' : 'Submit Reference'}
-      </button>
+      <div className="sticky bottom-3 z-20 rounded-lg bg-white/95 p-3 shadow-lg shadow-slate-900/10 ring-1 ring-slate-200 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:ring-0">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
+        >
+          {submitting ? 'Submitting...' : 'Submit Reference'}
+        </button>
+      </div>
     </form>
   )
 }

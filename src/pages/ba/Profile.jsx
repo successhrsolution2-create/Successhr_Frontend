@@ -212,14 +212,14 @@ export default function Profile() {
     <form onSubmit={saveProfile} className="space-y-4 sm:space-y-6">
       <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">Your Advisor Code</h2>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 ring-1 ring-cyan-200">
-          <p className="font-mono text-lg font-bold text-slate-900">{advisorCode || 'Not assigned yet'}</p>
-          <button type="button" onClick={() => copyText(advisorCode, 'Code copied!')} className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white sm:w-auto">Copy code</button>
+        <div className="mt-4 grid gap-3 rounded-lg bg-white px-4 py-3 ring-1 ring-cyan-200 sm:grid-cols-[1fr_auto] sm:items-center">
+          <p className="break-all font-mono text-lg font-bold text-slate-900">{advisorCode || 'Not assigned yet'}</p>
+          <button type="button" onClick={() => copyText(advisorCode, 'Code copied!')} className="min-h-10 w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white sm:w-auto">Copy code</button>
         </div>
         <p className="mt-3 text-sm font-medium text-slate-700">Public candidate website link:</p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 ring-1 ring-cyan-200">
+        <div className="mt-2 grid gap-3 rounded-lg bg-white px-4 py-3 ring-1 ring-cyan-200 sm:grid-cols-[1fr_auto] sm:items-center">
           <p className="break-all text-sm text-slate-700">{shareLink}</p>
-          <button type="button" onClick={() => copyText(shareLink, 'Link copied!')} className="w-full rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white sm:w-auto">Copy link</button>
+          <button type="button" onClick={() => copyText(shareLink, 'Link copied!')} className="min-h-10 w-full rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white sm:w-auto">Copy link</button>
         </div>
       </section>
 
@@ -229,7 +229,7 @@ export default function Profile() {
       </div>
 
       <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           {completion.map(([label, done]) => (
             <div key={label} className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold">
               <CheckCircle2 className={`h-4 w-4 ${done ? 'text-emerald-500' : 'text-slate-300'}`} />
@@ -242,7 +242,7 @@ export default function Profile() {
       <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">Personal Info</h2>
         <div className="mt-5 grid gap-5 lg:grid-cols-[180px_1fr]">
-          <div>
+          <div className="flex flex-col items-center lg:items-start">
             <div className="mb-3 h-36 w-36 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
               {profile.profilePhoto ? (
                 <img src={assetUrl(profile.profilePhoto)} alt="Profile" className="h-full w-full object-cover" />
@@ -335,7 +335,7 @@ export default function Profile() {
           <Field label="Branch Name" required value={profile.bankDetails.branchName} onChange={(value) => updateBank('branchName', value)} />
           <div className="text-sm font-semibold text-slate-700">
             Account Type <span className="text-rose-500">*</span>
-            <div className="mt-2 flex gap-3">
+            <div className="mt-2 grid gap-2 min-[380px]:grid-cols-2">
               {['Savings', 'Current'].map((type) => (
                 <label key={type} className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2">
                   <input
@@ -353,13 +353,15 @@ export default function Profile() {
         </div>
       </section>
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
-      >
-        {saving ? 'Saving...' : 'Save Profile'}
-      </button>
+      <div className="sticky bottom-3 z-20 rounded-lg bg-white/95 p-3 shadow-lg shadow-slate-900/10 ring-1 ring-slate-200 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:ring-0">
+        <button
+          type="submit"
+          disabled={saving}
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
+        >
+          {saving ? 'Saving...' : 'Save Profile'}
+        </button>
+      </div>
     </form>
   )
 }

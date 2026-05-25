@@ -50,27 +50,27 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
   if (isCandidateAdmin) {
     return (
       <header className="sticky top-0 z-30 border-b border-[#d4dde8] bg-white/95 backdrop-blur">
-        <div className="flex min-h-20 flex-col gap-3 py-3 pl-4 pr-4 sm:flex-row sm:items-center sm:justify-between lg:pl-6 lg:pr-10">
+        <div className="flex min-h-16 flex-col gap-2 px-4 py-2 sm:flex-row sm:items-center sm:justify-between lg:px-6">
           {showMenuButton ? (
             <button
               type="button"
               onClick={onMenuClick}
               aria-label="Open menu"
-              className="mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[#d4dde8] bg-white text-slate-700 hover:bg-slate-50"
+              className="mr-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#d4dde8] bg-white text-slate-700 hover:bg-slate-50"
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
           ) : null}
 
           <div>
-            <h1 className="text-3xl font-semibold leading-tight text-[#00427d]">{candidateAdminTitle}</h1>
-            <p className="mt-2 text-sm text-slate-600">Candidate Management System</p>
+            <h1 className="text-2xl font-semibold leading-7 text-[#00427d]">{candidateAdminTitle}</h1>
+            <p className="mt-1 text-xs font-medium text-slate-500">Candidate Management System</p>
           </div>
 
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex h-10 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d]"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d]"
           >
             Logout
           </button>
