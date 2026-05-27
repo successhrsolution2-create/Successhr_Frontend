@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import DepartmentSelect from './DepartmentSelect'
 
 const blankEmployee = {
+  employeeId: '',
   firstName: '',
   lastName: '',
   email: '',
@@ -14,7 +15,7 @@ const blankEmployee = {
   employmentType: 'Full-time',
   status: 'active',
   joiningDate: '',
-  role: 'employee',
+  role: 'candidate_admin',
   workLocation: '',
   salary: {
     basic: '',
@@ -77,11 +78,18 @@ export default function EmployeeForm({ initialValue, onSubmit, submitting = fals
       <div className="grid gap-4 p-4 sm:grid-cols-2">
         {step === 0 ? (
           <>
+            <Field label="Employee ID" value={form.employeeId} onChange={(value) => update('employeeId', value)} />
             <Field label="First Name" value={form.firstName} onChange={(value) => update('firstName', value)} required />
             <Field label="Last Name" value={form.lastName} onChange={(value) => update('lastName', value)} required />
             <Field label="Email" type="email" value={form.email} onChange={(value) => update('email', value)} required />
             <Field label="Phone" value={form.phone} onChange={(value) => update('phone', value)} />
-            <Field label="Temporary Password" type="password" value={form.password} onChange={(value) => update('password', value)} />
+            <Field
+              label="Temporary Password"
+              type="password"
+              value={form.password}
+              onChange={(value) => update('password', value)}
+              required={!initialValue?._id && ['candidate_admin', 'manager', 'crm_employee'].includes(form.role)}
+            />
             <Field label="Date of Birth" type="date" value={form.dateOfBirth?.slice?.(0, 10) || form.dateOfBirth || ''} onChange={(value) => update('dateOfBirth', value)} />
             <label className="grid gap-1 text-sm font-semibold text-slate-700">
               Gender
@@ -124,12 +132,11 @@ export default function EmployeeForm({ initialValue, onSubmit, submitting = fals
             </label>
             <Field label="Joining Date" type="date" value={form.joiningDate?.slice?.(0, 10) || form.joiningDate || ''} onChange={(value) => update('joiningDate', value)} />
             <label className="grid gap-1 text-sm font-semibold text-slate-700">
-              EMS Role
+              Login Role
               <select value={form.role} onChange={(event) => update('role', event.target.value)} className={inputClass}>
-                <option value="employee">Employee</option>
+                <option value="candidate_admin">Candidate Management</option>
                 <option value="manager">Manager</option>
-                <option value="hr">HR</option>
-                <option value="admin">Admin</option>
+                <option value="crm_employee">CRM Admin</option>
               </select>
             </label>
             <Field label="Work Location" value={form.workLocation} onChange={(value) => update('workLocation', value)} />

@@ -13,7 +13,9 @@ const AdminReferenceBoard = lazy(() => import('./pages/admin/ReferenceBoard'))
 const AdminStudents = lazy(() => import('./pages/admin/Students'))
 const AdminCompanies = lazy(() => import('./pages/admin/Companies'))
 const AdminCommissionPanel = lazy(() => import('./pages/admin/CommissionPanel'))
-const AdminCrmManagement = lazy(() => import('./pages/admin/CrmManagement'))
+const CrmRoutes = lazy(() => import('./crm/CrmRoutes'))
+const CrmAdminDashboard = lazy(() => import('./pages/admin/Crm/AdminDashboard'))
+const CrmAdminReports = lazy(() => import('./pages/admin/Crm/AdminReports'))
 const AdminSettings = lazy(() => import('./pages/admin/Settings'))
 const BADashboard = lazy(() => import('./pages/ba/Dashboard'))
 const BAProfile = lazy(() => import('./pages/ba/Profile'))
@@ -25,6 +27,7 @@ const BAEarnings = lazy(() => import('./pages/ba/Earnings'))
 
 const InterviewList = lazy(() => import('./pages/admin/Interviews/InterviewList'))
 const ApplyPage = lazy(() => import('./pages/public/ApplyPage'))
+const CmsDashboard = lazy(() => import('./candidate/pages/admin/Dashboard'))
 const CmsCandidatesList = lazy(() => import('./candidate/pages/admin/Candidates/CandidatesList'))
 const CmsAddCandidate = lazy(() => import('./candidate/pages/admin/Candidates/AddCandidate'))
 const CmsCandidateDetail = lazy(() => import('./candidate/pages/admin/Candidates/CandidateDetail'))
@@ -52,16 +55,36 @@ const EMSPayslipView = lazy(() => import('./modules/ems/pages/payroll/PayslipVie
 const EMSDocumentManager = lazy(() => import('./modules/ems/pages/documents/DocumentManager'))
 const EMSReportsPage = lazy(() => import('./modules/ems/pages/reports/ReportsPage'))
 
-const cmsRoles = ['superAdmin', 'candidateAdmin']
+const cmsRoles = ['superAdmin', 'candidateAdmin', 'manager']
+const crmAdminRoles = ['superAdmin', 'crm_super_admin', 'manager']
+const employeeManagementRoles = ['superAdmin', 'manager']
+const adminSettingsRoles = ['superAdmin', 'candidateAdmin', 'manager']
+
+const managerDefaultPath = (user = {}) => {
+  const access = Array.isArray(user.managerAccess) ? user.managerAccess : []
+  if (access.includes('candidateManagement')) return '/admin/cms/candidates'
+  if (access.includes('crmManagement')) return '/admin/crm/dashboard'
+  if (access.includes('employeeManagement')) return '/ems'
+  return '/admin/settings'
+}
+
+const crmDefaultPath = (role) => {
+  if (role === 'crm_super_admin') return '/admin/crm/dashboard'
+  if (role === 'crm_employee') return '/admin/crm/employee/candidates'
+  return '/login'
+}
 
 function HomeRedirect() {
   const { token, user, checking } = useSelector((state) => state.auth)
+  const { accessToken: crmAccessToken, role: crmRole } = useSelector((state) => state.crmAuth)
 
   if (checking) return <LoadingScreen />
-  if (!token || !user) return <Navigate to="/login" replace />
   if (user?.role === 'superAdmin') return <Navigate to="/admin/dashboard" replace />
   if (user?.role === 'candidateAdmin') return <Navigate to="/admin/cms/candidates" replace />
-  return <Navigate to="/ba/dashboard" replace />
+  if (user?.role === 'manager') return <Navigate to={managerDefaultPath(user)} replace />
+  if (token && user) return <Navigate to="/ba/dashboard" replace />
+  if (crmAccessToken && crmRole) return <Navigate to={crmDefaultPath(crmRole)} replace />
+  return <Navigate to="/login" replace />
 }
 
 function AppShell({ role, children, hideTopbar = false }) {
@@ -70,12 +93,31 @@ function AppShell({ role, children, hideTopbar = false }) {
 
 function SettingsShell() {
   const role = useSelector((state) => state.auth.user?.role)
-  const sidebarRole = role === 'candidateAdmin' ? 'candidateAdmin' : 'superAdmin'
+  const sidebarRole = role === 'candidateAdmin' ? 'candidateAdmin' : role === 'manager' ? 'manager' : 'superAdmin'
   return (
     <AppShell role={sidebarRole}>
       <AdminSettings />
     </AppShell>
   )
+}
+
+function CrmAdminShell({ children }) {
+  const role = useSelector((state) => state.auth.user?.role)
+  return <AppShell role={role === 'superAdmin' ? 'superAdmin' : role === 'manager' ? 'manager' : 'crmAdmin'}>{children}</AppShell>
+}
+
+function CandidateManagementShell({ children, hideTopbar = false }) {
+  const role = useSelector((state) => state.auth.user?.role)
+  return (
+    <AppShell role={role === 'superAdmin' ? 'superAdmin' : role === 'manager' ? 'manager' : 'candidateAdmin'} hideTopbar={hideTopbar}>
+      {children}
+    </AppShell>
+  )
+}
+
+function EmployeeManagementShell({ children }) {
+  const role = useSelector((state) => state.auth.user?.role)
+  return <AppShell role={role === 'manager' ? 'manager' : 'superAdmin'}>{children}</AppShell>
 }
 
 function NotFound() {
@@ -126,6 +168,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/manager/login" element={<Login />} />
         <Route path="/apply" element={<ApplyPage />} />
         <Route path="/apply/:code" element={<ApplyPage />} />
 
@@ -170,112 +213,126 @@ export default function App() {
           }
         />
         <Route
+          path="/admin/cms"
+          element={<Navigate to="/admin/cms/dashboard" replace />}
+        />
+        <Route
+          path="/admin/cms/dashboard"
+          element={
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell>
+                <CmsDashboard />
+              </CandidateManagementShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/cms/candidates"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin">
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell>
                 <CmsCandidatesList />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/cms/companies"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin">
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell>
                 <CmsCompaniesList />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/cms/candidates/new"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin" hideTopbar>
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell hideTopbar>
                 <CmsAddCandidate />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/cms/candidates/add"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin" hideTopbar>
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell hideTopbar>
                 <CmsAddCandidate />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/cms/candidates/:id"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin" hideTopbar>
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell hideTopbar>
                 <CmsCandidateDetail />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/cms/candidates/:id/edit"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin" hideTopbar>
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell hideTopbar>
                 <CmsAddCandidate />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/process-panel"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin">
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell>
                 <CmsProcessPanel />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/cms/companies/new"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin">
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell>
                 <CmsCompanyForm />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/cms/companies/:id/edit"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin">
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell>
                 <CmsCompanyForm />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/cms/interviews"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin">
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell>
                 <CmsInterviewList />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/cms/interviews/:id"
           element={
-            <ProtectedRoute roles={cmsRoles}>
-              <AppShell role="candidateAdmin">
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell>
                 <CmsInterviewDetails />
-              </AppShell>
+              </CandidateManagementShell>
             </ProtectedRoute>
           }
         />
@@ -301,31 +358,49 @@ export default function App() {
         />
         <Route
           path="/admin/crm"
-          element={<Navigate to="/admin/crm/employees" replace />}
+          element={<Navigate to="/admin/crm/dashboard" replace />}
         />
         <Route
           path="/admin/crm/dashboard"
-          element={<Navigate to="/admin/crm/employees" replace />}
+          element={
+            <ProtectedRoute roles={crmAdminRoles} managerAccess="crmManagement">
+              <CrmAdminShell>
+                <CrmAdminDashboard />
+              </CrmAdminShell>
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/admin/crm/employees"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
-                <AdminCrmManagement initialTab="employees" />
-              </AppShell>
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <Navigate to="/ems/employees" replace />
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/crm/candidates"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
-                <AdminCrmManagement initialTab="candidates" />
-              </AppShell>
+            <ProtectedRoute roles={crmAdminRoles} managerAccess="crmManagement">
+              <CrmAdminShell>
+                <CrmAdminReports initialView="candidates" />
+              </CrmAdminShell>
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="/admin/crm/reports"
+          element={
+            <ProtectedRoute roles={crmAdminRoles} managerAccess="crmManagement">
+              <CrmAdminShell>
+                <CrmAdminReports initialView="reports" />
+              </CrmAdminShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/crm/*"
+          element={<CrmRoutes />}
         />
         <Route
           path="/admin/companies"
@@ -340,7 +415,7 @@ export default function App() {
         <Route
           path="/admin/settings"
           element={
-            <ProtectedRoute roles={['superAdmin', 'candidateAdmin']}>
+            <ProtectedRoute roles={adminSettingsRoles}>
               <SettingsShell />
             </ProtectedRoute>
           }
@@ -349,180 +424,180 @@ export default function App() {
         <Route
           path="/ems"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSDashboard />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/employees"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSEmployeeList />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/employees/add"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSEmployeeAdd />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/employees/:id"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSEmployeeProfile />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/employees/:id/edit"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSEmployeeEdit />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/departments"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSDepartmentList />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/locations"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSLocationList />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/schedules"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSScheduleList />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/attendance"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSAttendanceToday />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/attendance/report"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSAttendanceReport />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/leaves"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSLeaveList />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/leaves/apply"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSLeaveApply />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/leaves/pending"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSLeavePending />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/payroll"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSPayrollList />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/payroll/generate"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSPayrollGenerate />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/payroll/:id/payslip"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSPayslipView />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/documents"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSDocumentManager />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
         <Route
           path="/ems/reports"
           element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
+            <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
+              <EmployeeManagementShell>
                 <EMSReportsPage />
-              </AppShell>
+              </EmployeeManagementShell>
             </ProtectedRoute>
           }
         />
@@ -619,6 +694,9 @@ export default function App() {
         <Route path="/admin/candidates/:id" element={<Navigate to="/admin/references" replace />} />
         <Route path="/admin/companies/new" element={<Navigate to="/admin/cms/companies/new" replace />} />
         <Route path="/candidate" element={<Navigate to="/admin/cms/candidates" replace />} />
+        <Route path="/candidate/admin/dashboard" element={<Navigate to="/admin/cms/dashboard" replace />} />
+        <Route path="/candidate/admin/cms/candidates" element={<Navigate to="/admin/cms/candidates" replace />} />
+        <Route path="/candidate/admin/cms/companies" element={<Navigate to="/admin/cms/companies" replace />} />
         <Route path="/candidate/admin/process" element={<Navigate to="/admin/process-panel" replace />} />
         <Route path="/candidate/admin/commission-process" element={<Navigate to="/admin/process-panel" replace />} />
         <Route path="/candidate/admin/candidates" element={<Navigate to="/admin/cms/candidates" replace />} />

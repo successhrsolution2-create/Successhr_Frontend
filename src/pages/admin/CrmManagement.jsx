@@ -67,18 +67,16 @@ const SummaryCard = ({ icon: Icon, label, value, tone = 'text-slate-700 bg-slate
 )
 
 const tabPaths = {
-  employees: '/admin/crm/employees',
   candidates: '/admin/crm/candidates'
 }
 
 const tabLabels = {
-  employees: 'Success Employee',
   candidates: 'CRM Candidates'
 }
 
-const CrmManagement = ({ initialTab = 'employees' }) => {
+const CrmManagement = ({ initialTab = 'candidates' }) => {
   const navigate = useNavigate()
-  const [tab, setTab] = useState(initialTab)
+  const [tab, setTab] = useState(initialTab === 'employees' ? 'candidates' : initialTab)
   const [employees, setEmployees] = useState([])
   const [employeeOptions, setEmployeeOptions] = useState([])
   const [employeePagination, setEmployeePagination] = useState(null)
@@ -180,13 +178,13 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
     try {
       setSavingEmployee(true)
       await crmApi.post('/admin/employees', employeeForm)
-      toast.success('Success Employee created')
+      toast.success('CRM employee created')
       setEmployeeForm(emptyEmployeeForm)
       setShowEmployeeForm(false)
       setEmployeePage(1)
       await loadAll()
     } catch (error) {
-      toast.error(errorMessage(error, 'Could not create Success Employee'))
+      toast.error(errorMessage(error, 'Could not create CRM employee'))
     } finally {
       setSavingEmployee(false)
     }
@@ -195,10 +193,10 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
   const toggleEmployee = async (employee) => {
     try {
       await crmApi.patch(`/admin/employees/${employee._id}/toggle`, { isActive: !employee.isActive })
-      toast.success(`Success Employee ${employee.isActive ? 'deactivated' : 'activated'}`)
+      toast.success(`CRM employee ${employee.isActive ? 'deactivated' : 'activated'}`)
       await Promise.all([loadEmployees(), loadEmployeeOptions()])
     } catch (error) {
-      toast.error(errorMessage(error, 'Could not update Success Employee status'))
+      toast.error(errorMessage(error, 'Could not update CRM employee status'))
     }
   }
 
@@ -230,7 +228,7 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h1 className="text-3xl font-semibold text-slate-900">Telecalling CRM</h1>
-            <p className="mt-2 text-sm text-slate-600">Manage Success Employee records and CRM candidates.</p>
+            <p className="mt-2 text-sm text-slate-600">Manage CRM candidates, calls, and reports.</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -249,7 +247,7 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
                 className="inline-flex h-10 items-center gap-2 rounded-md bg-cyan-700 px-4 text-sm font-semibold text-white hover:bg-cyan-800"
               >
                 <Plus className="h-4 w-4" />
-                New Success Employee
+                New CRM Employee
               </button>
             ) : null}
             {tab === 'candidates' ? (
@@ -266,7 +264,7 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
         </div>
 
         <div className="mt-5 flex items-center gap-4 text-sm">
-          {['employees', 'candidates'].map((item) => (
+          {['candidates'].map((item) => (
             <button
               key={item}
               type="button"
@@ -286,7 +284,7 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
       ) : null}
 
       <div className="grid gap-3 pt-5 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard icon={Users} label="Success Employees" value={crmSummary.totalEmployees} tone="bg-sky-50 text-sky-700" />
+        <SummaryCard icon={Users} label="CRM Employees" value={crmSummary.totalEmployees} tone="bg-sky-50 text-sky-700" />
         <SummaryCard icon={UserCheck} label="Active Employees" value={crmSummary.activeEmployees} tone="bg-emerald-50 text-emerald-700" />
         <SummaryCard icon={PhoneCall} label="CRM Candidates" value={crmSummary.crmCandidates} tone="bg-indigo-50 text-indigo-700" />
         <SummaryCard icon={Download} label="Assigned Candidates" value={crmSummary.assignedCandidates} tone="bg-amber-50 text-amber-700" />
@@ -344,7 +342,7 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
                   disabled={savingEmployee}
                   className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
                 >
-                  {savingEmployee ? 'Saving...' : 'Create Success Employee'}
+                  {savingEmployee ? 'Saving...' : 'Create CRM Employee'}
                 </button>
               </div>
             </form>
@@ -352,7 +350,7 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
 
           <div className="flex items-center gap-2 text-lg font-bold text-emerald-700">
             <ChevronDown className="h-5 w-5" />
-            <span>Success Employee</span>
+            <span>CRM Employee</span>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">{employees.length}</span>
           </div>
 
@@ -403,7 +401,7 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
                 {!employees.length ? (
                   <tr>
                     <td className="px-4 py-8 text-center text-slate-500" colSpan={6}>
-                      No Success Employee created yet.
+                      No CRM employee created yet.
                     </td>
                   </tr>
                 ) : null}
@@ -442,7 +440,7 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
           <form className="rounded-md border border-slate-200 bg-white p-3 shadow-sm" onSubmit={(event) => event.preventDefault()}>
             <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
               <select className="h-10 rounded-md border border-slate-300 px-3 text-sm" value={filters.employeeId} onChange={(event) => updateFilter('employeeId', event.target.value)}>
-                <option value="">All Success Employee</option>
+                <option value="">All CRM Employee</option>
                 {employeeOptions.map((employee) => (
                   <option key={employee._id} value={employee._id}>{employee.name}</option>
                 ))}
@@ -498,7 +496,7 @@ const CrmManagement = ({ initialTab = 'employees' }) => {
                   <th className="border-r border-slate-200 px-4 font-medium">CRM Candidate</th>
                   <th className="border-r border-slate-200 px-4 font-medium">Mobile</th>
                   <th className="border-r border-slate-200 px-4 font-medium">Job Profile</th>
-                  <th className="border-r border-slate-200 px-4 font-medium">Success Employee</th>
+                  <th className="border-r border-slate-200 px-4 font-medium">CRM Employee</th>
                   <th className="border-r border-slate-200 px-4 font-medium">Interested</th>
                   <th className="border-r border-slate-200 px-4 font-medium">Class</th>
                   <th className="border-r border-slate-200 px-4 font-medium">Status</th>

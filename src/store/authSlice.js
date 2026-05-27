@@ -66,6 +66,9 @@ const authSlice = createSlice({
       localStorage.removeItem('user')
       disconnectSocket()
     },
+    clearAuthError(state) {
+      state.error = null
+    },
     setCredentials(state, action) {
       state.token = SESSION_MARKER
       state.user = action.payload.user
@@ -119,5 +122,5 @@ const authSlice = createSlice({
   }
 })
 
-export const { logout, setCredentials, updateUser } = authSlice.actions
+export const { logout, clearAuthError, setCredentials, updateUser } = authSlice.actions
 export default authSlice.reducer

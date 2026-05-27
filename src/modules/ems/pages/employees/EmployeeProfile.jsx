@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react'
-import { Edit, FileText } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { Edit, FileText, Trash2 } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import LeaveStatusBadge from '../../components/LeaveStatusBadge'
 import { employeeApi } from '../../api/employeeApi'
 
 const dateText = (value) => (value ? new Date(value).toLocaleDateString() : '-')
+const roleLabels = {
+  candidate_admin: 'Candidate Management',
+  crm_employee: 'CRM Admin',
+  manager: 'Manager',
+  employee: 'Employee',
+  hr: 'HR',
+  admin: 'Admin',
+  ems_super_admin: 'EMS Super Admin'
+}
 
 export default function EmployeeProfile() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     employeeApi.get(id).then(({ data }) => setProfile(data)).catch((err) => {
@@ -26,6 +37,19 @@ export default function EmployeeProfile() {
   const { employee, activity } = profile
   const name = employee.fullName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim()
 
+  const removeEmployee = async () => {
+    if (!window.confirm(`Delete ${name || employee.employeeId}? This cannot be undone.`)) return
+
+    try {
+      setDeleting(true)
+      await employeeApi.remove(employee._id)
+      navigate('/ems/employees', { replace: true })
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to delete employee')
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -35,9 +59,14 @@ export default function EmployeeProfile() {
             <h1 className="mt-1 text-2xl font-bold text-slate-950">{name}</h1>
             <p className="mt-1 text-sm text-slate-600">{employee.designation || 'Employee'} · {employee.department?.name || 'No department'}</p>
           </div>
-          <Link to={`/ems/employees/${employee._id}/edit`} className="inline-flex h-10 items-center gap-2 rounded-md bg-[#00427d] px-4 text-sm font-semibold text-white hover:bg-[#063763]">
-            <Edit className="h-4 w-4" /> Edit
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to={`/ems/employees/${employee._id}/edit`} className="inline-flex h-10 items-center gap-2 rounded-md bg-[#00427d] px-4 text-sm font-semibold text-white hover:bg-[#063763]">
+              <Edit className="h-4 w-4" /> Edit
+            </Link>
+            <button type="button" onClick={removeEmployee} disabled={deleting} className="inline-flex h-10 items-center gap-2 rounded-md border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60">
+              <Trash2 className="h-4 w-4" /> {deleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -58,6 +87,7 @@ export default function EmployeeProfile() {
             ['Gender', employee.gender || '-']
           ]} />
           <InfoPanel title="Job" rows={[
+            ['Login Role', roleLabels[employee.role] || employee.role],
             ['Status', employee.status],
             ['Employment Type', employee.employmentType],
             ['Joining Date', dateText(employee.joiningDate)],

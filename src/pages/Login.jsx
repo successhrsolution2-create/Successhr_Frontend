@@ -3,13 +3,14 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
-import { loginUser } from '../store/authSlice'
+import { clearAuthError, loginUser } from '../store/authSlice'
+import { login as loginCrm } from '../crm/store/authSlice'
 import BrandLogo from '../components/BrandLogo'
 
 const schema = z.object({
-  email: z.string().email('Enter a valid email'),
+  email: z.string().trim().min(1, 'Email or employee ID is required'),
   password: z.string().min(1, 'Password is required')
 })
 
@@ -19,17 +20,37 @@ const InputIcon = ({ children }) => (
   </span>
 )
 
-const routeFor = (role) => {
-  if (role === 'superAdmin') return '/admin/references'
+const managerDefaultPath = (user = {}) => {
+  const access = Array.isArray(user.managerAccess) ? user.managerAccess : []
+  if (access.includes('candidateManagement')) return '/admin/cms/candidates'
+  if (access.includes('crmManagement')) return '/admin/crm/dashboard'
+  if (access.includes('employeeManagement')) return '/ems'
+  return '/admin/settings'
+}
+
+const routeFor = (role, user = {}) => {
+  if (role === 'superAdmin') return '/admin/dashboard'
   if (role === 'candidateAdmin') return '/admin/cms/candidates'
+  if (role === 'manager') return managerDefaultPath(user)
+  if (role === 'crm_super_admin') return '/admin/crm/dashboard'
+  if (role === 'crm_employee') return '/admin/crm/employee/candidates'
   return '/ba/dashboard'
 }
 
 export default function Login() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const [showPassword, setShowPassword] = useState(false)
-  const { token, user, checking, loading, error } = useSelector((state) => state.auth)
+  const [loginError, setLoginError] = useState('')
+  const { token, user, checking, loading } = useSelector((state) => state.auth)
+  const {
+    accessToken: crmAccessToken,
+    role: crmRole,
+    status: crmStatus
+  } = useSelector((state) => state.crmAuth)
+  const isLoggingIn = loading || crmStatus === 'loading'
+  const isManagerLogin = location.pathname.startsWith('/manager/login')
   const {
     register,
     handleSubmit,
@@ -44,16 +65,39 @@ export default function Login() {
 
   useEffect(() => {
     if (!checking && token && user) {
-      navigate(routeFor(user.role), { replace: true })
+      navigate(routeFor(user.role, user), { replace: true })
+      return
     }
-  }, [checking, token, user, navigate])
+
+    if (!checking && crmAccessToken && crmRole) {
+      navigate(routeFor(crmRole), { replace: true })
+    }
+  }, [checking, crmAccessToken, crmRole, token, user, navigate])
+
+  useEffect(() => {
+    dispatch(clearAuthError())
+  }, [dispatch])
 
   const onSubmit = async (values) => {
+    setLoginError('')
+    dispatch(clearAuthError())
     const result = await dispatch(loginUser(values))
 
     if (loginUser.fulfilled.match(result)) {
-      navigate(routeFor(result.payload.user.role), { replace: true })
+      navigate(routeFor(result.payload.user.role, result.payload.user), { replace: true })
+      return
     }
+
+    dispatch(clearAuthError())
+    const crmResult = await dispatch(loginCrm(values))
+
+    if (loginCrm.fulfilled.match(crmResult)) {
+      dispatch(clearAuthError())
+      navigate(routeFor(crmResult.payload.user?.role), { replace: true })
+      return
+    }
+
+    setLoginError(crmResult.payload || result.payload || 'Invalid email or password')
   }
 
   return (
@@ -68,10 +112,12 @@ export default function Login() {
           <div>
             <BrandLogo className="max-w-xs sm:max-w-xl" />
             <div className="mt-6 max-w-lg sm:mt-8">
-              <p className="text-sm font-bold uppercase text-sky-700">HR consultancy workspace</p>
-              <h1 className="mt-3 text-2xl font-bold text-slate-950 sm:text-4xl">Welcome back</h1>
+              <p className="text-sm font-bold uppercase text-sky-700">{isManagerLogin ? 'Manager workspace' : 'HR consultancy workspace'}</p>
+              <h1 className="mt-3 text-2xl font-bold text-slate-950 sm:text-4xl">{isManagerLogin ? 'Manager login' : 'Welcome back'}</h1>
               <p className="mt-3 text-base text-slate-600">
-                Manage Business Advisors, candidate references, and company requirements from one clean Success HR dashboard.
+                {isManagerLogin
+                  ? 'Use your manager ID and password to access assigned Candidate, CRM, and Success Employee modules.'
+                  : 'Manage Business Advisors, candidate references, and company requirements from one clean Success HR dashboard.'}
               </p>
             </div>
           </div>
@@ -90,12 +136,12 @@ export default function Login() {
                 <p className="text-xs font-semibold text-sky-700">Secure login</p>
               </div>
             </div>
-            <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">Login</h2>
+            <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">{isManagerLogin ? 'Manager Login' : 'Login'}</h2>
             <p className="mt-1 text-sm text-slate-500">Enter your account details to continue.</p>
           </div>
 
           <label className="block text-sm font-semibold text-slate-700">
-            Email
+            {isManagerLogin ? 'Manager ID / Email' : 'Email or Employee ID'}
             <div className="relative mt-1">
               <InputIcon>
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -108,11 +154,11 @@ export default function Login() {
                 </svg>
               </InputIcon>
               <input
-                type="email"
+                type="text"
                 {...register('email')}
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 pl-11 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-cyan-100"
-                placeholder="admin@consultancy.com"
-                autoComplete="email"
+                placeholder="admin@consultancy.com or EMP001"
+                autoComplete="username"
               />
             </div>
             {errors.email && <span className="mt-1 block text-xs text-rose-600">{errors.email.message}</span>}
@@ -155,14 +201,16 @@ export default function Login() {
             {errors.password && <span className="mt-1 block text-xs text-rose-600">{errors.password.message}</span>}
           </label>
 
-          {error && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p>}
+          {loginError && (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{loginError}</p>
+          )}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={isLoggingIn}
             className="brand-button flex min-h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-lg shadow-sky-700/20 transition hover:brightness-105 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {loading ? 'Signing in...' : 'Login'}
+            {isLoggingIn ? 'Signing in...' : 'Login'}
           </button>
         </form>
       </div>

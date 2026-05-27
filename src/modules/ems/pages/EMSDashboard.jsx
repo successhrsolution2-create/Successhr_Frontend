@@ -280,7 +280,7 @@ export default function EMSDashboard() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-950">Employee Management</h1>
+            <h1 className="text-2xl font-bold text-slate-950">Success Employee</h1>
             <p className="mt-1 text-sm text-slate-600">Workforce health, attendance, approvals, and payroll readiness in one view.</p>
           </div>
           <div className="flex flex-wrap gap-2">

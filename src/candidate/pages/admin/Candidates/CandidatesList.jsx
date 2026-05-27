@@ -466,6 +466,13 @@ export default function CandidatesList() {
       })
       const rows = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
       const total = Number(data?.total ?? rows.length)
+      const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+      if (targetPage > totalPages) {
+        setPage(totalPages)
+        return
+      }
+
       setCandidates(rows.map((item, index) => toLegacyShape(item, index, total)))
       setTotalCandidates(total)
       setStats(data?.stats || { total, newToday: 0, selected: 0, activeInterviews: 0 })

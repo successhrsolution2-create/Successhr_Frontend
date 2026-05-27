@@ -1,7 +1,8 @@
 ﻿import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import {
+  ArrowLeft,
   UserCircle,
   LogOut,
   Menu,
@@ -18,7 +19,9 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useSelector((state) => state.auth)
+  const hasHistoryBack = typeof window !== 'undefined' && Number(window.history.state?.idx || 0) > 0
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -36,6 +39,16 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
     navigate('/login')
   }
 
+  const handleBack = () => {
+    if (hasHistoryBack) {
+      navigate(-1)
+      return
+    }
+
+    const fallbackPath = location.pathname.startsWith('/ba') ? '/ba/dashboard' : '/candidate/admin/cms/candidates'
+    navigate(fallbackPath, { replace: true })
+  }
+
   const settingsPath = user?.role === 'businessAdvisor' ? '/ba/settings' : '/candidate/admin/settings'
 
   return (
@@ -51,6 +64,17 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
           <Menu size={20} />
         </button>
       ) : null}
+
+      <button
+        type="button"
+        onClick={handleBack}
+        aria-label="Go back"
+        title="Back"
+        className="mr-2 inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        <span className="hidden sm:inline">Back</span>
+      </button>
 
       {/* PROFILE */}
       <div className="relative ml-auto min-w-0" ref={ref}>
