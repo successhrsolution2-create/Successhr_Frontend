@@ -25,13 +25,13 @@ export default function ScheduleList() {
   const [error, setError] = useState('')
 
   const loadSchedules = () => {
-    scheduleApi.list({ limit: 100 }).then(({ data }) => setSchedules(data.items || [])).catch((err) => {
+    scheduleApi.list({ limit: 100, isActive: true }).then(({ data }) => setSchedules(data.items || [])).catch((err) => {
       setError(err.response?.data?.message || 'Unable to load schedules')
     })
   }
 
   useEffect(() => {
-    employeeApi.list({ limit: 200 }).then(({ data }) => setEmployees(data.items || [])).catch(() => setEmployees([]))
+    employeeApi.list({ limit: 200, status: 'active' }).then(({ data }) => setEmployees(data.items || [])).catch(() => setEmployees([]))
     locationApi.list({ limit: 100, isActive: true }).then(({ data }) => setLocations(data.items || [])).catch(() => setLocations([]))
     loadSchedules()
   }, [])
@@ -83,6 +83,7 @@ export default function ScheduleList() {
     setError('')
     try {
       await scheduleApi.remove(id)
+      setSchedules((current) => current.filter((schedule) => schedule._id !== id))
       loadSchedules()
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to remove schedule')
