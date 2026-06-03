@@ -1,25 +1,15 @@
 import axios from 'axios'
 import { API_ROOT } from '../../../api/axios'
 
-const readToken = () => {
-  try {
-    return localStorage.getItem('ems_token') || localStorage.getItem('token')
-  } catch (_error) {
-    return null
-  }
+try {
+  localStorage.removeItem('ems_token')
+} catch (_error) {
+  // Local storage can be unavailable in restricted browser modes.
 }
 
 const emsAxios = axios.create({
   baseURL: `${API_ROOT}/api/ems`,
   withCredentials: true
-})
-
-emsAxios.interceptors.request.use((config) => {
-  const token = readToken()
-  if (token && token !== 'cookie') {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
 })
 
 emsAxios.interceptors.response.use(

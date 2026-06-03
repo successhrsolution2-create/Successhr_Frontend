@@ -12,6 +12,8 @@ const BusinessAdvisors = lazy(() => import('./pages/admin/BusinessAdvisors'))
 const AdminReferenceBoard = lazy(() => import('./pages/admin/ReferenceBoard'))
 const AdminStudents = lazy(() => import('./pages/admin/Students'))
 const AdminCompanies = lazy(() => import('./pages/admin/Companies'))
+const CompanyManagement = lazy(() => import('./pages/admin/CompanyManagement'))
+const CompanyInterviewInfo = lazy(() => import('./pages/admin/CompanyInterviewInfo'))
 const AdminCommissionPanel = lazy(() => import('./pages/admin/CommissionPanel'))
 const CrmRoutes = lazy(() => import('./crm/CrmRoutes'))
 const CrmAdminDashboard = lazy(() => import('./pages/admin/Crm/AdminDashboard'))
@@ -27,7 +29,6 @@ const BAEarnings = lazy(() => import('./pages/ba/Earnings'))
 
 const InterviewList = lazy(() => import('./pages/admin/Interviews/InterviewList'))
 const ApplyPage = lazy(() => import('./pages/public/ApplyPage'))
-const CmsDashboard = lazy(() => import('./candidate/pages/admin/Dashboard'))
 const CmsCandidatesList = lazy(() => import('./candidate/pages/admin/Candidates/CandidatesList'))
 const CmsAddCandidate = lazy(() => import('./candidate/pages/admin/Candidates/AddCandidate'))
 const CmsCandidateDetail = lazy(() => import('./candidate/pages/admin/Candidates/CandidateDetail'))
@@ -54,6 +55,10 @@ const EMSPayrollGenerate = lazy(() => import('./modules/ems/pages/payroll/Payrol
 const EMSPayslipView = lazy(() => import('./modules/ems/pages/payroll/PayslipView'))
 const EMSDocumentManager = lazy(() => import('./modules/ems/pages/documents/DocumentManager'))
 const EMSReportsPage = lazy(() => import('./modules/ems/pages/reports/ReportsPage'))
+const CompanyAdminLayout = lazy(() => import('./companyAdmin/components/CompanyAdminLayout'))
+const CompanyAdminLogin = lazy(() => import('./companyAdmin/pages/Login'))
+const CompanyAdminDashboard = lazy(() => import('./companyAdmin/pages/Dashboard'))
+const CompanyAdminInterviewInfo = lazy(() => import('./companyAdmin/pages/InterviewInfoForm'))
 
 const cmsRoles = ['superAdmin', 'candidateAdmin', 'manager']
 const crmAdminRoles = ['superAdmin', 'crm_super_admin', 'manager']
@@ -169,6 +174,12 @@ export default function App() {
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/login" element={<Login />} />
         <Route path="/manager/login" element={<Login />} />
+        <Route path="/company-admin/login" element={<CompanyAdminLogin />} />
+        <Route path="/company-admin" element={<CompanyAdminLayout />}>
+          <Route index element={<Navigate to="/company-admin/dashboard" replace />} />
+          <Route path="dashboard" element={<CompanyAdminDashboard />} />
+          <Route path="interview-info" element={<CompanyAdminInterviewInfo />} />
+        </Route>
         <Route path="/apply" element={<ApplyPage />} />
         <Route path="/apply/:code" element={<ApplyPage />} />
 
@@ -214,17 +225,11 @@ export default function App() {
         />
         <Route
           path="/admin/cms"
-          element={<Navigate to="/admin/cms/dashboard" replace />}
+          element={<Navigate to="/admin/cms/candidates" replace />}
         />
         <Route
           path="/admin/cms/dashboard"
-          element={
-            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
-              <CandidateManagementShell>
-                <CmsDashboard />
-              </CandidateManagementShell>
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/admin/cms/candidates" replace />}
         />
         <Route
           path="/admin/cms/candidates"
@@ -417,6 +422,26 @@ export default function App() {
           element={
             <ProtectedRoute roles={adminSettingsRoles}>
               <SettingsShell />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/company-management"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <CompanyManagement />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/company-management/interview-info"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <CompanyInterviewInfo />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -694,7 +719,7 @@ export default function App() {
         <Route path="/admin/candidates/:id" element={<Navigate to="/admin/references" replace />} />
         <Route path="/admin/companies/new" element={<Navigate to="/admin/cms/companies/new" replace />} />
         <Route path="/candidate" element={<Navigate to="/admin/cms/candidates" replace />} />
-        <Route path="/candidate/admin/dashboard" element={<Navigate to="/admin/cms/dashboard" replace />} />
+        <Route path="/candidate/admin/dashboard" element={<Navigate to="/admin/cms/candidates" replace />} />
         <Route path="/candidate/admin/cms/candidates" element={<Navigate to="/admin/cms/candidates" replace />} />
         <Route path="/candidate/admin/cms/companies" element={<Navigate to="/admin/cms/companies" replace />} />
         <Route path="/candidate/admin/process" element={<Navigate to="/admin/process-panel" replace />} />

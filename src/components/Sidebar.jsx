@@ -5,6 +5,7 @@ import {
   ArrowLeftRight,
   Building2,
   CalendarClock,
+  ClipboardList,
   ChevronDown,
   ChevronRight,
   HelpCircle,
@@ -49,9 +50,13 @@ const telecallingCrmLinks = [
 ]
 
 const candidateManagementLinks = [
-  { to: '/admin/cms/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/cms/candidates', label: 'Candidates', icon: UserCheck },
   { to: '/admin/cms/interviews', label: 'Interviews', icon: PanelsTopLeft }
+]
+
+const companyManagementLinks = [
+  { to: '/admin/company-management', label: 'Company Admins', icon: Users, end: true },
+  { to: '/admin/company-management/interview-info', label: 'Interview Info', icon: ClipboardList }
 ]
 
 const employeeManagementLinks = [
@@ -97,6 +102,7 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
   const [isResizingSidebar, setIsResizingSidebar] = useState(false)
   const [baPanelOpen, setBaPanelOpen] = useState(false)
   const [candidatePanelOpen, setCandidatePanelOpen] = useState(false)
+  const [companyPanelOpen, setCompanyPanelOpen] = useState(false)
   const [crmPanelOpen, setCrmPanelOpen] = useState(false)
   const [emsPanelOpen, setEmsPanelOpen] = useState(false)
   const { token, user } = useSelector((state) => state.auth)
@@ -114,6 +120,7 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
       : location.pathname.startsWith(item.to)
   )
   const isCandidateManagementPanelActive = location.pathname.startsWith('/admin/cms') || location.pathname.startsWith('/admin/process-panel')
+  const isCompanyManagementPanelActive = location.pathname.startsWith('/admin/company-management')
   const isTelecallingCrmPanelActive = location.pathname.startsWith('/admin/crm')
   const isEmployeeManagementPanelActive = location.pathname.startsWith('/ems')
 
@@ -171,9 +178,10 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
   useEffect(() => {
     setBaPanelOpen(isBusinessAdvisorPanelActive)
     setCandidatePanelOpen(isCandidateManagementPanelActive)
+    setCompanyPanelOpen(isCompanyManagementPanelActive)
     setCrmPanelOpen(isTelecallingCrmPanelActive)
     setEmsPanelOpen(isEmployeeManagementPanelActive)
-  }, [isBusinessAdvisorPanelActive, isCandidateManagementPanelActive, isTelecallingCrmPanelActive, isEmployeeManagementPanelActive])
+  }, [isBusinessAdvisorPanelActive, isCandidateManagementPanelActive, isCompanyManagementPanelActive, isTelecallingCrmPanelActive, isEmployeeManagementPanelActive])
 
   return (
     <div className={`${isAdminShell ? 'admin-shell' : ''} min-h-screen min-w-0 bg-[var(--bg-main)] text-[var(--text-primary)]`}>
@@ -260,50 +268,6 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
 
               <div className="space-y-2">
                 <p className="px-3 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">Integrations</p>
-
-                {isSuperAdmin ? (
-                <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      setBaPanelOpen((current) => !current)
-                    }}
-                    className={`flex min-h-9 w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-[13px] transition ${
-                      isBusinessAdvisorPanelActive ? 'bg-[var(--sidebar-active)] font-semibold text-[var(--accent-blue)]' : 'text-[var(--text-secondary)] hover:bg-[#F3F4F6] hover:text-[var(--text-primary)]'
-                    }`}
-                    aria-expanded={baPanelOpen}
-                  >
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <span className="h-3.5 w-3.5 rounded-full bg-[var(--success)]" />
-                      <span className="min-w-0 truncate">Success Advisor</span>
-                    </span>
-                    {baPanelOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-                  </button>
-
-                  {baPanelOpen ? (
-                    <div className="ml-5 mt-1 space-y-1 border-l border-[var(--border)] pl-3">
-                      {businessAdvisorAdminLinks.map((item) => (
-                        <NavLink
-                          key={item.to}
-                          to={item.to}
-                          end={item.end}
-                          className={({ isActive }) =>
-                            `flex min-h-8 items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition ${
-                              isActive
-                                ? 'bg-[var(--sidebar-active)] font-semibold text-[var(--accent-blue)]'
-                                : 'text-[var(--text-secondary)] hover:bg-[#F3F4F6] hover:text-[var(--text-primary)]'
-                            }`
-                          }
-                        >
-                          <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--success)]" />
-                          <span className="min-w-0 truncate">{item.label}</span>
-                        </NavLink>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-                ) : null}
 
                 {canUseCandidateManagement ? (
                 <div className="space-y-1">
@@ -435,6 +399,94 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
                   ) : null}
                 </div>
                 ) : null}
+
+                {isSuperAdmin ? (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setCompanyPanelOpen((current) => !current)
+                    }}
+                    className={`flex min-h-9 w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-[13px] transition ${
+                      isCompanyManagementPanelActive ? 'bg-[var(--sidebar-active)] font-semibold text-[var(--accent-blue)]' : 'text-[var(--text-secondary)] hover:bg-[#F3F4F6] hover:text-[var(--text-primary)]'
+                    }`}
+                    aria-expanded={companyPanelOpen}
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <span className="h-3.5 w-3.5 rounded-full bg-[#f97316]" />
+                      <span className="min-w-0 truncate">Company Management</span>
+                    </span>
+                    {companyPanelOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                  </button>
+
+                  {companyPanelOpen ? (
+                    <div className="ml-5 mt-1 space-y-1 border-l border-[var(--border)] pl-3">
+                      {companyManagementLinks.map((item) => (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          end={item.end}
+                          className={({ isActive }) =>
+                            `flex min-h-8 items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition ${
+                              isActive
+                                ? 'bg-[var(--sidebar-active)] font-semibold text-[var(--accent-blue)]'
+                                : 'text-[var(--text-secondary)] hover:bg-[#F3F4F6] hover:text-[var(--text-primary)]'
+                            }`
+                          }
+                        >
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-[#f97316]" />
+                          <span className="min-w-0 truncate">{item.label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                ) : null}
+
+                {isSuperAdmin ? (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setBaPanelOpen((current) => !current)
+                    }}
+                    className={`flex min-h-9 w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-[13px] transition ${
+                      isBusinessAdvisorPanelActive ? 'bg-[var(--sidebar-active)] font-semibold text-[var(--accent-blue)]' : 'text-[var(--text-secondary)] hover:bg-[#F3F4F6] hover:text-[var(--text-primary)]'
+                    }`}
+                    aria-expanded={baPanelOpen}
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <span className="h-3.5 w-3.5 rounded-full bg-[var(--success)]" />
+                      <span className="min-w-0 truncate">Success Advisor</span>
+                    </span>
+                    {baPanelOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                  </button>
+
+                  {baPanelOpen ? (
+                    <div className="ml-5 mt-1 space-y-1 border-l border-[var(--border)] pl-3">
+                      {businessAdvisorAdminLinks.map((item) => (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          end={item.end}
+                          className={({ isActive }) =>
+                            `flex min-h-8 items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition ${
+                              isActive
+                                ? 'bg-[var(--sidebar-active)] font-semibold text-[var(--accent-blue)]'
+                                : 'text-[var(--text-secondary)] hover:bg-[#F3F4F6] hover:text-[var(--text-primary)]'
+                            }`
+                          }
+                        >
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--success)]" />
+                          <span className="min-w-0 truncate">{item.label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                ) : null}
               </div>
             </>
           ) : null}
@@ -442,19 +494,6 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
           {isCandidateAdmin ? (
             <div className="space-y-2">
               <p className="px-3 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">Candidate Management</p>
-              <NavLink
-                to="/admin/cms/dashboard"
-                end
-                className={({ isActive }) =>
-                  `flex min-h-9 items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition ${
-                    isActive
-                      ? 'bg-[var(--sidebar-active)] font-semibold text-[var(--accent-blue)]'
-                      : 'text-[var(--text-secondary)] hover:bg-[#F3F4F6] hover:text-[var(--text-primary)]'
-                  }`
-                }
-              >
-                <LayoutDashboard size={18} /> <span className="min-w-0 truncate">Dashboard</span>
-              </NavLink>
               <NavLink
                 to="/admin/cms/candidates"
                 className={({ isActive }) =>

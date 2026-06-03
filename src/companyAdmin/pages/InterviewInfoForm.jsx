@@ -1,0 +1,343 @@
+import { forwardRef, useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
+import { X } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useOutletContext } from 'react-router-dom'
+import companyAdminApi from '../api'
+
+const facilities = ['Bus', 'Canteen', 'Room', 'PF', 'ESIC', 'Offer Letter', 'Appointment Letter', 'Experience Letter']
+const weeklyOffs = ['Saturday', 'Sunday']
+
+const schema = z.object({
+  companyName: z.string().trim().min(1, 'Company name is required'),
+  companyAddress: z.string().optional(),
+  contactPersonName: z.string().optional(),
+  contactPersonDesignation: z.string().optional(),
+  mobileNo: z.string().regex(/^\d{10}$/, 'Mobile number must be 10 digits').or(z.literal('')).optional(),
+  emailId: z.string().email('Enter a valid email').or(z.literal('')).optional(),
+  jobProfile: z.string().optional(),
+  education: z.string().optional(),
+  experience: z.string().optional(),
+  rolesAndResponsibility: z.string().optional(),
+  salaryRange: z.string().optional(),
+  gender: z.string().optional(),
+  numberOfVacancy: z.union([z.literal(''), z.coerce.number().int().min(0)]).optional(),
+  jobTime: z.string().optional(),
+  shift: z.string().optional(),
+  jobLocation: z.string().optional(),
+  ageCriteria: z.string().optional(),
+  castCriteria: z.string().optional(),
+  marriageCriteria: z.string().optional(),
+  manpower: z.string().optional(),
+  turnover: z.string().optional(),
+  plant: z.string().optional(),
+  interviewDate: z.string().optional(),
+  interviewTime: z.string().optional(),
+  interviewMode: z.string().optional()
+})
+
+const defaultsFor = (companyName = '') => ({
+  companyName,
+  companyAddress: '',
+  contactPersonName: '',
+  contactPersonDesignation: '',
+  mobileNo: '',
+  emailId: '',
+  jobProfile: '',
+  education: '',
+  experience: '',
+  rolesAndResponsibility: '',
+  salaryRange: '',
+  gender: 'Any',
+  numberOfVacancy: '',
+  jobTime: '',
+  shift: '',
+  jobLocation: '',
+  ageCriteria: '',
+  castCriteria: '',
+  marriageCriteria: 'Any',
+  manpower: '',
+  turnover: '',
+  plant: '',
+  interviewDate: '',
+  interviewTime: '',
+  interviewMode: 'Offline'
+})
+
+const valuesFromInfo = (info, companyName) => {
+  const job = info?.jobRequirements || {}
+  const about = info?.aboutCompany || {}
+
+  return {
+    ...defaultsFor(companyName),
+    companyName: info?.companyName || companyName || '',
+    companyAddress: info?.companyAddress || '',
+    contactPersonName: info?.contactPersonName || '',
+    contactPersonDesignation: info?.contactPersonDesignation || '',
+    mobileNo: info?.mobileNo || '',
+    emailId: info?.emailId || '',
+    jobProfile: job.jobProfile || '',
+    education: job.education || '',
+    experience: job.experience || '',
+    rolesAndResponsibility: job.rolesAndResponsibility || '',
+    salaryRange: job.salaryRange || '',
+    gender: job.gender || 'Any',
+    numberOfVacancy: job.numberOfVacancy ?? '',
+    jobTime: job.jobTime || '',
+    shift: job.shift || '',
+    jobLocation: job.jobLocation || '',
+    ageCriteria: job.ageCriteria || '',
+    castCriteria: job.castCriteria || '',
+    marriageCriteria: job.marriageCriteria || 'Any',
+    manpower: about.manpower || '',
+    turnover: about.turnover || '',
+    plant: about.plant || '',
+    interviewDate: about.availabilityForInterview?.date?.slice(0, 10) || '',
+    interviewTime: about.availabilityForInterview?.time || '',
+    interviewMode: about.interviewMode || 'Offline'
+  }
+}
+
+export default function InterviewInfoForm() {
+  const { companyAdmin } = useOutletContext()
+  const [skills, setSkills] = useState([])
+  const [skillInput, setSkillInput] = useState('')
+  const [selectedFacilities, setSelectedFacilities] = useState([])
+  const [selectedWeeklyOffs, setSelectedWeeklyOffs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors }
+  } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: defaultsFor(companyAdmin.companyName)
+  })
+
+  useEffect(() => {
+    companyAdminApi
+      .get('/interview-info')
+      .then(({ data }) => {
+        const info = data.interviewInfo
+        reset(valuesFromInfo(info, companyAdmin.companyName))
+        setSkills(info?.jobRequirements?.requiredKeySkills || [])
+        setSelectedFacilities(info?.jobRequirements?.facilities || [])
+        setSelectedWeeklyOffs(info?.aboutCompany?.weeklyOff || [])
+      })
+      .catch((error) => toast.error(error.response?.data?.message || 'Could not load interview information'))
+      .finally(() => setLoading(false))
+  }, [companyAdmin.companyName, reset])
+
+  const toggleValue = (value, setter) => {
+    setter((current) => (current.includes(value) ? current.filter((item) => item !== value) : [...current, value]))
+  }
+
+  const addSkill = () => {
+    const normalized = skillInput.trim()
+    if (normalized && !skills.includes(normalized)) setSkills((current) => [...current, normalized])
+    setSkillInput('')
+  }
+
+  const submit = async (values) => {
+    setSaving(true)
+
+    try {
+      await companyAdminApi.put('/interview-info', {
+        companyName: values.companyName,
+        companyAddress: values.companyAddress,
+        contactPersonName: values.contactPersonName,
+        contactPersonDesignation: values.contactPersonDesignation,
+        mobileNo: values.mobileNo,
+        emailId: values.emailId,
+        jobRequirements: {
+          jobProfile: values.jobProfile,
+          education: values.education,
+          experience: values.experience,
+          requiredKeySkills: skills,
+          rolesAndResponsibility: values.rolesAndResponsibility,
+          salaryRange: values.salaryRange,
+          gender: values.gender,
+          numberOfVacancy: values.numberOfVacancy === '' ? undefined : Number(values.numberOfVacancy),
+          jobTime: values.jobTime,
+          shift: values.shift,
+          jobLocation: values.jobLocation,
+          ageCriteria: values.ageCriteria,
+          castCriteria: values.castCriteria,
+          marriageCriteria: values.marriageCriteria,
+          facilities: selectedFacilities
+        },
+        aboutCompany: {
+          manpower: values.manpower,
+          turnover: values.turnover,
+          plant: values.plant,
+          availabilityForInterview: {
+            date: values.interviewDate || undefined,
+            time: values.interviewTime
+          },
+          interviewMode: values.interviewMode,
+          weeklyOff: selectedWeeklyOffs
+        }
+      })
+      toast.success('Company interview information saved')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not save interview information')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <p className="text-sm font-semibold text-slate-500">Loading company interview information...</p>
+
+  return (
+    <form onSubmit={handleSubmit(submit)} className="space-y-5">
+      <div>
+        <h2 className="text-2xl font-bold text-slate-950">Company Interview Info</h2>
+        <p className="mt-1 text-sm text-slate-500">Capture company details and manpower requirements for Success HR.</p>
+      </div>
+
+      <FormSection title="Company Details">
+        <Input label="Company Name" required error={errors.companyName?.message} {...register('companyName')} />
+        <Input label="Company Address" {...register('companyAddress')} />
+        <Input label="Contact Person Name" {...register('contactPersonName')} />
+        <Input label="Contact Person Designation" {...register('contactPersonDesignation')} />
+        <Input label="Mobile No" error={errors.mobileNo?.message} {...register('mobileNo')} />
+        <Input label="Email Id" error={errors.emailId?.message} {...register('emailId')} />
+      </FormSection>
+
+      <FormSection title="Job Requirements">
+        <Input label="Job Profile" {...register('jobProfile')} />
+        <Input label="Education" {...register('education')} />
+        <Input label="Experience" {...register('experience')} />
+        <Input label="Salary Range" {...register('salaryRange')} />
+        <Input label="Number of Vacancy" type="number" min="0" error={errors.numberOfVacancy?.message} {...register('numberOfVacancy')} />
+        <Input label="Job Time" {...register('jobTime')} />
+        <Input label="Shift" {...register('shift')} />
+        <Input label="Job Location" {...register('jobLocation')} />
+        <Input label="Age Criteria" {...register('ageCriteria')} />
+        <Input label="Caste Criteria" {...register('castCriteria')} />
+
+        <label className="block text-sm font-semibold text-slate-700 sm:col-span-2">
+          Required Key Skills
+          <div className="mt-1 rounded-lg border border-slate-300 bg-white p-2 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-cyan-100">
+            <div className="mb-2 flex flex-wrap gap-2">
+              {skills.map((skill) => (
+                <span key={skill} className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">
+                  {skill}
+                  <button type="button" onClick={() => setSkills((current) => current.filter((item) => item !== skill))} aria-label={`Remove ${skill}`}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              value={skillInput}
+              onChange={(event) => setSkillInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  addSkill()
+                }
+              }}
+              className="w-full px-1 py-1 outline-none"
+              placeholder="Type and press Enter"
+            />
+          </div>
+        </label>
+
+        <Textarea label="Roles & Responsibility" className="sm:col-span-2" rows={3} {...register('rolesAndResponsibility')} />
+        <ChoiceGroup label="Gender" values={['Male', 'Female', 'Any']} register={register('gender')} />
+        <label className="text-sm font-semibold text-slate-700">
+          Marriage Criteria
+          <select {...register('marriageCriteria')} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100">
+            <option value="Married">Married</option>
+            <option value="Unmarried">Unmarried</option>
+            <option value="Any">Any</option>
+          </select>
+        </label>
+        <CheckboxGrid label="Facilities" values={facilities} selected={selectedFacilities} onToggle={(value) => toggleValue(value, setSelectedFacilities)} />
+      </FormSection>
+
+      <FormSection title="About Company">
+        <Input label="Manpower" {...register('manpower')} />
+        <Input label="Turnover" {...register('turnover')} />
+        <Input label="Plant" {...register('plant')} />
+        <Input label="Interview Date" type="date" {...register('interviewDate')} />
+        <Input label="Interview Time" type="time" {...register('interviewTime')} />
+        <ChoiceGroup label="Interview Mode" values={['Online', 'Offline']} register={register('interviewMode')} />
+        <CheckboxGrid label="Weekly Off" values={weeklyOffs} selected={selectedWeeklyOffs} onToggle={(value) => toggleValue(value, setSelectedWeeklyOffs)} />
+      </FormSection>
+
+      <button
+        type="submit"
+        disabled={saving}
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
+      >
+        {saving ? 'Saving...' : 'Save Interview Information'}
+      </button>
+    </form>
+  )
+}
+
+function FormSection({ title, children }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <h3 className="text-lg font-bold text-slate-950">{title}</h3>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">{children}</div>
+    </section>
+  )
+}
+
+const Input = forwardRef(function Input({ label, required, error, ...props }, ref) {
+  return (
+    <label className="block text-sm font-semibold text-slate-700">
+      {label} {required ? <span className="text-rose-500">*</span> : null}
+      <input ref={ref} {...props} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100" />
+      {error ? <span className="mt-1 block text-xs text-rose-600">{error}</span> : null}
+    </label>
+  )
+})
+
+const Textarea = forwardRef(function Textarea({ label, className = '', ...props }, ref) {
+  return (
+    <label className={`block text-sm font-semibold text-slate-700 ${className}`}>
+      {label}
+      <textarea ref={ref} {...props} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100" />
+    </label>
+  )
+})
+
+function ChoiceGroup({ label, values, register }) {
+  return (
+    <div className="text-sm font-semibold text-slate-700">
+      {label}
+      <div className="mt-2 flex flex-wrap gap-3">
+        {values.map((value) => (
+          <label key={value} className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 py-2">
+            <input type="radio" value={value} {...register} className="h-4 w-4 text-sky-600" />
+            {value}
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CheckboxGrid({ label, values, selected, onToggle }) {
+  return (
+    <div className="sm:col-span-2 text-sm font-semibold text-slate-700">
+      {label}
+      <div className="mt-2 grid gap-2 min-[380px]:grid-cols-2 lg:grid-cols-4">
+        {values.map((value) => (
+          <label key={value} className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 py-2">
+            <input type="checkbox" checked={selected.includes(value)} onChange={() => onToggle(value)} className="h-4 w-4 rounded text-sky-600" />
+            {value}
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}

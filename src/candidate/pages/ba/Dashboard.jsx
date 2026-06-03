@@ -144,7 +144,7 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-500">{format(new Date(student.createdAt), 'dd MMM yyyy')}</p>
               </div>,
               student.appliedFor || 'Not provided',
-              <StatusBadge status={student.status} />
+              <StatusBadge key="status" status={student.status} />
             ])}
             empty="No candidate submissions yet."
           />
@@ -165,7 +165,7 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-500">{format(new Date(company.createdAt), 'dd MMM yyyy')}</p>
               </div>,
               company.jobRequirements?.jobProfile || 'Not provided',
-              <StatusBadge status={company.status} />
+              <StatusBadge key="status" status={company.status} />
             ])}
             empty="No company submissions yet."
           />

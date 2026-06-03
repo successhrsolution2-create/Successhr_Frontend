@@ -17,8 +17,8 @@ export default function EmployeeAdd() {
     setSubmitting(true)
     setError('')
     try {
-      const { data } = await employeeApi.create(payload)
-      navigate(`/ems/employees/${data.employee._id}`)
+      await employeeApi.create(payload)
+      navigate('/ems/employees', { replace: true })
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to create employee')
     } finally {

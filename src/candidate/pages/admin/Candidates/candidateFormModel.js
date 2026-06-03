@@ -395,8 +395,6 @@ const normalizeComputerCourseName = (value) => {
     word: 'Word',
     'ms word': 'Word',
     excel: 'Excel',
-    'advance excel': 'Excel',
-    'advanced excel': 'Excel',
     tally: 'Tally',
     autocad: 'AutoCAD',
     catia: 'CATIA',

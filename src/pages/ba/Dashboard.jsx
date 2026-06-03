@@ -151,7 +151,7 @@ export default function Dashboard() {
                 <p className="text-xs text-[var(--text-muted)]">{format(new Date(student.createdAt), 'dd MMM yyyy')}</p>
               </div>,
               student.appliedFor || 'Not provided',
-              <StatusBadge status={student.status} />
+              <StatusBadge key="status" status={student.status} />
             ])}
             mobileRows={recentStudents.map((student) => ({
               title: student.candidateName || 'Candidate',
@@ -177,7 +177,7 @@ export default function Dashboard() {
                 <p className="text-xs text-[var(--text-muted)]">{format(new Date(company.createdAt), 'dd MMM yyyy')}</p>
               </div>,
               company.jobRequirements?.jobProfile || 'Not provided',
-              <StatusBadge status={company.status} />
+              <StatusBadge key="status" status={company.status} />
             ])}
             mobileRows={recentCompanies.map((company) => ({
               title: company.companyName || 'Company',

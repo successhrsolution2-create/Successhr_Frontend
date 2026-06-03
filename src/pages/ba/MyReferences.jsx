@@ -77,7 +77,7 @@ function StudentTable({ students, onSelect }) {
           student.mobileNumber,
           student.appliedFor || 'Not provided',
           format(new Date(student.createdAt), 'dd MMM yyyy'),
-          <StatusBadge status={student.status} />
+          <StatusBadge key="status" status={student.status} />
         ]
       }))}
     />
@@ -97,7 +97,7 @@ function CompanyTable({ companies, onSelect }) {
           company.contactPersonName || 'Not provided',
           company.jobRequirements?.jobProfile || 'Not provided',
           format(new Date(company.createdAt), 'dd MMM yyyy'),
-          <StatusBadge status={company.status} />
+          <StatusBadge key="status" status={company.status} />
         ]
       }))}
     />

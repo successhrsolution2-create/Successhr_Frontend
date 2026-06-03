@@ -97,8 +97,6 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
   const isCandidateManagementArea = location.pathname.startsWith('/admin/cms') || location.pathname.startsWith('/admin/process-panel')
   const candidateAdminTitle = location.pathname.startsWith('/admin/settings')
     ? 'Settings'
-    : location.pathname.startsWith('/admin/cms/dashboard')
-      ? 'Dashboard'
     : location.pathname.startsWith('/admin/cms/interviews')
     ? 'Interviews'
     : location.pathname.startsWith('/admin/cms/companies')
@@ -112,6 +110,8 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
       ? 'Success Employee'
       : isCandidateManagementArea
         ? 'Candidate Management'
+      : location.pathname.startsWith('/admin/company-management')
+        ? 'Company Management'
       : location.pathname.startsWith('/admin/crm')
         ? 'Telecalling CRM'
         : location.pathname.startsWith('/admin/settings')
@@ -122,7 +122,9 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
     : location.pathname.startsWith('/ems')
       ? 'Monitor attendance, payroll, and employee activity'
       : isCandidateManagementArea
-        ? 'Manage candidate dashboard, records, and interviews'
+        ? 'Manage candidate records and interviews'
+      : location.pathname.startsWith('/admin/company-management')
+        ? 'Manage company-admin logins and interview information'
       : location.pathname.startsWith('/admin/crm')
         ? 'Manage CRM candidates, calls, and reports'
         : location.pathname.startsWith('/admin/settings')

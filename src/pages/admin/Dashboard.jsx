@@ -158,9 +158,9 @@ function QuickActionTiles() {
       color: COLORS.advisor
     },
     {
-      title: 'Add Manager',
-      label: 'Manager',
-      to: '/ems/employees/add?role=manager',
+      title: 'Add Company',
+      label: 'Company',
+      to: '/admin/company-management?action=create',
       icon: Building2,
       color: COLORS.employee
     }

@@ -108,7 +108,7 @@ export default function Candidates() {
       Candidates.map((Candidate) => {
         const placement = placementBycandidateId.get(Candidate._id)
         return {
-          ...candidate,
+          ...Candidate,
           placement,
           effectiveStatus: placement?.selectionStatus || Candidate.status
         }
