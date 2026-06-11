@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Building2, CheckCircle2, ClipboardList, KeyRound, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react'
+import { CheckCircle2, ClipboardList, KeyRound, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import api from '../../api/axios'
@@ -44,10 +44,27 @@ export default function CompanyManagement() {
   }
 
   useEffect(() => {
-    load().catch((error) => {
-      toast.error(error.response?.data?.message || 'Could not load company admins')
-      setLoading(false)
-    })
+    let active = true
+
+    Promise.all([
+      api.get('/company-management/admins'),
+      api.get('/company-management/summary')
+    ])
+      .then(([adminsResponse, summaryResponse]) => {
+        if (!active) return
+        setAdmins(adminsResponse.data.admins || [])
+        setSummary(summaryResponse.data)
+      })
+      .catch((error) => {
+        if (active) toast.error(error.response?.data?.message || 'Could not load company admins')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const filtered = useMemo(() => {
@@ -60,10 +77,6 @@ export default function CompanyManagement() {
     )
   }, [admins, search])
 
-  useEffect(() => {
-    setPage(1)
-  }, [search, pageSize])
-
   const paginated = useMemo(() => {
     const start = (page - 1) * pageSize
     return filtered.slice(start, start + pageSize)
@@ -71,8 +84,10 @@ export default function CompanyManagement() {
 
   useEffect(() => {
     if (searchParams.get('action') !== 'create') return
-    setForm({ ...blankForm })
-    setModalMode('create')
+    queueMicrotask(() => {
+      setForm({ ...blankForm })
+      setModalMode('create')
+    })
   }, [searchParams])
 
   const openCreate = () => {
@@ -174,7 +189,7 @@ export default function CompanyManagement() {
   const cards = [
     { label: 'Company Admins', value: summary.totalAdmins, icon: Users },
     { label: 'Active Accounts', value: summary.activeAdmins, icon: CheckCircle2 },
-    { label: 'Interview Info Submitted', value: summary.submittedInterviewInfo, icon: ClipboardList }
+    { label: 'Candidate Forms Submitted', value: summary.submittedInterviewInfo, icon: ClipboardList }
   ]
 
   return (
@@ -182,7 +197,7 @@ export default function CompanyManagement() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Company Management</h1>
-          <p className="mt-1 text-sm text-slate-500">Create company-admin logins and monitor submitted interview information.</p>
+          <p className="mt-1 text-sm text-slate-500">Create company-admin logins and monitor candidate interview forms.</p>
         </div>
         <button
           type="button"
@@ -216,7 +231,10 @@ export default function CompanyManagement() {
           <input
             type="search"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setPage(1)
+            }}
             placeholder="Search company, admin, email, mobile..."
             className="h-10 w-full rounded-lg border border-slate-300 pl-9 pr-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
           />
@@ -226,7 +244,7 @@ export default function CompanyManagement() {
           className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 hover:bg-sky-100"
         >
           <ClipboardList className="h-4 w-4" />
-          View Interview Info
+          View Candidate Forms
         </Link>
       </div>
 
@@ -239,7 +257,7 @@ export default function CompanyManagement() {
                 <th className="px-4 py-2.5">Admin Name</th>
                 <th className="px-4 py-2.5">Email</th>
                 <th className="px-4 py-2.5">Mobile</th>
-                <th className="px-4 py-2.5">Interview Info</th>
+                <th className="px-4 py-2.5">Candidate Forms</th>
                 <th className="px-4 py-2.5">Created</th>
                 <th className="px-4 py-2.5">Active</th>
                 <th className="px-4 py-2.5">Actions</th>
@@ -254,12 +272,13 @@ export default function CompanyManagement() {
                   <td className="px-4 py-2 text-slate-600">{admin.mobileNo || '-'}</td>
                   <td className="px-4 py-2">
                     <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${admin.hasInterviewInfo ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                      {admin.hasInterviewInfo ? 'Submitted' : 'Pending'}
+                      {admin.hasInterviewInfo ? `${admin.interviewInfoCount || 1} Submitted` : 'Pending'}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-slate-600">{formatDate(admin.createdAt)}</td>
                   <td className="px-4 py-2">
                     <label className="inline-flex cursor-pointer items-center">
+                      <span className="sr-only">Active login for {admin.companyName}</span>
                       <input type="checkbox" checked={Boolean(admin.isActive)} onChange={() => toggleActive(admin)} className="sr-only" />
                       <span className={`h-5 w-9 rounded-full p-0.5 transition ${admin.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}>
                         <span className={`block h-4 w-4 rounded-full bg-white transition ${admin.isActive ? 'translate-x-4' : ''}`} />
@@ -289,7 +308,17 @@ export default function CompanyManagement() {
             </tbody>
           </table>
         </div>
-        <Pagination page={page} pageSize={pageSize} total={filtered.length} itemLabel="company admins" onPageChange={setPage} onPageSizeChange={setPageSize} />
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={filtered.length}
+          itemLabel="company admins"
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPage(1)
+            setPageSize(value)
+          }}
+        />
       </div>
 
       {modalMode ? (

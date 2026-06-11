@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   AlertCircle,
+  ArrowDown,
   BriefcaseBusiness,
   Building2,
   PhoneCall,
@@ -11,11 +12,12 @@ import { Link } from 'react-router-dom'
 import { getSuperAdminDashboardSummary } from '../../api/superAdminDashboardApi'
 
 const COLORS = {
-  advisor: '#1377ef',
-  crm: '#45a9f6',
-  employee: '#19c78a',
+  advisor: '#2563eb',
+  crm: '#7c3aed',
+  employee: '#10b981',
   warning: '#e98d3b',
-  danger: '#e33a3a'
+  danger: '#e33a3a',
+  ink: '#111111'
 }
 
 const emptySummary = {
@@ -68,7 +70,7 @@ const colorAlpha = (hex, opacity) => {
 
 function Card({ children, className = '' }) {
   return (
-    <section className={`rounded-[7px] border border-[#eeeeee] bg-white ${className}`}>
+    <section className={`rounded-[7px] border border-[#e7e9ee] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.08)] ${className}`}>
       {children}
     </section>
   )
@@ -76,59 +78,61 @@ function Card({ children, className = '' }) {
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-[14px]">
-      <div className="grid gap-[14px] lg:grid-cols-3">
+    <div className="space-y-6">
+      <div className="grid gap-5 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-[190px] animate-pulse rounded-[7px] border border-[#eeeeee] bg-white" />
+          <div key={index} className="h-[142px] animate-pulse rounded-[7px] border border-[#e7e9ee] bg-white" />
         ))}
       </div>
-      <div className="grid gap-[14px] md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="h-[142px] animate-pulse rounded-[7px] border border-[#eeeeee] bg-white" />
+          <div key={index} className="h-[112px] animate-pulse rounded-[7px] border border-[#e7e9ee] bg-white" />
         ))}
       </div>
-      <div className="grid gap-[14px] xl:grid-cols-2">
-        <div className="h-[260px] animate-pulse rounded-[7px] border border-[#eeeeee] bg-white" />
-        <div className="h-[260px] animate-pulse rounded-[7px] border border-[#eeeeee] bg-white" />
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.54fr)]">
+        <div className="h-[254px] animate-pulse rounded-[7px] border border-[#e7e9ee] bg-white" />
+        <div className="h-[254px] animate-pulse rounded-[7px] bg-[#111111]" />
       </div>
     </div>
   )
 }
 
-function ModuleCard({ title, subtitle, icon: Icon, color, route, stats }) {
+function ModuleCard({ code, title, subtitle, color, route, stats }) {
   return (
     <Link
       to={route}
-      className="group block min-h-[174px] rounded-[7px] border border-[#eeeeee] bg-white p-[18px] transition hover:border-[#d7dde6] hover:bg-[#fcfdfe]"
+      className="group block min-h-[142px] rounded-[7px] border border-[#e6e8ed] bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.09)] transition hover:-translate-y-0.5 hover:border-[#cfd6e4] hover:shadow-[0_8px_24px_rgba(16,24,40,0.10)]"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px]"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-[6px] text-[13px] font-black"
             style={{ color, backgroundColor: colorAlpha(color, 0.1) }}
           >
-            <Icon className="h-5 w-5" />
+            {code}
           </span>
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-bold text-black">{title}</h2>
-            <p className="mt-0.5 truncate text-xs font-medium text-[#717780]">{subtitle}</p>
+            <h2 className="truncate text-sm font-black leading-5 text-[#111111]">{title}</h2>
+            <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-normal text-[#777d86]">{subtitle}</p>
           </div>
         </div>
         <span
-          className="shrink-0 rounded-full px-3 py-1 text-[11px] font-bold"
+          className="shrink-0 rounded-[4px] px-2 py-1 text-[10px] font-black uppercase tracking-normal"
           style={{ color, backgroundColor: colorAlpha(color, 0.12) }}
         >
-          Open
+          Active
         </span>
       </div>
 
-      <div className="mt-6 grid grid-cols-3 overflow-hidden rounded-[7px] border border-[#eeeeee]">
-        {stats.map((item) => (
-          <div key={item.label} className="border-r border-[#eeeeee] px-4 py-3 last:border-r-0">
-            <p className="text-2xl font-bold leading-none text-black">{item.value}</p>
-            <p className="mt-2 text-xs leading-4 text-[#717780]">{item.label}</p>
-          </div>
-        ))}
+      <div className="mt-5 border-t border-[#eceef2] pt-4">
+        <div className="grid grid-cols-3 gap-3">
+          {stats.map((item) => (
+            <div key={item.label} className="min-w-0">
+              <p className="truncate text-[10px] font-black uppercase tracking-normal text-[#777d86]">{item.label}</p>
+              <p className="mt-1 truncate text-xl font-black leading-none text-[#111111]">{item.value}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </Link>
   )
@@ -137,63 +141,73 @@ function ModuleCard({ title, subtitle, icon: Icon, color, route, stats }) {
 function QuickActionTiles() {
   const actions = [
     {
+      number: '01',
       title: 'Register Business Admin',
+      description: 'Onboard new administrative partner',
       label: 'Business Admin',
       to: '/admin/business-advisors?action=create',
       icon: BriefcaseBusiness,
-      color: COLORS.advisor
+      color: COLORS.advisor,
+      tint: '#eef4ff'
     },
     {
+      number: '02',
       title: 'Add Candidate',
+      description: 'Create new talent profile',
       label: 'Candidate',
       to: '/admin/cms/candidates/add',
       icon: UserCheck,
-      color: COLORS.crm
+      color: '#525866',
+      tint: '#f4f5f7'
     },
     {
+      number: '03',
       title: 'Add CRM Admin',
+      description: 'Configure system permissions',
       label: 'CRM',
       to: '/ems/employees/add?role=crm_employee',
       icon: PhoneCall,
-      color: COLORS.advisor
+      color: '#525866',
+      tint: '#f4f5f7'
     },
     {
+      number: '04',
       title: 'Add Company',
+      description: 'Register corporate client',
       label: 'Company',
       to: '/admin/company-management?action=create',
       icon: Building2,
-      color: COLORS.employee
+      color: COLORS.employee,
+      tint: '#eafbf3'
     }
   ]
 
   return (
-    <div className="grid gap-[14px] md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {actions.map((item) => (
         <Link
           key={item.title}
           to={item.to}
-          className="group flex min-h-[142px] flex-col justify-between rounded-[7px] border border-[#eeeeee] bg-white p-[18px] transition hover:border-[#d7dde6] hover:bg-[#fcfdfe]"
+          className="group flex min-h-[112px] flex-col justify-between rounded-[7px] border bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(16,24,40,0.09)]"
+          style={{ borderColor: colorAlpha(item.color, item.number === '02' || item.number === '03' ? 0.18 : 0.34), backgroundColor: item.tint }}
         >
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: item.color }}>
-                {item.label}
-              </p>
-              <h2 className="mt-2 text-lg font-bold leading-6 text-black">{item.title}</h2>
-            </div>
             <span
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px]"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[5px] text-[11px] font-black"
               style={{ color: item.color, backgroundColor: colorAlpha(item.color, 0.1) }}
             >
-              <item.icon className="h-5 w-5" />
+              {item.number}
+            </span>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/80 text-[#777d86] opacity-0 transition group-hover:opacity-100">
+              <item.icon className="h-4 w-4" />
             </span>
           </div>
-          <span
-            className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-[5px] text-sm font-semibold text-white transition group-hover:brightness-95"
-            style={{ backgroundColor: item.color }}
-          >
-            {item.title}
-          </span>
+
+          <div className="min-w-0 pt-4">
+            <p className="truncate text-[10px] font-black uppercase tracking-normal" style={{ color: item.color }}>{item.label}</p>
+            <h2 className="mt-1 truncate text-sm font-black text-[#111111]">{item.title}</h2>
+            <p className="mt-1 truncate text-[11px] font-medium text-[#6f7680]">{item.description}</p>
+          </div>
         </Link>
       ))}
     </div>
@@ -202,11 +216,8 @@ function QuickActionTiles() {
 
 function PanelHeader({ title, action }) {
   return (
-    <div className="mb-4 flex items-center justify-between gap-3">
-      <h2 className="flex min-w-0 items-center gap-2 text-lg font-bold text-black">
-        <span className="h-2 w-2 shrink-0 rounded-full bg-[#1377ef]" />
-        <span className="truncate">{title}</span>
-      </h2>
+    <div className="flex min-h-6 items-center justify-between gap-3">
+      <h2 className="truncate text-[11px] font-black uppercase tracking-[0.12em] text-[#6c727c]">{title}</h2>
       {action}
     </div>
   )
@@ -214,35 +225,53 @@ function PanelHeader({ title, action }) {
 
 function ActivityFeed({ items }) {
   return (
-    <Card className="p-[18px]">
+    <div className="space-y-3">
       <PanelHeader
         title="Recent Activity"
         action={
-          <Link to="/admin/references" className="rounded-lg border border-[#eeeeee] bg-white px-3 py-1.5 text-xs font-semibold text-[#4d5560] hover:bg-[#f7f8fa]">
-            View All
+          <Link to="/admin/references" className="text-[10px] font-black text-[#111111] underline-offset-2 hover:underline">
+            View Log
           </Link>
         }
       />
-      <div className="divide-y divide-[#eeeeee]">
-        {items.slice(0, 6).map((item, index) => (
-          <div key={`${item.module}-${index}-${item.text}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#eaf3ff] text-[#1377ef]">
-              <Activity className="h-4 w-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-black">{item.text}</p>
-              <p className="mt-0.5 text-xs text-[#8b929c]">{item.time}</p>
-            </div>
-            <span className="rounded-full bg-[#eaf3ff] px-2.5 py-1 text-[11px] font-bold text-[#1377ef]">
-              {(item.module || 'Admin').toUpperCase()}
-            </span>
+      <Card className={`${items.length ? 'p-4' : 'border-dashed p-0'} min-h-[256px]`}>
+        {items.length ? (
+          <div className="divide-y divide-[#eceef2]">
+            {items.slice(0, 6).map((item, index) => (
+              <div key={`${item.module}-${index}-${item.text}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-[#eef4ff] text-[#2563eb]">
+                  <Activity className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-[#111111]">{item.text}</p>
+                  <p className="mt-0.5 truncate text-[11px] font-semibold text-[#8c929b]">{item.time}</p>
+                </div>
+                <span className="shrink-0 rounded-[4px] bg-[#f4f5f7] px-2 py-1 text-[10px] font-black uppercase text-[#59616d]">
+                  {(item.module || 'Admin').toUpperCase()}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-        {!items.length ? (
-          <p className="py-10 text-center text-sm font-semibold text-[#717780]">No recent activity</p>
-        ) : null}
-      </div>
-    </Card>
+        ) : (
+          <div className="relative flex min-h-[254px] items-center justify-center px-5 py-10">
+            <div className="text-center">
+              <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#f7f8fa] text-[#8c929b]">
+                <Activity className="h-5 w-5" />
+              </span>
+              <p className="mt-4 text-sm font-bold text-[#7c838d]">No activity records found for this period</p>
+              <p className="mt-1 text-[11px] font-medium text-[#a1a7b0]">System is awaiting initial telemetry</p>
+            </div>
+            <Link
+              to="/admin/references"
+              aria-label="Open activity log"
+              className="absolute bottom-[-18px] left-1/2 grid h-11 w-11 -translate-x-1/2 place-items-center rounded-full bg-[#202124] text-white shadow-[0_6px_18px_rgba(17,24,39,0.18)] transition hover:bg-[#111111]"
+            >
+              <ArrowDown className="h-5 w-5" />
+            </Link>
+          </div>
+        )}
+      </Card>
+    </div>
   )
 }
 
@@ -250,39 +279,41 @@ function TopAdvisors({ advisors }) {
   const maxEarnings = Math.max(...advisors.map((advisor) => Number(advisor.earnings || 0)), 1)
 
   return (
-    <Card className="p-[18px]">
+    <div className="space-y-3">
       <PanelHeader
         title="Top Success Advisors"
         action={
-          <Link to="/admin/business-advisors" className="rounded-lg border border-[#eeeeee] bg-white px-3 py-1.5 text-xs font-semibold text-[#4d5560] hover:bg-[#f7f8fa]">
+          <Link to="/admin/business-advisors" className="text-[10px] font-black text-[#111111] underline-offset-2 hover:underline">
             View All
           </Link>
         }
       />
-      {advisors.length ? (
-        <div className="space-y-4">
-          {advisors.slice(0, 5).map((advisor, index) => (
-            <div key={`${advisor.name}-${index}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[7px] bg-[#eaf3ff] text-sm font-bold text-[#1377ef]">{index + 1}</span>
-                  <p className="truncate text-sm font-semibold text-black">{advisor.name}</p>
+      <Card className="p-5">
+        {advisors.length ? (
+          <div className="grid gap-4 lg:grid-cols-5">
+            {advisors.slice(0, 5).map((advisor, index) => (
+              <div key={`${advisor.name}-${index}`} className="min-w-0 rounded-[7px] border border-[#eceef2] bg-[#fafbfc] p-4">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[5px] bg-white text-xs font-black text-[#2563eb] shadow-sm">{index + 1}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-[#111111]">{advisor.name}</p>
+                    <p className="mt-0.5 truncate text-xs font-bold text-[#717780]">{formatMoney(advisor.earnings)}</p>
+                  </div>
                 </div>
-                <p className="text-sm font-bold text-black">{formatMoney(advisor.earnings)}</p>
+                <div className="mt-4 h-1.5 rounded-full bg-[#e8ebf0]">
+                  <div
+                    className="h-1.5 rounded-full bg-[#2563eb]"
+                    style={{ width: `${Math.max(6, (Number(advisor.earnings || 0) / maxEarnings) * 100)}%` }}
+                  />
+                </div>
               </div>
-              <div className="mt-2 h-2 rounded-full bg-[#f1f2f4]">
-                <div
-                  className="h-2 rounded-full bg-[#1377ef]"
-                  style={{ width: `${Math.max(6, (Number(advisor.earnings || 0) / maxEarnings) * 100)}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="rounded-[7px] border border-dashed border-[#eeeeee] bg-[#fafafa] px-4 py-10 text-center text-sm font-semibold text-[#717780]">No advisor data yet</p>
-      )}
-    </Card>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-[7px] border border-dashed border-[#dfe3ea] bg-[#fafbfc] px-4 py-10 text-center text-sm font-bold text-[#717780]">No advisor data yet</p>
+        )}
+      </Card>
+    </div>
   )
 }
 
@@ -291,43 +322,49 @@ function EmployeeSnapshot({ stats }) {
   const attendancePercent = Math.min(100, Math.round((Number(stats.presentToday || 0) / attendanceTotal) * 100))
 
   return (
-    <Card className="p-[18px]">
+    <div className="space-y-3">
       <PanelHeader
-        title="Employee Snapshot"
+        title="Live Snapshot"
         action={
-          <Link to="/ems/leaves/pending" className="rounded-lg border border-[#eeeeee] bg-white px-3 py-1.5 text-xs font-semibold text-[#4d5560] hover:bg-[#f7f8fa]">
-            Leaves
+          <Link to="/ems/leaves/pending" className="text-[10px] font-black uppercase tracking-normal text-[#2563eb] hover:underline">
+            Real-time
           </Link>
         }
       />
-      <div className="flex items-center gap-4 rounded-[7px] border border-[#eeeeee] bg-[#fcfdfe] p-4">
-        <div
-          className="grid h-20 w-20 shrink-0 place-items-center rounded-full"
-          style={{ background: `conic-gradient(${COLORS.employee} ${attendancePercent * 3.6}deg, #e5e7eb 0deg)` }}
-        >
-          <div className="grid h-14 w-14 place-items-center rounded-full bg-white text-sm font-bold text-black">{attendancePercent}%</div>
+      <section className="min-h-[256px] rounded-[7px] bg-[#111111] p-5 text-white shadow-[0_10px_26px_rgba(17,24,39,0.18)]">
+        <div className="flex items-center gap-5">
+          <div
+            className="grid h-[94px] w-[94px] shrink-0 place-items-center rounded-full"
+            style={{ background: `conic-gradient(#2563eb ${attendancePercent * 3.6}deg, #2e3034 0deg)` }}
+          >
+            <div className="grid h-[72px] w-[72px] place-items-center rounded-full bg-[#111111] text-2xl font-black text-white">{attendancePercent}%</div>
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-black">Attendance Today</p>
+            <p className="mt-2 truncate text-[11px] font-semibold text-[#c6c9cf]">
+              {formatNumber(stats.presentToday)} present / {formatNumber(stats.totalEmployees)} total employees
+            </p>
+            <p className="mt-2 text-[11px] font-black text-[#60a5fa]">
+              {formatNumber(stats.pendingLeaves)} pending leave requests
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-semibold text-black">Today Attendance</p>
-          <p className="mt-1 text-xs text-[#717780]">{formatNumber(stats.presentToday)} present / {formatNumber(stats.totalEmployees)} total</p>
-          <p className="mt-1 text-xs text-[#717780]">{formatNumber(stats.pendingLeaves)} pending leaves</p>
-        </div>
-      </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <MiniMetric label="Absent" value={formatNumber(stats.absentToday)} />
-        <MiniMetric label="On Leave" value={formatNumber(stats.onLeave)} />
-        <MiniMetric label="Open Positions" value={formatNumber(stats.openPositions)} />
-      </div>
-    </Card>
+        <div className="mt-7 grid grid-cols-3 gap-3">
+          <MiniMetric dark label="Absent" value={formatNumber(stats.absentToday)} />
+          <MiniMetric dark label="On Leave" value={formatNumber(stats.onLeave)} />
+          <MiniMetric dark label="Open" value={formatNumber(stats.openPositions)} />
+        </div>
+      </section>
+    </div>
   )
 }
 
-function MiniMetric({ label, value }) {
+function MiniMetric({ label, value, dark = false }) {
   return (
-    <div className="rounded-[7px] border border-[#eeeeee] bg-white px-3 py-3">
-      <p className="text-[11px] text-[#8c929a]">{label}</p>
-      <p className="mt-1 text-xl font-bold text-black">{value}</p>
+    <div className={`${dark ? 'border-white/12 bg-white/[0.04] text-white' : 'border-[#eceef2] bg-white text-[#111111]'} rounded-[7px] border px-3 py-3 text-center`}>
+      <p className={`${dark ? 'text-[#aeb3bd]' : 'text-[#8c929a]'} truncate text-[10px] font-black uppercase tracking-normal`}>{label}</p>
+      <p className="mt-1 truncate text-xl font-black leading-none">{value}</p>
     </div>
   )
 }
@@ -366,21 +403,21 @@ export default function Dashboard() {
 
   const moduleCards = useMemo(() => [
     {
+      code: 'SA',
       title: 'Success Advisor',
-      subtitle: 'References, advisors, companies, and earnings',
-      icon: BriefcaseBusiness,
+      subtitle: 'Operational units',
       color: COLORS.advisor,
       route: '/admin/references',
       stats: [
         { label: 'Advisors', value: formatNumber(advisorStats.totalAdvisors) },
         { label: 'Companies', value: formatNumber(advisorStats.activeCompanies) },
-        { label: 'Earnings', value: formatMoney(advisorStats.totalEarnings) }
+        { label: 'Revenue', value: formatMoney(advisorStats.totalEarnings) }
       ]
     },
     {
+      code: 'CR',
       title: 'Telecalling CRM',
-      subtitle: 'Employees, candidates, calls, and reports',
-      icon: PhoneCall,
+      subtitle: 'Lead performance',
       color: COLORS.crm,
       route: '/admin/crm/dashboard',
       stats: [
@@ -390,9 +427,9 @@ export default function Dashboard() {
       ]
     },
     {
+      code: 'SE',
       title: 'Success Employee',
-      subtitle: 'Attendance, leaves, payroll, and documents',
-      icon: Building2,
+      subtitle: 'Force tracking',
       color: COLORS.employee,
       route: '/ems',
       stats: [
@@ -405,9 +442,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-[calc(100vh-7rem)] bg-white">
-      <div className="space-y-[14px]">
+      <div className="space-y-7">
         {error ? (
-          <div className="flex items-center gap-2 rounded-[7px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+          <div className="flex items-center gap-2 rounded-[7px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
             <AlertCircle className="h-4 w-4" />
             {error}
           </div>
@@ -417,13 +454,16 @@ export default function Dashboard() {
           <DashboardSkeleton />
         ) : (
           <>
-            <div className="grid gap-[14px] lg:grid-cols-3">
+            <div className="grid gap-5 lg:grid-cols-3">
               {moduleCards.map((card) => <ModuleCard key={card.title} {...card} />)}
             </div>
 
-            <QuickActionTiles />
+            <div className="space-y-3">
+              <PanelHeader title="Quick Actions" />
+              <QuickActionTiles />
+            </div>
 
-            <div className="grid gap-[14px] xl:grid-cols-2">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.54fr)]">
               <ActivityFeed items={summary.recentActivity} />
               <EmployeeSnapshot stats={employeeStats} />
             </div>

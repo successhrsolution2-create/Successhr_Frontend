@@ -5,10 +5,7 @@ const API_ROOT = import.meta.env.VITE_API_URL || `http://${defaultHost}:5000`
 
 const companyAdminApi = axios.create({
   baseURL: `${API_ROOT}/api/company-admin`,
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  withCredentials: true
 })
 
 export default companyAdminApi

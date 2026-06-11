@@ -4,21 +4,74 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
+import { Building2, Eye, EyeOff, Headphones, ShieldCheck } from 'lucide-react'
 import { clearAuthError, loginUser } from '../store/authSlice'
 import { login as loginCrm } from '../crm/store/authSlice'
 import BrandLogo from '../components/BrandLogo'
+import companyAdminApi from '../companyAdmin/api'
 
 const schema = z.object({
   email: z.string().trim().min(1, 'Email or employee ID is required'),
   password: z.string().min(1, 'Password is required')
 })
 
+const accountTypes = [
+  {
+    id: 'success',
+    label: 'Admin / Advisor',
+    shortLabel: 'Admin',
+    eyebrow: 'Success HR workspace',
+    title: 'Welcome back',
+    description: 'Use this for Super Admin, Manager, Candidate Management, and Business Advisor accounts.',
+    fieldLabel: 'Email or Employee ID',
+    placeholder: 'admin@consultancy.com or EMP001',
+    icon: ShieldCheck
+  },
+  {
+    id: 'crm',
+    label: 'Telecalling CRM',
+    shortLabel: 'CRM',
+    eyebrow: 'Lead performance workspace',
+    title: 'CRM login',
+    description: 'Use this for CRM super admin and CRM employee calling accounts.',
+    fieldLabel: 'CRM Email or Employee ID',
+    placeholder: 'crm@consultancy.com or CRM001',
+    icon: Headphones
+  },
+  {
+    id: 'companyAdmin',
+    label: 'Company Admin',
+    shortLabel: 'Company',
+    eyebrow: 'Company workspace',
+    title: 'Company admin login',
+    description: 'Use this for company interview, candidate feedback, and vacancy information.',
+    fieldLabel: 'Company Admin Email',
+    placeholder: 'company.admin@example.com',
+    icon: Building2
+  }
+]
+
+const accountTypeIds = new Set(accountTypes.map((item) => item.id))
+
 const InputIcon = ({ children }) => (
   <span className="pointer-events-none absolute inset-y-0 left-0 flex w-11 items-center justify-center text-slate-400">
     {children}
   </span>
 )
+
+const accountTypeFromLocation = (location) => {
+  const search = new URLSearchParams(location.search)
+  const requested = search.get('role') || search.get('account')
+
+  if (accountTypeIds.has(requested)) return requested
+  if (location.pathname.startsWith('/company-admin')) return 'companyAdmin'
+  return 'success'
+}
+
+const hasAccountHint = (location) => {
+  const search = new URLSearchParams(location.search)
+  return search.has('role') || search.has('account') || location.pathname.startsWith('/company-admin')
+}
 
 const managerDefaultPath = (user = {}) => {
   const access = Array.isArray(user.managerAccess) ? user.managerAccess : []
@@ -43,14 +96,18 @@ export default function Login() {
   const location = useLocation()
   const [showPassword, setShowPassword] = useState(false)
   const [loginError, setLoginError] = useState('')
+  const [accountType, setAccountType] = useState(() => accountTypeFromLocation(location))
+  const [companyAdminLoading, setCompanyAdminLoading] = useState(false)
   const { token, user, checking, loading } = useSelector((state) => state.auth)
   const {
     accessToken: crmAccessToken,
     role: crmRole,
     status: crmStatus
   } = useSelector((state) => state.crmAuth)
-  const isLoggingIn = loading || crmStatus === 'loading'
+  const isLoggingIn = loading || crmStatus === 'loading' || companyAdminLoading
   const isManagerLogin = location.pathname.startsWith('/manager/login')
+  const selectedAccount = accountTypes.find((item) => item.id === accountType) || accountTypes[0]
+  const isManagerSuccessLogin = isManagerLogin && accountType === 'success'
   const {
     register,
     handleSubmit,
@@ -64,6 +121,8 @@ export default function Login() {
   })
 
   useEffect(() => {
+    if (hasAccountHint(location)) return
+
     if (!checking && token && user) {
       navigate(routeFor(user.role, user), { replace: true })
       return
@@ -72,7 +131,7 @@ export default function Login() {
     if (!checking && crmAccessToken && crmRole) {
       navigate(routeFor(crmRole), { replace: true })
     }
-  }, [checking, crmAccessToken, crmRole, token, user, navigate])
+  }, [checking, crmAccessToken, crmRole, token, user, navigate, location])
 
   useEffect(() => {
     dispatch(clearAuthError())
@@ -81,23 +140,45 @@ export default function Login() {
   const onSubmit = async (values) => {
     setLoginError('')
     dispatch(clearAuthError())
+
+    if (accountType === 'companyAdmin') {
+      setCompanyAdminLoading(true)
+      try {
+        await companyAdminApi.post('/auth/login', {
+          email: values.email,
+          password: values.password
+        })
+        navigate('/company-admin/dashboard', { replace: true })
+      } catch (error) {
+        setLoginError(error.response?.data?.message || 'Company admin login failed')
+      } finally {
+        setCompanyAdminLoading(false)
+      }
+      return
+    }
+
+    if (accountType === 'crm') {
+      const crmResult = await dispatch(loginCrm(values))
+
+      if (loginCrm.fulfilled.match(crmResult)) {
+        dispatch(clearAuthError())
+        navigate(routeFor(crmResult.payload.user?.role), { replace: true })
+        return
+      }
+
+      setLoginError(crmResult.payload || 'Invalid CRM login details')
+      return
+    }
+
     const result = await dispatch(loginUser(values))
 
     if (loginUser.fulfilled.match(result)) {
+      dispatch(clearAuthError())
       navigate(routeFor(result.payload.user.role, result.payload.user), { replace: true })
       return
     }
 
-    dispatch(clearAuthError())
-    const crmResult = await dispatch(loginCrm(values))
-
-    if (loginCrm.fulfilled.match(crmResult)) {
-      dispatch(clearAuthError())
-      navigate(routeFor(crmResult.payload.user?.role), { replace: true })
-      return
-    }
-
-    setLoginError(crmResult.payload || result.payload || 'Invalid email or password')
+    setLoginError(result.payload || 'Invalid email or password')
   }
 
   return (
@@ -112,18 +193,22 @@ export default function Login() {
           <div>
             <BrandLogo className="max-w-xs sm:max-w-xl" />
             <div className="mt-6 max-w-lg sm:mt-8">
-              <p className="text-sm font-bold uppercase text-sky-700">{isManagerLogin ? 'Manager workspace' : 'HR consultancy workspace'}</p>
-              <h1 className="mt-3 text-2xl font-bold text-slate-950 sm:text-4xl">{isManagerLogin ? 'Manager login' : 'Welcome back'}</h1>
+              <p className="text-sm font-bold uppercase text-sky-700">
+                {isManagerSuccessLogin ? 'Manager workspace' : selectedAccount.eyebrow}
+              </p>
+              <h1 className="mt-3 text-2xl font-bold text-slate-950 sm:text-4xl">
+                {isManagerSuccessLogin ? 'Manager login' : selectedAccount.title}
+              </h1>
               <p className="mt-3 text-base text-slate-600">
-                {isManagerLogin
+                {isManagerSuccessLogin
                   ? 'Use your manager ID and password to access assigned Candidate, CRM, and Success Employee modules.'
-                  : 'Manage Business Advisors, candidate references, and company requirements from one clean Success HR dashboard.'}
+                  : selectedAccount.description}
               </p>
             </div>
           </div>
           <div className="mt-8 rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-cyan-50 px-4 py-3 text-sm font-semibold text-slate-700">
             <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Tip</p>
-            <p className="mt-1">Use your official email to access the dashboard securely.</p>
+            <p className="mt-1">Select the correct account type first. The system will check only that role.</p>
           </div>
         </div>
 
@@ -136,12 +221,44 @@ export default function Login() {
                 <p className="text-xs font-semibold text-sky-700">Secure login</p>
               </div>
             </div>
-            <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">{isManagerLogin ? 'Manager Login' : 'Login'}</h2>
+            <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">
+              {isManagerSuccessLogin ? 'Manager Login' : 'Login'}
+            </h2>
             <p className="mt-1 text-sm text-slate-500">Enter your account details to continue.</p>
           </div>
 
+          <div>
+            <p className="mb-2 text-sm font-semibold text-slate-700">Account Type</p>
+            <div className="grid gap-2 sm:grid-cols-3" role="tablist" aria-label="Account type">
+              {accountTypes.map((item) => {
+                const Icon = item.icon
+                const selected = item.id === accountType
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => {
+                      setAccountType(item.id)
+                      setLoginError('')
+                    }}
+                    className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-cyan-100 ${
+                      selected
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:text-slate-900'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{item.shortLabel}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <label className="block text-sm font-semibold text-slate-700">
-            {isManagerLogin ? 'Manager ID / Email' : 'Email or Employee ID'}
+            {isManagerSuccessLogin ? 'Manager ID / Email' : selectedAccount.fieldLabel}
             <div className="relative mt-1">
               <InputIcon>
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -157,7 +274,7 @@ export default function Login() {
                 type="text"
                 {...register('email')}
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 pl-11 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-cyan-100"
-                placeholder="admin@consultancy.com or EMP001"
+                placeholder={selectedAccount.placeholder}
                 autoComplete="username"
               />
             </div>
@@ -185,7 +302,7 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 {...register('password')}
                 className="hide-password-toggle w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 pl-11 pr-12 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-cyan-100"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 autoComplete="current-password"
               />
               <button

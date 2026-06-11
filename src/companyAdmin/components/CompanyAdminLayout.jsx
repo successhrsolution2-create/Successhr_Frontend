@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Building2, ClipboardList, LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
+import { BriefcaseBusiness, Building2, ClipboardList, LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import LoadingScreen from '../../components/LoadingScreen'
 import companyAdminApi from '../api'
 
 const links = [
   { to: '/company-admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/company-admin/interview-info', label: 'Company Interview Info', icon: ClipboardList }
+  { to: '/company-admin/interview-info', label: 'Candidate Forms', icon: ClipboardList },
+  { to: '/company-admin/vacancies', label: 'Vacancies', icon: BriefcaseBusiness }
 ]
 
 export default function CompanyAdminLayout() {
@@ -19,20 +20,36 @@ export default function CompanyAdminLayout() {
     try {
       const { data } = await companyAdminApi.get('/auth/me')
       setCompanyAdmin(data.companyAdmin)
-    } catch (_error) {
-      navigate('/company-admin/login', { replace: true })
+    } catch {
+      navigate('/login?role=companyAdmin', { replace: true })
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadCompanyAdmin()
-  }, [])
+    let active = true
+
+    companyAdminApi
+      .get('/auth/me')
+      .then(({ data }) => {
+        if (active) setCompanyAdmin(data.companyAdmin)
+      })
+      .catch(() => {
+        if (active) navigate('/login?role=companyAdmin', { replace: true })
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [navigate])
 
   const logout = async () => {
     await companyAdminApi.post('/auth/logout').catch(() => {})
-    navigate('/company-admin/login', { replace: true })
+    navigate('/login?role=companyAdmin', { replace: true })
   }
 
   if (loading) return <LoadingScreen />
@@ -66,12 +83,13 @@ export default function CompanyAdminLayout() {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4" onClick={() => setOpen(false)}>
+        <nav className="flex-1 space-y-1 px-3 py-4">
           <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">Company Portal</p>
           {links.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={() => setOpen(false)}
               className={({ isActive }) =>
                 `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition ${
                   isActive ? 'bg-sky-50 text-sky-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -108,7 +126,7 @@ export default function CompanyAdminLayout() {
           </button>
           <div>
             <h1 className="text-base font-bold text-slate-950 sm:text-lg">Company Admin Portal</h1>
-            <p className="text-xs text-slate-500">Manage your company interview information</p>
+            <p className="text-xs text-slate-500">Manage candidate interviews and manpower vacancies</p>
           </div>
         </header>
 

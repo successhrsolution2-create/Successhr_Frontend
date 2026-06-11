@@ -56,9 +56,9 @@ const EMSPayslipView = lazy(() => import('./modules/ems/pages/payroll/PayslipVie
 const EMSDocumentManager = lazy(() => import('./modules/ems/pages/documents/DocumentManager'))
 const EMSReportsPage = lazy(() => import('./modules/ems/pages/reports/ReportsPage'))
 const CompanyAdminLayout = lazy(() => import('./companyAdmin/components/CompanyAdminLayout'))
-const CompanyAdminLogin = lazy(() => import('./companyAdmin/pages/Login'))
 const CompanyAdminDashboard = lazy(() => import('./companyAdmin/pages/Dashboard'))
 const CompanyAdminInterviewInfo = lazy(() => import('./companyAdmin/pages/InterviewInfoForm'))
+const CompanyAdminVacancies = lazy(() => import('./companyAdmin/pages/Vacancies'))
 
 const cmsRoles = ['superAdmin', 'candidateAdmin', 'manager']
 const crmAdminRoles = ['superAdmin', 'crm_super_admin', 'manager']
@@ -174,11 +174,12 @@ export default function App() {
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/login" element={<Login />} />
         <Route path="/manager/login" element={<Login />} />
-        <Route path="/company-admin/login" element={<CompanyAdminLogin />} />
+        <Route path="/company-admin/login" element={<Navigate to="/login?role=companyAdmin" replace />} />
         <Route path="/company-admin" element={<CompanyAdminLayout />}>
           <Route index element={<Navigate to="/company-admin/dashboard" replace />} />
           <Route path="dashboard" element={<CompanyAdminDashboard />} />
           <Route path="interview-info" element={<CompanyAdminInterviewInfo />} />
+          <Route path="vacancies" element={<CompanyAdminVacancies />} />
         </Route>
         <Route path="/apply" element={<ApplyPage />} />
         <Route path="/apply/:code" element={<ApplyPage />} />
