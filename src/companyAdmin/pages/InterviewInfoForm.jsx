@@ -5,7 +5,7 @@ import { Link, useOutletContext, useSearchParams } from 'react-router-dom'
 import companyAdminApi from '../api'
 
 const defaultHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
-const API_ROOT = import.meta.env.VITE_API_URL || `http://${defaultHost}:5000`
+const API_ROOT = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : `http://${defaultHost}:5000`)
 
 const feedbackOptions = ['Yes', 'No', 'Pending']
 const statusOptions = ['Selected', 'Rejected', 'Hold', 'Pending']

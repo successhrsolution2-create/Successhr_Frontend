@@ -6,7 +6,7 @@ import Pagination from '../../components/Pagination'
 import Skeleton from '../../components/Skeleton'
 
 const defaultHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
-const API_ROOT = import.meta.env.VITE_API_URL || `http://${defaultHost}:5000`
+const API_ROOT = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : `http://${defaultHost}:5000`)
 const feedbackOptions = ['Yes', 'No', 'Pending']
 
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-')

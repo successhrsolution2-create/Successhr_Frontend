@@ -3,7 +3,7 @@ import axios from 'axios'
 import { disconnectSocket } from '../socket'
 
 const defaultHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
-const API_ROOT = import.meta.env.VITE_API_URL || `http://${defaultHost}:5000`
+const API_ROOT = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : `http://${defaultHost}:5000`)
 const SESSION_MARKER = 'cookie'
 
 const readUser = () => {

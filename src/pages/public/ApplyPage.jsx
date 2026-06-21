@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
@@ -532,6 +532,100 @@ const getSubmissionStorageKey = () => {
   return `success-public-apply:${window.location.pathname || 'submission'}`
 }
 
+const APPLY_DRAFT_DB_NAME = 'success-public-apply-drafts'
+const APPLY_DRAFT_DB_VERSION = 1
+const APPLY_DRAFT_STORE = 'drafts'
+
+const getApplyDraftStorageKey = () => {
+  if (typeof window === 'undefined') return 'success-public-apply:draft'
+  return `success-public-apply:draft:${window.location.pathname || 'submission'}`
+}
+
+const openApplyDraftDb = () =>
+  new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      resolve(null)
+      return
+    }
+
+    const request = window.indexedDB.open(APPLY_DRAFT_DB_NAME, APPLY_DRAFT_DB_VERSION)
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains(APPLY_DRAFT_STORE)) {
+        db.createObjectStore(APPLY_DRAFT_STORE, { keyPath: 'id' })
+      }
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+
+const runDraftTransaction = async (mode, action) => {
+  const db = await openApplyDraftDb()
+  if (!db) return null
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(APPLY_DRAFT_STORE, mode)
+    const store = transaction.objectStore(APPLY_DRAFT_STORE)
+    const request = action(store)
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+    transaction.oncomplete = () => db.close()
+    transaction.onerror = () => {
+      db.close()
+      reject(transaction.error)
+    }
+  })
+}
+
+const draftFileFromFile = (file) => ({
+  name: file.name,
+  type: file.type,
+  size: file.size,
+  lastModified: file.lastModified,
+  blob: file
+})
+
+const fileFromDraftFile = (entry) => {
+  if (!entry?.blob || !entry.name) return null
+  try {
+    return new File([entry.blob], entry.name, {
+      type: entry.type || entry.blob.type || '',
+      lastModified: entry.lastModified || Date.now()
+    })
+  } catch (_error) {
+    return null
+  }
+}
+
+const serializeDraftDocuments = (documents) =>
+  Object.entries(documents || {}).reduce((result, [documentKey, files]) => {
+    const entries = (files || []).map(draftFileFromFile)
+    if (entries.length) result[documentKey] = entries
+    return result
+  }, {})
+
+const restoreDraftDocuments = (documents) =>
+  Object.entries(documents || {}).reduce((result, [documentKey, entries]) => {
+    const files = (entries || []).map(fileFromDraftFile).filter(Boolean)
+    if (files.length) result[documentKey] = files
+    return result
+  }, {})
+
+const readStoredApplyDraft = () =>
+  runDraftTransaction('readonly', (store) => store.get(getApplyDraftStorageKey())).catch(() => null)
+
+const saveStoredApplyDraft = (draft) =>
+  runDraftTransaction('readwrite', (store) =>
+    store.put({
+      ...draft,
+      id: getApplyDraftStorageKey(),
+      savedAt: new Date().toISOString()
+    })
+  ).catch(() => null)
+
+const clearStoredApplyDraft = () =>
+  runDraftTransaction('readwrite', (store) => store.delete(getApplyDraftStorageKey())).catch(() => null)
+
 const readStoredSubmission = () => {
   if (typeof window === 'undefined') return null
   try {
@@ -576,6 +670,7 @@ export default function ApplyPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [done, setDone] = useState(() => readStoredSubmission())
+  const [draftLoaded, setDraftLoaded] = useState(false)
 
   const currentStepConfig = formSteps[currentStep]
   const CurrentStepIcon = currentStepConfig.icon
@@ -591,6 +686,73 @@ export default function ApplyPage() {
     () => Object.values(documents).reduce((total, files) => total + (files?.length || 0), 0),
     [documents]
   )
+
+  useEffect(() => {
+    let active = true
+
+    if (done) {
+      setDraftLoaded(true)
+      return () => {
+        active = false
+      }
+    }
+
+    readStoredApplyDraft()
+      .then((draft) => {
+        if (!active) return
+        if (draft?.form) setForm({ ...initialForm, ...draft.form })
+        if (draft?.currentStep !== undefined) setCurrentStep(Math.min(Math.max(Number(draft.currentStep) || 0, 0), formSteps.length - 1))
+        if (draft?.advisorCode !== undefined) setAdvisorCode(String(draft.advisorCode || ''))
+        if (draft?.currentAddressParts) setCurrentAddressParts({ ...createEmptyAddressParts(), ...draft.currentAddressParts })
+        if (draft?.permanentAddressParts) setPermanentAddressParts({ ...createEmptyAddressParts(), ...draft.permanentAddressParts })
+        if (draft?.instituteAddressParts) setInstituteAddressParts({ ...createEmptyAddressParts(), ...draft.instituteAddressParts })
+        if (draft?.collegeAddressParts) setCollegeAddressParts({ ...createEmptyAddressParts(), ...draft.collegeAddressParts })
+        if (Array.isArray(draft?.referenceSuccessSources)) setReferenceSuccessSources(draft.referenceSuccessSources)
+        if (typeof draft?.sameAsCurrentAddress === 'boolean') setSameAsCurrentAddress(draft.sameAsCurrentAddress)
+        if (draft?.documents) setDocuments(restoreDraftDocuments(draft.documents))
+      })
+      .finally(() => {
+        if (active) setDraftLoaded(true)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!draftLoaded || done) return undefined
+
+    const timeoutId = window.setTimeout(() => {
+      saveStoredApplyDraft({
+        currentStep,
+        advisorCode,
+        form,
+        currentAddressParts,
+        permanentAddressParts,
+        instituteAddressParts,
+        collegeAddressParts,
+        referenceSuccessSources,
+        sameAsCurrentAddress,
+        documents: serializeDraftDocuments(documents)
+      })
+    }, 300)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [
+    advisorCode,
+    collegeAddressParts,
+    currentAddressParts,
+    currentStep,
+    documents,
+    done,
+    draftLoaded,
+    form,
+    instituteAddressParts,
+    permanentAddressParts,
+    referenceSuccessSources,
+    sameAsCurrentAddress
+  ])
 
   const update = (field, value) => {
     if (submitError) setSubmitError('')
@@ -1075,6 +1237,7 @@ export default function ApplyPage() {
         candidateCode: data.candidateCode || '',
         submittedAt: new Date().toISOString()
       }
+      clearStoredApplyDraft()
       saveStoredSubmission(submission)
       setDone(submission)
     } catch (error) {
@@ -1102,6 +1265,7 @@ export default function ApplyPage() {
             type="button"
             onClick={() => {
               clearStoredSubmission()
+              clearStoredApplyDraft()
               setDone(null)
               setCurrentStep(0)
               setForm(initialForm)
@@ -1125,7 +1289,7 @@ export default function ApplyPage() {
 
   return (
     <PublicShell>
-      <form onSubmit={submit} className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <form onSubmit={submit} className="mx-auto grid max-w-5xl gap-3 lg:grid-cols-[240px_minmax(0,1fr)]">
         <WizardSidebar
           currentStep={currentStep}
           progress={progress}
@@ -1135,7 +1299,7 @@ export default function ApplyPage() {
           onStep={goToStep}
         />
 
-        <div className="min-w-0 space-y-4">
+        <div className="min-w-0 space-y-3">
           <MobileProgress currentStep={currentStep} progress={progress} />
 
           {submitError ? (
@@ -1146,22 +1310,22 @@ export default function ApplyPage() {
           ) : null}
 
           <section className="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
-            <header className="border-b border-slate-200 px-4 py-4 sm:px-6">
+            <header className="border-b border-slate-200 px-4 py-3 sm:px-5">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700 ring-1 ring-sky-100">
-                  <CurrentStepIcon className="h-5 w-5" />
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+                  <CurrentStepIcon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase text-sky-700">Step {currentStep + 1} of {formSteps.length}</p>
-                  <h2 className="mt-0.5 text-lg font-bold leading-7 text-slate-950 sm:text-xl">{currentStepConfig.title}</h2>
+                  <h2 className="mt-0.5 text-lg font-bold leading-6 text-slate-950">{currentStepConfig.title}</h2>
                 </div>
               </div>
             </header>
 
-            <div className="px-4 py-5 sm:px-6">
+            <div className="px-4 py-4 sm:px-5">
               {currentStep === 0 ? (
-                <div className="space-y-6">
-                  <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-5">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {personalFields.slice(0, 4).map((field) => (
                       <Field key={field.name} field={field} value={form[field.name]} onChange={(value) => update(field.name, normalizeFieldValue(field, value))} />
                     ))}
@@ -1282,13 +1446,13 @@ export default function ApplyPage() {
             </div>
           </section>
 
-          <div className="sticky bottom-3 z-20 rounded-lg bg-white/95 p-3 shadow-lg shadow-slate-900/10 ring-1 ring-slate-200 backdrop-blur sm:static sm:shadow-sm">
+          <div className="sticky bottom-3 z-20 rounded-lg bg-white/95 p-2.5 shadow-lg shadow-slate-900/10 ring-1 ring-slate-200 backdrop-blur sm:static sm:shadow-sm">
             <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={goBack}
                 disabled={currentStep === 0 || submitting}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-32"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-28"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Back
@@ -1301,7 +1465,7 @@ export default function ApplyPage() {
                     submitRequestedRef.current = true
                   }}
                   disabled={submitting}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-70 sm:min-w-56"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-70 sm:min-w-52"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                   {submitting ? 'Submitting...' : 'Submit Application'}
@@ -1311,7 +1475,7 @@ export default function ApplyPage() {
                   type="button"
                   onClick={goNext}
                   disabled={submitting}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-70 sm:min-w-40"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-70 sm:min-w-36"
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />
@@ -1325,18 +1489,18 @@ export default function ApplyPage() {
   )
 }
 
-const inputClassName = 'mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-cyan-100'
+const inputClassName = 'mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-[13px] leading-5 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-cyan-100'
 
 function PublicShell({ children }) {
   return (
-    <main className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 sm:px-5 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <header className="mb-4 rounded-lg bg-white px-2 py-3 shadow-sm ring-1 ring-slate-200 sm:mb-5 sm:px-5 sm:py-4">
+    <main className="min-h-screen bg-slate-50 px-3 py-4 text-slate-950 sm:px-5 lg:px-8">
+      <div className="mx-auto max-w-5xl">
+        <header className="mb-3 rounded-lg bg-white px-3 py-3 shadow-sm ring-1 ring-slate-200 sm:mb-4 sm:px-5">
           <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
-              <img src="/success-logo.svg" alt="SUCCESS HR Solution" className="h-8 w-20 shrink-0 object-contain sm:h-14 sm:w-48" />
+              <img src="/success-logo.svg" alt="SUCCESS HR Solution" className="h-8 w-24 shrink-0 object-contain sm:h-12 sm:w-44" />
               <div className="min-w-0 flex-1">
-                <h1 className="text-xs font-bold leading-4 text-slate-950 sm:text-2xl sm:leading-8">Candidate Job Application Form</h1>
+                <h1 className="text-sm font-bold leading-5 text-slate-950 sm:text-xl sm:leading-7">Candidate Job Application Form</h1>
               </div>
             </div>
             <span className="hidden shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200 sm:inline-flex">Secure form</span>
@@ -1353,8 +1517,8 @@ function PublicShell({ children }) {
 
 function WizardSidebar({ currentStep, progress, completedRequired, advisorCode, selectedDocumentCount, onStep }) {
   return (
-    <aside className="hidden h-fit rounded-lg bg-white p-4 shadow-sm ring-1 ring-slate-200 lg:sticky lg:top-5 lg:block">
-      <div className="mb-4">
+    <aside className="hidden h-fit rounded-lg bg-white p-3 shadow-sm ring-1 ring-slate-200 lg:sticky lg:top-5 lg:block">
+      <div className="mb-3">
         <div className="flex items-center justify-between text-xs font-bold text-slate-500">
           <span>Progress</span>
           <span>{progress}%</span>
@@ -1375,7 +1539,7 @@ function WizardSidebar({ currentStep, progress, completedRequired, advisorCode, 
               key={step.title}
               type="button"
               onClick={() => onStep(index)}
-              className={`flex min-h-11 w-full min-w-0 items-center gap-3 rounded-md px-3 text-left text-sm transition ${
+              className={`flex min-h-10 w-full min-w-0 items-center gap-2.5 rounded-md px-2.5 text-left text-[13px] transition ${
                 active
                   ? 'bg-sky-600 text-white'
                   : complete
@@ -1384,7 +1548,7 @@ function WizardSidebar({ currentStep, progress, completedRequired, advisorCode, 
               }`}
             >
               <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${active ? 'bg-white/15' : 'bg-white ring-1 ring-slate-200'}`}>
-                <StepIcon className="h-4 w-4" />
+                <StepIcon className="h-3.5 w-3.5" />
               </span>
               <span className="min-w-0 flex-1 leading-5">{step.title}</span>
             </button>
@@ -1392,7 +1556,7 @@ function WizardSidebar({ currentStep, progress, completedRequired, advisorCode, 
         })}
       </nav>
 
-      <div className="mt-5 space-y-2 border-t border-slate-200 pt-4 text-sm text-slate-600">
+      <div className="mt-4 space-y-2 border-t border-slate-200 pt-3 text-[13px] text-slate-600">
         <SummaryRow label="Required" value={`${completedRequired}/${requiredFields.length}`} />
         <SummaryRow label="Reference" value={advisorCode.trim() ? advisorCode.trim() : 'Walk-in'} />
         <SummaryRow label="Resume" value={selectedDocumentCount ? 'Selected' : 'Optional'} />
@@ -1427,10 +1591,10 @@ function MobileProgress({ currentStep, progress }) {
 
 function ProfessionalDetails({ form, update, normalizeFieldValue }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
         <h3 className="mb-4 text-sm font-bold text-slate-800">Preferred Department</h3>
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           <SelectField
             label="Preferred Department"
             value={form.interestedDepartment}
@@ -1449,7 +1613,7 @@ function ProfessionalDetails({ form, update, normalizeFieldValue }) {
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Preferred Industry</h3>
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           <SelectField
             label="Preferred Industry"
             value={form.preferredIndustry}
@@ -1468,7 +1632,7 @@ function ProfessionalDetails({ form, update, normalizeFieldValue }) {
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Industry Specialization</h3>
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           <SelectField
             label="Industry Specialization"
             value={form.industrySpecialization}
@@ -1497,7 +1661,7 @@ function ProfessionalDetails({ form, update, normalizeFieldValue }) {
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Job Working Status</h3>
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           <SelectField
             label="Job Working Status"
             value={form.jobWorkingStatus}
@@ -1509,7 +1673,7 @@ function ProfessionalDetails({ form, update, normalizeFieldValue }) {
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Total Years of Experience</h3>
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           <SelectField
             label="Experience Type"
             value={form.experienceType}
@@ -1531,7 +1695,7 @@ function ProfessionalDetails({ form, update, normalizeFieldValue }) {
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Notice Period</h3>
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           <SelectField
             label="Notice Period"
             value={form.noticePeriod}
@@ -1550,7 +1714,7 @@ function ProfessionalDetails({ form, update, normalizeFieldValue }) {
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Availability for Interview</h3>
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           <Field
             field={{ name: 'availabilityInterviewStartDate', label: 'Available From', type: 'date', maxToday: false }}
             value={form.availabilityInterviewStartDate}
@@ -1583,7 +1747,7 @@ function ProfessionalDetails({ form, update, normalizeFieldValue }) {
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Reason for Job Change</h3>
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           <SelectField
             label="Reason for Job Change"
             value={form.reasonForJobChange}
@@ -1635,7 +1799,7 @@ function ReferenceSuccessDetails({ form, update, normalizeFieldValue, selectedSo
     <div className="space-y-6">
       <div>
         <h3 className="mb-4 text-sm font-bold text-slate-800">Reference Details</h3>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <Field
             field={{ name: 'referenceBy', label: 'Reference Name' }}
             value={form.referenceBy}
@@ -1675,7 +1839,7 @@ function ReferenceSuccessDetails({ form, update, normalizeFieldValue, selectedSo
               onChange={(value) => update('referenceRelationOther', value)}
             />
           ) : null}
-          <label className="block text-sm font-semibold leading-5 text-slate-700">
+          <label className="block text-xs font-semibold leading-5 text-slate-700">
             Business Advisor Code
             <input
               value={advisorCode}
@@ -1692,7 +1856,7 @@ function ReferenceSuccessDetails({ form, update, normalizeFieldValue, selectedSo
           {referenceSourceOptions.map((source) => (
             <label
               key={source}
-              className="flex min-h-11 items-center gap-3 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
+              className="flex min-h-10 items-center gap-2.5 rounded-md border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700"
             >
               <input
                 type="checkbox"
@@ -1725,9 +1889,9 @@ function AddressSection({ title, values, onChange, disabled = false, action = nu
         <h3 className="text-sm font-bold text-slate-800">{title}</h3>
         {action}
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         {addressPartFields.map((field) => (
-          <label key={field.name} className={`block min-w-0 text-sm font-semibold leading-5 text-slate-700 ${field.full ? 'md:col-span-2' : ''}`}>
+          <label key={field.name} className={`block min-w-0 text-xs font-semibold leading-5 text-slate-700 ${field.full ? 'md:col-span-2' : ''}`}>
             <span className="break-words">{field.label}</span>
             <input
               type="text"
@@ -1753,10 +1917,10 @@ function EducationDetails({
   updateCollegeAddressPart
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
         <h3 className="mb-4 text-sm font-bold text-slate-800">Highest Education Like Graduate, Post Graduate</h3>
-        <div className="grid gap-4">
+        <div className="grid gap-3">
             <SelectField
               label="Highest Education Like Graduate, Post Graduate"
               value={form.educationSector}
@@ -1781,7 +1945,7 @@ function EducationDetails({
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Education Branch</h3>
-        <div className="space-y-4">
+        <div className="space-y-3">
             <SelectField
               label="Branch"
               value={form.educationBranch}
@@ -1800,7 +1964,7 @@ function EducationDetails({
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Education Specialization</h3>
-        <div className="space-y-4">
+        <div className="space-y-3">
             <SelectField
               label="Special Subject / Remark"
               value={form.educationSpecialization}
@@ -1838,7 +2002,7 @@ function EducationDetails({
 
       <div className="border-t border-slate-200 pt-5">
         <h3 className="mb-4 text-sm font-bold text-slate-800">Other Computer Class Or Certification Details</h3>
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           <SelectField
             label="Computer Courses"
             value={form.computerCourse}
@@ -1893,9 +2057,9 @@ function CollegeAddressDetails({ addressParts, onAddressChange }) {
   return (
     <div className="border-t border-slate-200 pt-5">
       <h3 className="mb-4 text-sm font-bold text-slate-800">College Address</h3>
-      <div className="grid gap-4">
+      <div className="grid gap-3">
         {collegeAddressPartFields.map((field) => (
-          <label key={field.name} className="block min-w-0 text-sm font-semibold leading-5 text-slate-700">
+          <label key={field.name} className="block min-w-0 text-xs font-semibold leading-5 text-slate-700">
             <span className="break-words">College {field.label}</span>
             <input
               type="text"
@@ -1923,7 +2087,7 @@ function FieldGrid({ fields, form, update, normalizeFieldValue, singleColumn = f
   const visibleFields = fields.filter((field) => !field.showWhen || form[field.showWhen.name] === field.showWhen.value)
 
   return (
-    <div className={`grid gap-4 ${singleColumn ? '' : 'md:grid-cols-2'}`}>
+    <div className={`grid gap-3 ${singleColumn ? '' : 'md:grid-cols-2 xl:grid-cols-3'}`}>
       {visibleFields.map((field) => {
         const resolvedField = {
           ...field,
@@ -1981,7 +2145,7 @@ function SiblingDetailsEditor({ siblings, onChange, normalizeFieldValue }) {
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h4 className="text-sm font-bold text-slate-800">Sibling Details</h4>
@@ -1998,7 +2162,7 @@ function SiblingDetailsEditor({ siblings, onChange, normalizeFieldValue }) {
       </div>
 
       {rows.map((sibling, siblingIndex) => (
-        <div key={siblingIndex} className="rounded-lg border border-slate-200 bg-white p-4">
+        <div key={siblingIndex} className="rounded-lg border border-slate-200 bg-white p-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h5 className="text-sm font-bold text-slate-700">Sibling {siblingIndex + 1}</h5>
             {rows.length > 1 ? (
@@ -2012,7 +2176,7 @@ function SiblingDetailsEditor({ siblings, onChange, normalizeFieldValue }) {
               </button>
             ) : null}
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {siblingFields
               .filter((field) => !field.showWhen || sibling[field.showWhen.name] === field.showWhen.value)
               .map((field) => (
@@ -2032,12 +2196,12 @@ function SiblingDetailsEditor({ siblings, onChange, normalizeFieldValue }) {
 
 function Field({ field, value, onChange }) {
   return (
-    <label className={`block min-w-0 text-sm font-semibold leading-5 text-slate-700 ${field.kind === 'area' ? 'md:col-span-2' : ''}`}>
+    <label className={`block min-w-0 text-xs font-semibold leading-5 text-slate-700 ${field.kind === 'area' ? 'md:col-span-2' : ''}`}>
       <span className="break-words">
         {field.label} {field.required ? <span className="text-rose-500">*</span> : null}
       </span>
       {field.kind === 'area' ? (
-        <textarea rows={4} value={value} onChange={(event) => onChange(event.target.value)} className={`${inputClassName} resize-y`} />
+        <textarea rows={3} value={value} onChange={(event) => onChange(event.target.value)} className={`${inputClassName} resize-y`} />
       ) : field.options ? (
         <select value={value} onChange={(event) => onChange(event.target.value)} className={inputClassName}>
           {field.options.map((option) => (
@@ -2066,7 +2230,7 @@ function Field({ field, value, onChange }) {
 
 function SelectField({ label, value, onChange, options }) {
   return (
-    <label className="block min-w-0 text-sm font-semibold leading-5 text-slate-700">
+    <label className="block min-w-0 text-xs font-semibold leading-5 text-slate-700">
       <span className="break-words">{label}</span>
       <select
         value={value}
@@ -2085,7 +2249,7 @@ function SelectField({ label, value, onChange, options }) {
 
 function EducationCertificateUploadGroup({ documents, addDocumentFiles, removeDocumentFile }) {
   return (
-    <div className="rounded-lg border border-sky-200 bg-sky-50/40 p-4 md:col-span-2 xl:col-span-3">
+    <div className="rounded-lg border border-sky-200 bg-sky-50/40 p-3 md:col-span-2 xl:col-span-3">
       <div className="mb-3">
         <p className="text-sm font-bold text-slate-900">Education Certificates</p>
         <p className="mt-1 text-xs font-semibold text-slate-500">Upload level-wise certificates like 10th, 12th, Graduate, and Post Graduate.</p>
@@ -2108,7 +2272,7 @@ function EducationCertificateUploadGroup({ documents, addDocumentFiles, removeDo
 
 function ComputerCourseUploadGroup({ documents, addDocumentFiles, removeDocumentFile }) {
   return (
-    <div className="rounded-lg border border-cyan-200 bg-cyan-50/40 p-4 md:col-span-2 xl:col-span-3">
+    <div className="rounded-lg border border-cyan-200 bg-cyan-50/40 p-3 md:col-span-2 xl:col-span-3">
       <div className="mb-3">
         <p className="text-sm font-bold text-slate-900">Computer Courses Certificates</p>
         <p className="mt-1 text-xs font-semibold text-slate-500">Upload course-wise certificates like MS-CIT, CCC, Advanced Excel, Tally, AutoCAD, Typing, and CATIA.</p>
@@ -2133,10 +2297,10 @@ function DocumentUpload({ documentType, label, files, onFiles, onRemove }) {
   const inputRef = useRef(null)
 
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-3">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <label htmlFor={inputId} className="block text-sm font-bold text-slate-900">
+          <label htmlFor={inputId} className="block text-[13px] font-bold text-slate-900">
             {label || documentType.label}
           </label>
           <p className="mt-1 text-xs font-semibold text-slate-500">JPG, PNG, or PDF up to 10MB</p>
@@ -2144,7 +2308,7 @@ function DocumentUpload({ documentType, label, files, onFiles, onRemove }) {
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="inline-flex min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md border border-sky-200 bg-white px-3 text-sm font-bold text-sky-700 hover:bg-sky-50"
+          className="inline-flex min-h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 text-xs font-bold text-sky-700 hover:bg-sky-100"
         >
           <UploadCloud className="h-4 w-4" />
           Upload
@@ -2169,7 +2333,7 @@ function DocumentUpload({ documentType, label, files, onFiles, onRemove }) {
       {files.length ? (
         <div className="mt-3 space-y-2">
           {files.map((file, index) => (
-            <div key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center justify-between gap-2 rounded-md bg-white px-3 py-2 ring-1 ring-slate-200">
+            <div key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center justify-between gap-2 rounded-md bg-slate-50 px-2.5 py-2 ring-1 ring-slate-200">
               <span className="min-w-0 truncate text-xs font-semibold text-slate-700">{file.name}</span>
               <button
                 type="button"
