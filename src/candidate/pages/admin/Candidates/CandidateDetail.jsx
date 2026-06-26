@@ -23,7 +23,8 @@ import {
   calculateQuestionMarksResult,
   candidateVisitHasContent,
   interviewHasContent,
-  mapApiToCandidateForm
+  mapApiToCandidateForm,
+  normalizedCollegeReferenceRows
 } from './candidateFormModel'
 import {
   createCandidateExcelWorkbook,
@@ -63,6 +64,10 @@ const siblingRows = (familyDetails = {}) => {
 
   return rows.filter(siblingHasValue)
 }
+const collegeReferenceRows = (candidate = {}) =>
+  normalizedCollegeReferenceRows(candidate.collegeReferences).filter((reference) =>
+    Object.values(reference).some((value) => String(value ?? '').trim())
+  )
 const editablePanels = new Set(['details', 'documents', 'successInfo', 'assessment', 'interviews', 'visits'])
 const panelFromSearch = (searchParams) => {
   const panel = searchParams.get('panel')
@@ -281,19 +286,20 @@ const detailSearchFields = [
   ['Special Subject / Remark', 'educationSpecialization'],
   ['Other Special Subject / Remark', 'educationSpecializationOther'],
   ['Computer Courses', 'computerCourse'],
+  ['English Typing', 'englishTyping'],
+  ['Hindi Typing', 'hindiTyping'],
   ['Other Certification Courses', 'certificationCourse'],
-  ['Training and Placement Department', 'trainingPlacementDepartment'],
   ['College Name', 'collegeName'],
-  ['College Representative Name', 'placementReference.professorName'],
   ['College Education Branch', 'collegeEducationBranch'],
   ['Other College Education Branch', 'collegeEducationBranchOther'],
+  ['College Representative Name', 'placementReference.professorName'],
   ['Designation', 'instituteDesignation'],
   ['Other Designation', 'instituteDesignationOther'],
   ['Mobile Number', 'placementReference.professorContactNumber'],
   ['Post Graduate College Name', 'postGraduateReference.instituteName'],
-  ['Post Graduate College Representative Name', 'postGraduateReference.representativeName'],
   ['Post Graduate College Education Branch', 'postGraduateReference.educationBranch'],
   ['Post Graduate Other College Education Branch', 'postGraduateReference.educationBranchOther'],
+  ['Post Graduate College Representative Name', 'postGraduateReference.representativeName'],
   ['Post Graduate Designation', 'postGraduateReference.designation'],
   ['Post Graduate Other Designation', 'postGraduateReference.designationOther'],
   ['Post Graduate Mobile Number', 'postGraduateReference.mobileNumber'],
@@ -301,7 +307,9 @@ const detailSearchFields = [
   ['College Taluka', 'instituteAddressTaluka'],
   ['College District', 'instituteAddressDistrict'],
   ['College State', 'instituteAddressState'],
-  ['Teacher', 'collegeTeacherName'],
+  ['Institute Representative Name', 'collegeTeacherName'],
+  ['Course Branch', 'collegeCourseBranch'],
+  ['Other Course Branch', 'collegeCourseBranchOther'],
   ['Designation', 'collegeDesignation'],
   ['Mobile Number', 'collegeMobileNumber'],
   ['Reference', 'collegeReference'],
@@ -329,6 +337,8 @@ const detailSearchFields = [
   ['Online Interview Mode', 'onlineInterviewMode'],
   ['Reason For Job Change', 'reasonForJobChange'],
   ['Key Skills You Have', 'keySkillsKnowledge'],
+  ['Responsibility Type', 'careerResponsibilityRole'],
+  ['Other Responsibility Type', 'careerResponsibilityRoleOther'],
   ['Key Job Responsibility As Per Your Experience', 'careerJobResponsibilities'],
   ['Business Advisor Code', 'advisorCode'],
   ['Reference Name', 'placementReference.referenceBy'],
@@ -839,7 +849,6 @@ const detailStepForPath = (path = '') => {
       'yearOfHigherEducation',
       'computerCourse',
       'certificationCourse',
-      'trainingPlacementDepartment',
       'instituteDesignation'
     ].includes(value)
   ) {
@@ -1296,6 +1305,7 @@ export default function CandidateDetail() {
 
   if (!candidate) return <div className={cardClass}>Loading candidate...</div>
 
+  const displayedCollegeReferences = collegeReferenceRows(candidate)
   const candidateDocumentsByType = groupCandidateDocumentsByType(candidate.documents)
   const extraCandidateDocuments = unmatchedCandidateDocuments(candidate.documents)
   const selectedDocumentInterview = visibleInterviews.find((row) => String(row.id) === String(documentInterviewId)) || visibleInterviews[0] || null
@@ -1592,30 +1602,57 @@ export default function CandidateDetail() {
               <Field label="Computer Courses">
                 <ReadOnlyInput value={candidate.computerCourse} onEditHint={showEditHint} />
               </Field>
+              {candidate.computerCourse === 'Typing' ? (
+                <Field label="Typing Selection">
+                  <ReadOnlyInput
+                    value={[
+                      candidate.englishTyping ? 'English Typing' : '',
+                      candidate.hindiTyping ? 'Hindi Typing' : ''
+                    ].filter(Boolean).join(', ')}
+                    onEditHint={showEditHint}
+                  />
+                </Field>
+              ) : null}
               <Field label="Other Certification Courses">
                 <ReadOnlyInput value={candidate.certificationCourse} onEditHint={showEditHint} />
               </Field>
             </FieldGroup>
 
             <FieldGroup title="College Reference Details (Like 12th, ITI, Diploma, Graduate)">
-              <Field label="Training and Placement Department">
-                <ReadOnlyInput value={candidate.trainingPlacementDepartment} onEditHint={showEditHint} />
-              </Field>
-              <Field label="College Name">
-                <ReadOnlyInput value={candidate.collegeName} onEditHint={showEditHint} />
-              </Field>
-              <Field label="College Representative Name">
-                <ReadOnlyInput value={candidate.placementReference.professorName} onEditHint={showEditHint} />
-              </Field>
-              <Field label="College Education Branch">
-                <ReadOnlyInput value={candidate.collegeEducationBranch === 'Other' ? candidate.collegeEducationBranchOther : candidate.collegeEducationBranch} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Designation">
-                <ReadOnlyInput value={candidate.instituteDesignation === 'Other' ? candidate.instituteDesignationOther : candidate.instituteDesignation} onEditHint={showEditHint} />
-              </Field>
-              <Field label="Mobile Number">
-                <ReadOnlyInput value={candidate.placementReference.professorContactNumber} onEditHint={showEditHint} />
-              </Field>
+              {displayedCollegeReferences.map((reference, referenceIndex) => (
+                <div key={referenceIndex} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 md:col-span-2 xl:col-span-3">
+                  <h4 className="mb-3 text-sm font-bold text-slate-700">College Reference {referenceIndex + 1}</h4>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <Field label="College Name">
+                      <ReadOnlyInput value={reference.instituteName} onEditHint={showEditHint} />
+                    </Field>
+                    <Field label="College Education Branch">
+                      <ReadOnlyInput value={reference.educationBranch === 'Other' ? reference.educationBranchOther : reference.educationBranch} onEditHint={showEditHint} />
+                    </Field>
+                    <Field label="College Representative Name">
+                      <ReadOnlyInput value={reference.representativeName} onEditHint={showEditHint} />
+                    </Field>
+                    <Field label="Designation">
+                      <ReadOnlyInput value={reference.designation === 'Other' ? reference.designationOther : reference.designation} onEditHint={showEditHint} />
+                    </Field>
+                    <Field label="Mobile Number">
+                      <ReadOnlyInput value={reference.mobileNumber} onEditHint={showEditHint} />
+                    </Field>
+                    <Field label="College Village">
+                      <ReadOnlyInput value={reference.addressVillage} onEditHint={showEditHint} />
+                    </Field>
+                    <Field label="College Taluka">
+                      <ReadOnlyInput value={reference.addressTaluka} onEditHint={showEditHint} />
+                    </Field>
+                    <Field label="College District">
+                      <ReadOnlyInput value={reference.addressDistrict} onEditHint={showEditHint} />
+                    </Field>
+                    <Field label="College State">
+                      <ReadOnlyInput value={reference.addressState} onEditHint={showEditHint} />
+                    </Field>
+                  </div>
+                </div>
+              ))}
               <Field label="College Village">
                 <ReadOnlyInput value={candidate.instituteAddressVillage} onEditHint={showEditHint} />
               </Field>
@@ -1634,14 +1671,14 @@ export default function CandidateDetail() {
               <Field label="College Name">
                 <ReadOnlyInput value={candidate.postGraduateReference?.instituteName} onEditHint={showEditHint} />
               </Field>
-              <Field label="College Representative Name">
-                <ReadOnlyInput value={candidate.postGraduateReference?.representativeName} onEditHint={showEditHint} />
-              </Field>
               <Field label="College Education Branch">
                 <ReadOnlyInput
                   value={candidate.postGraduateReference?.educationBranch === 'Other' ? candidate.postGraduateReference?.educationBranchOther : candidate.postGraduateReference?.educationBranch}
                   onEditHint={showEditHint}
                 />
+              </Field>
+              <Field label="College Representative Name">
+                <ReadOnlyInput value={candidate.postGraduateReference?.representativeName} onEditHint={showEditHint} />
               </Field>
               <Field label="Designation">
                 <ReadOnlyInput
@@ -1655,8 +1692,11 @@ export default function CandidateDetail() {
             </FieldGroup>
 
             <FieldGroup title="Institute Details (Private Coaching Classes)">
-              <Field label="Teacher">
+              <Field label="Institute Representative Name">
                 <ReadOnlyInput value={candidate.collegeTeacherName} onEditHint={showEditHint} />
+              </Field>
+              <Field label="Course Branch">
+                <ReadOnlyInput value={candidate.collegeCourseBranch === 'Other' ? candidate.collegeCourseBranchOther : candidate.collegeCourseBranch} onEditHint={showEditHint} />
               </Field>
               <Field label="Designation">
                 <ReadOnlyInput value={candidate.collegeDesignation} onEditHint={showEditHint} />
@@ -1773,6 +1813,9 @@ export default function CandidateDetail() {
             </FieldGroup>
 
             <FieldGroup title="Key Job Responsibility As Per Your Experience">
+              <Field label="Responsibility Type">
+                <ReadOnlyInput value={candidate.careerResponsibilityRole === 'Other' ? candidate.careerResponsibilityRoleOther : candidate.careerResponsibilityRole} onEditHint={showEditHint} />
+              </Field>
               <Field label="Key Job Responsibility As Per Your Experience">
                 <ReadOnlyInput value={candidate.careerJobResponsibilities} onEditHint={showEditHint} />
               </Field>

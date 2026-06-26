@@ -45,19 +45,22 @@ import {
   DIRECTOR_MODE_VALUES,
   DIRECTOR_RATING_VALUES,
   DIRECTOR_YES_NO_VALUES,
+  INTERVIEW_QUESTION_COUNT,
+  IQ_TQ_VALUES,
   MANAGER_ASSESSMENT_FIELDS,
   PERSONALITY_RATING_FIELDS,
   PROFESSIONAL_RATING_FIELDS,
+  QUESTION_MARK_MAX,
   RATING_VALUES,
   SUCCESS_INFO_FIELDS,
   WITNESS_FIELDS,
   COMPUTER_COURSE_ASSESSMENT_COURSES,
   TYPING_LANGUAGE_OPTIONS,
-  TYPING_SPEED_OPTIONS,
   calculateQuestionMarksResult,
   emptyCandidateForm,
   emptyInterviewRow,
   emptyCandidateVisit,
+  emptyCollegeReference,
   emptyQuestionRow,
   emptySiblingDetails,
   emptyWitnessDetails,
@@ -69,6 +72,7 @@ import {
   mapCandidateFormToApi,
   mapInterviewToForm,
   mapFormInterviewToApi,
+  normalizedCollegeReferenceRows,
   normalizeQuestionMarks,
   sanitizeInterviews
 } from './candidateFormModel'
@@ -94,6 +98,39 @@ const emptyDirectorUnlockCredentials = { password: '' }
 const panelFromSearch = (searchParams) => {
   const panel = searchParams.get('panel')
   return editablePanels.has(panel) ? panel : 'details'
+}
+
+const CMS_CANDIDATE_DRAFT_KEY = 'success-cms-candidate:add-draft'
+
+const readStoredCmsCandidateDraft = () => {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = window.localStorage.getItem(CMS_CANDIDATE_DRAFT_KEY)
+    return stored ? JSON.parse(stored) : null
+  } catch (_error) {
+    return null
+  }
+}
+
+const saveStoredCmsCandidateDraft = (draft) => {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(CMS_CANDIDATE_DRAFT_KEY, JSON.stringify({
+      ...draft,
+      savedAt: new Date().toISOString()
+    }))
+  } catch (_error) {
+    // Ignore storage errors; the live form state still works.
+  }
+}
+
+const clearStoredCmsCandidateDraft = () => {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.removeItem(CMS_CANDIDATE_DRAFT_KEY)
+  } catch (_error) {
+    // Ignore storage errors.
+  }
 }
 
 const documentTypeByLabel = allCandidateDocumentTypes.reduce((acc, item) => {
@@ -598,6 +635,7 @@ const downloadBlob = (blob, fileName) => {
 }
 
 export {
+  createCandidateBlankTemplatePdf,
   createCandidateExcelWorkbook,
   createCompanyInterviewPdf,
   createSuccessInfoPdf,
@@ -733,6 +771,7 @@ const higherEducationYearOptions = ['', ...Array.from({ length: 67 }, (_, index)
 const educationBranchOptions = ['', 'Arts', 'Commerce', 'Science', 'Diploma/BE', 'Pharmacy', 'MBA', 'Nursing', 'ITI', 'Computer Application', 'Computer Science', 'Other']
 const computerCourseOptions = ['', 'MS-CIT', 'CCC', 'Advanced Excel', 'PowerPoint', 'Tally', 'AutoCAD', 'Typing', 'Other']
 const certificationCourseOptions = ['', 'Graphic Design', 'C++', 'Java', 'PHP', 'Python', 'Web Development', 'Digital Marketing', 'Data Analytics', 'Other']
+const instituteCourseBranchOptions = ['', 'MS-CIT', 'Tally', 'Advanced Excel', 'Typing', 'DTP', 'Web Design', 'Programming', 'Digital Marketing', 'Other']
 const educationSpecializationByBranch = {
   Arts: ['History', 'Geography', 'Political Science', 'Economics', 'Sociology', 'Psychology', 'Marathi', 'Hindi', 'English'],
   Commerce: ['Accounting', 'Finance', 'Banking', 'Taxation', 'Business Administration', 'Economics', 'Costing'],
@@ -753,8 +792,19 @@ const industrySpecializationOptions = ['', 'Manufacturing', 'Food', 'Pharma', 'P
 const currentJobLocationTalukaOptions = ['', 'Sinnar', 'Nashik', 'Mumbai', 'Pune', 'Sangamner', 'Ahilyanagar', 'Sambhaji Nagar', 'Other']
 const currentJobLocationMidcAreaOptions = ['', 'Musalgaon', 'Malegaon', 'Ambad', 'Satpur', 'Other']
 const interviewModeOptions = ['', 'Online', 'Offline', 'Face to Face']
-const referenceSourceOptions = ['Social Media', 'WhatsApp', 'Facebook', 'Instagram', 'LinkedIn', 'Friend', 'Relatives', 'Other']
+const referenceSourceOptions = ['Social Media', 'Website', 'YouTube', 'Google', 'WhatsApp', 'Facebook', 'Instagram', 'LinkedIn', 'Friend', 'Relatives', 'Other']
 const referenceRelationOptions = ['', 'Brother', 'Sister', 'Father', 'Mother', 'Spouse', 'Relative', 'Friend', 'Colleague', 'Neighbor', 'Teacher', 'Other']
+const careerResponsibilityRoleOptions = ['', 'Software Developer', 'Sales Executive', 'HR / Admin', 'Accounts Executive', 'Production Executive', 'Quality Inspector', 'Store / Purchase', 'Customer Support', 'Data Entry / Back Office', 'Digital Marketing Executive', 'Maintenance Technician', 'Other']
+const keySkillCategoryOptions = ['', 'Programming Skills', 'Office Skills', 'Accounting Skills', 'Design Skills', 'Digital Marketing Skills', 'Mechanical / Technical Skills', 'Communication Skills', 'Other']
+const keySkillOptionsByCategory = {
+  'Programming Skills': ['HTML', 'CSS', 'JavaScript', 'React', 'Node.js', 'Java', 'Python', 'PHP', 'C++', 'SQL', 'Other'],
+  'Office Skills': ['MS Word', 'MS Excel', 'Advanced Excel', 'PowerPoint', 'Email Writing', 'Data Entry', 'Typing', 'Other'],
+  'Accounting Skills': ['Tally', 'GST', 'Invoice Billing', 'Bank Reconciliation', 'Payroll', 'Accounts Payable/Receivable', 'Other'],
+  'Design Skills': ['Photoshop', 'CorelDRAW', 'Canva', 'Graphic Design', 'Video Editing', 'UI Design', 'Other'],
+  'Digital Marketing Skills': ['SEO', 'Social Media Marketing', 'Google Ads', 'Meta Ads', 'Content Writing', 'Email Marketing', 'Other'],
+  'Mechanical / Technical Skills': ['AutoCAD', 'CNC/VMC', 'Machine Operating', 'Quality Checking', 'Maintenance', 'Production Planning', 'Other'],
+  'Communication Skills': ['English Communication', 'Marathi Communication', 'Hindi Communication', 'Customer Handling', 'Team Coordination', 'Presentation', 'Other']
+}
 const siblingCareerProfileOptions = ['', 'Studying', 'Own Business', 'Doing Government Job Preparation', 'Housewife', 'Farmer', 'Doing Government Job', 'Doing Private Job', 'Other']
 const siblingStudyStandardOptions = [
   '',
@@ -787,6 +837,20 @@ const siblingDetailFields = [
   { key: 'siblingStudyStandard', label: 'Sibling / Brother / Sister Study Standard', options: siblingStudyStandardOptions, showWhen: { key: 'siblingCareerProfile', value: 'Studying' } },
   { key: 'siblingStudyStandardOther', label: 'Other Sibling / Brother / Sister Study Standard', showWhen: { key: 'siblingStudyStandard', value: 'Other' } },
   { key: 'siblingCareerProfileOther', label: 'Other Sibling / Brother / Sister Career Profile', showWhen: { key: 'siblingCareerProfile', value: 'Other' } }
+]
+
+const collegeReferenceFields = [
+  { key: 'instituteName', label: 'College Name' },
+  { key: 'educationBranch', label: 'College Education Branch', options: educationBranchOptions },
+  { key: 'educationBranchOther', label: 'Other College Education Branch', showWhen: { key: 'educationBranch', value: 'Other' } },
+  { key: 'representativeName', label: 'College Representative Name' },
+  { key: 'designation', label: 'Designation', options: referenceDesignationOptions },
+  { key: 'designationOther', label: 'Other Designation', showWhen: { key: 'designation', value: 'Other' } },
+  { key: 'mobileNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
+  { key: 'addressVillage', label: 'College Village' },
+  { key: 'addressTaluka', label: 'College Taluka' },
+  { key: 'addressDistrict', label: 'College District' },
+  { key: 'addressState', label: 'College State' }
 ]
 
 const candidateDetailPanels = [
@@ -843,34 +907,30 @@ const candidateDetailPanels = [
       { path: 'educationSpecialization', label: 'Special Subject / Remark', optionsFor: (candidate) => educationSpecializationOptionsForBranch(candidate.educationBranch), disabledWhenEmptyPath: 'educationBranch' },
       { path: 'educationSpecializationOther', label: 'Other Special Subject / Remark', showWhen: { path: 'educationSpecialization', value: 'Other' } },
       { key: 'education-institute-reference', kind: 'section', label: 'College Reference Details (Like 12th, ITI, Diploma, Graduate)' },
-      { path: 'trainingPlacementDepartment', label: 'Training and Placement Department' },
-      { path: 'collegeName', label: 'College Name' },
-      { path: 'placementReference.professorName', label: 'College Representative Name' },
-      { path: 'collegeEducationBranch', label: 'College Education Branch', options: educationBranchOptions },
-      { path: 'collegeEducationBranchOther', label: 'Other College Education Branch', showWhen: { path: 'collegeEducationBranch', value: 'Other' } },
-      { path: 'instituteDesignation', label: 'Designation', options: referenceDesignationOptions },
-      { path: 'instituteDesignationOther', label: 'Other Designation', showWhen: { path: 'instituteDesignation', value: 'Other' } },
-      { path: 'placementReference.professorContactNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
+      { key: 'collegeReferences', kind: 'collegeReferences', label: 'College Reference Details', full: true },
       { key: 'education-post-graduate-reference', kind: 'section', label: 'Post Graduate Reference Details' },
       { path: 'postGraduateReference.instituteName', label: 'College Name' },
-      { path: 'postGraduateReference.representativeName', label: 'College Representative Name' },
       { path: 'postGraduateReference.educationBranch', label: 'College Education Branch', options: educationBranchOptions },
       { path: 'postGraduateReference.educationBranchOther', label: 'Other College Education Branch', showWhen: { path: 'postGraduateReference.educationBranch', value: 'Other' } },
+      { path: 'postGraduateReference.representativeName', label: 'College Representative Name' },
       { path: 'postGraduateReference.designation', label: 'Designation', options: referenceDesignationOptions },
       { path: 'postGraduateReference.designationOther', label: 'Other Designation', showWhen: { path: 'postGraduateReference.designation', value: 'Other' } },
       { path: 'postGraduateReference.mobileNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
-      { key: 'education-institute-address', kind: 'section', label: 'College Address' },
       { path: 'instituteAddressVillage', label: 'College Village' },
       { path: 'instituteAddressTaluka', label: 'College Taluka' },
       { path: 'instituteAddressDistrict', label: 'College District' },
       { path: 'instituteAddressState', label: 'College State' },
       { key: 'education-college-details', kind: 'section', label: 'Institute Details (Private Coaching Classes)' },
-      { path: 'collegeTeacherName', label: 'Teacher' },
+      { path: 'collegeTeacherName', label: 'Institute Representative Name' },
+      { path: 'collegeCourseBranch', label: 'Course Branch', options: instituteCourseBranchOptions },
+      { path: 'collegeCourseBranchOther', label: 'Other Course Branch', showWhen: { path: 'collegeCourseBranch', value: 'Other' } },
       { path: 'collegeDesignation', label: 'Designation' },
       { path: 'collegeMobileNumber', label: 'Mobile Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
       { path: 'collegeReference', label: 'Reference' },
       { key: 'education-courses', kind: 'section', label: 'Other Computer Class Or Certification Details' },
       { path: 'computerCourse', label: 'Computer Courses', options: computerCourseOptions },
+      { path: 'englishTyping', label: 'English Typing', kind: 'checkbox', showWhen: { path: 'computerCourse', value: 'Typing' } },
+      { path: 'hindiTyping', label: 'Hindi Typing', kind: 'checkbox', showWhen: { path: 'computerCourse', value: 'Typing' } },
       { path: 'certificationCourse', label: 'Other Certification Courses', options: certificationCourseOptions },
       { path: 'computerCourseOther', label: 'Other Computer Course', showWhen: { path: 'computerCourse', value: 'Other' } },
       { path: 'certificationCourseOther', label: 'Other Certification Course', showWhen: { path: 'certificationCourse', value: 'Other' } }
@@ -920,8 +980,21 @@ const candidateDetailPanels = [
       { path: 'reasonForJobChange', label: 'Reason For Job Change', options: ['', 'Looking for financial and personal growth', 'Looking for opportunity in native place', 'Facing challenge in current company', 'Any Other'] },
       { path: 'reasonForJobChangeOther', label: 'Other Reason', showWhen: { path: 'reasonForJobChange', value: 'Any Other' } },
       { key: 'professional-skills', kind: 'section', label: 'Key Skills You Have' },
-      { path: 'keySkillsKnowledge', label: 'Key skills you have', kind: 'area' },
+      { path: 'keySkillCategory', label: 'Skill Category', options: keySkillCategoryOptions },
+      { path: 'keySkillCategoryOther', label: 'Other Skill Category', showWhen: { path: 'keySkillCategory', value: 'Other' } },
+      ...Object.entries(keySkillOptionsByCategory).map(([category, options]) => ({
+        path: 'keySkillItems',
+        label: 'Select Skills',
+        kind: 'checkboxes',
+        options,
+        showWhen: { path: 'keySkillCategory', value: category },
+        full: true
+      })),
+      { path: 'keySkillOther', label: 'Other Skill', showWhenIncludes: { path: 'keySkillItems', value: 'Other' } },
+      { path: 'keySkillOther', label: 'Other Skill', showWhen: { path: 'keySkillCategory', value: 'Other' } },
       { key: 'professional-responsibility', kind: 'section', label: 'Key Job Responsibility As Per Your Experience' },
+      { path: 'careerResponsibilityRole', label: 'Responsibility Type', options: careerResponsibilityRoleOptions },
+      { path: 'careerResponsibilityRoleOther', label: 'Other Responsibility Type', showWhen: { path: 'careerResponsibilityRole', value: 'Other' } },
       { path: 'careerJobResponsibilities', label: 'Key job responsibility as per your experience', kind: 'area' }
     ]
   },
@@ -1284,6 +1357,19 @@ const fieldExportValue = (candidate, field) => {
       ].filter(Boolean).join(', '))
       .join('\n')
   }
+  if (field.kind === 'collegeReferences') {
+    return normalizedCollegeReferenceRows(candidate.collegeReferences)
+      .filter((reference) => Object.values(reference).some((value) => String(value ?? '').trim()))
+      .map((reference, index) => [
+        `College Reference ${index + 1}`,
+        reference.instituteName ? `College Name: ${reference.instituteName}` : '',
+        reference.educationBranch ? `College Education Branch: ${reference.educationBranch === 'Other' ? reference.educationBranchOther : reference.educationBranch}` : '',
+        reference.representativeName ? `College Representative Name: ${reference.representativeName}` : '',
+        reference.designation ? `Designation: ${reference.designation === 'Other' ? reference.designationOther : reference.designation}` : '',
+        reference.mobileNumber ? `Mobile Number: ${reference.mobileNumber}` : ''
+      ].filter(Boolean).join(', '))
+      .join('\n')
+  }
   if (!field.path) return ''
   return excelValue(getCandidatePathValue(candidate, field.path))
 }
@@ -1348,10 +1434,11 @@ const computerCourseRowsForDisplay = (assessment = {}) => {
   const rows = Array.isArray(assessment.courseScores)
     ? assessment.courseScores
         .map((row) => ({
-          course: String(row?.course || '').trim(),
+          course: String(row?.course === 'Other' ? row?.courseOther || row?.course : row?.course || '').trim(),
+          courseOther: String(row?.courseOther || '').trim(),
           score: String(row?.score || '').trim()
         }))
-        .filter((row) => row.course || row.score)
+        .filter((row) => row.course || row.courseOther || row.score)
     : []
 
   if (rows.length) return rows
@@ -1806,6 +1893,327 @@ const createCandidateDetailsPdf = (candidate) => {
 
     if (col !== 0) y += rowHeight + 8
     y += 8
+  })
+
+  pushPage()
+
+  const objects = [
+    null,
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    `<< /Type /Pages /Kids [${pages.map((_page, index) => `${5 + index * 2} 0 R`).join(' ')}] /Count ${pages.length} >>`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>'
+  ]
+  pages.forEach((content, index) => {
+    const pageObject = 5 + index * 2
+    const contentObject = pageObject + 1
+    objects[pageObject] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentObject} 0 R >>`
+    objects[contentObject] = `<< /Length ${content.length} >>\nstream\n${content}\nendstream`
+  })
+
+  let pdf = '%PDF-1.4\n'
+  const offsets = [0]
+  for (let i = 1; i < objects.length; i += 1) {
+    offsets[i] = pdf.length
+    pdf += `${i} 0 obj\n${objects[i]}\nendobj\n`
+  }
+  const xref = pdf.length
+  pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`
+  for (let i = 1; i < objects.length; i += 1) {
+    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`
+  }
+  pdf += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`
+  return new Blob([pdf], { type: 'application/pdf' })
+}
+
+const templateOptionText = (field = {}) => {
+  if (field.path === 'keySkillItems') {
+    return 'Select based on category: Programming, Office, Accounting, Design, Digital Marketing, Mechanical / Technical, Communication, Other'
+  }
+  if (field.kind === 'checkbox') return 'Checkbox: Yes / No'
+  if (field.kind === 'checkboxes') {
+    const options = Array.isArray(field.options) ? field.options.filter(Boolean) : []
+    return options.length ? `Checkboxes: ${options.join(', ')}` : 'Checkboxes'
+  }
+  if (Array.isArray(field.options)) {
+    const options = field.options.filter(Boolean)
+    return options.length ? `Options: ${options.join(' / ')}` : ''
+  }
+  if (field.optionsFor) return 'Options depend on selected education branch'
+  if (field.type === 'date') return 'Date'
+  if (field.type === 'number') return 'Number'
+  if (field.inputMode === 'numeric') return field.maxLength ? `Number, max ${field.maxLength} digits` : 'Number'
+  if (field.kind === 'area') return 'Long text'
+  return ''
+}
+
+const templateEntriesFromFields = (fields = []) => {
+  const entries = []
+  const seen = new Set()
+  let addedKeySkillItems = false
+
+  fields.forEach((field) => {
+    if (field.kind === 'section') {
+      entries.push({ type: 'subsection', label: field.label })
+      return
+    }
+
+    if (field.kind === 'siblings') {
+      entries.push({ type: 'subsection', label: 'Sibling Details 1 (repeat if required)' })
+      siblingDetailFields.forEach((siblingField) => {
+        entries.push({ label: siblingField.label, hint: templateOptionText(siblingField) })
+      })
+      return
+    }
+
+    if (field.kind === 'collegeReferences') {
+      entries.push({ type: 'subsection', label: 'College Reference 1 (repeat if required)' })
+      collegeReferenceFields.forEach((referenceField) => {
+        entries.push({ label: referenceField.label, hint: templateOptionText(referenceField) })
+      })
+      return
+    }
+
+    if (field.path === 'keySkillItems') {
+      if (addedKeySkillItems) return
+      addedKeySkillItems = true
+    }
+
+    const signature = `${field.path || field.key || ''}-${field.label}`
+    if (seen.has(signature)) return
+    seen.add(signature)
+    entries.push({
+      label: field.label,
+      hint: templateOptionText(field),
+      tall: field.kind === 'area' || field.full
+    })
+  })
+
+  return entries
+}
+
+const candidateBlankTemplateSections = () => [
+  {
+    title: 'Candidate Details - Registration',
+    entries: [
+      { label: 'Candidate ID' },
+      { label: 'Registration Date', hint: 'Date' }
+    ]
+  },
+  ...candidateDetailPanels.map((panel) => ({
+    title: `Candidate Details - ${panel.title}`,
+    entries: templateEntriesFromFields(panel.fields)
+  })),
+  {
+    title: 'Documents',
+    entries: [
+      { type: 'subsection', label: 'Candidate Documents' },
+      ...candidateDocumentTypes.map((item) => ({ label: item.label, hint: 'Upload status / file name / date' })),
+      { type: 'subsection', label: 'Success Documents' },
+      ...successDocumentTypes.map((item) => ({ label: item.label, hint: 'Upload status / file name / date' })),
+      { type: 'subsection', label: 'Company-wise Interview Documents' },
+      ...interviewDocumentTypes.map((item) => ({ label: item.label, hint: 'Upload status / file name / date' }))
+    ]
+  },
+  {
+    title: 'Success Info For Candidate',
+    entries: [
+      { type: 'subsection', label: 'Witness 1 (repeat if required)' },
+      ...WITNESS_FIELDS.map((field) => ({ label: field.label, hint: templateOptionText(field) })),
+      ...templateEntriesFromFields(SUCCESS_INFO_FIELDS)
+    ]
+  },
+  {
+    title: 'Success Interviewer Remark',
+    entries: [
+      { type: 'subsection', label: directorAssessmentLabel },
+      ...DIRECTOR_ASSESSMENT_FIELDS.map((field) => ({ label: field.label, hint: `Options: ${DIRECTOR_RATING_VALUES.join(' / ')}` })),
+      { label: 'Counseling Of Candidate', hint: `Options: ${DIRECTOR_YES_NO_VALUES.join(' / ')}` },
+      { label: 'Counseling Mode', hint: `Options: ${DIRECTOR_MODE_VALUES.join(' / ')}` },
+      { type: 'subsection', label: 'Manager Assessment' },
+      ...MANAGER_ASSESSMENT_FIELDS.map((field) => ({ label: field.label, hint: `Options: ${DIRECTOR_RATING_VALUES.join(' / ')}` })),
+      { label: 'Counseling Of Candidate', hint: `Options: ${DIRECTOR_YES_NO_VALUES.join(' / ')}` },
+      { label: 'Counseling Mode', hint: `Options: ${DIRECTOR_MODE_VALUES.join(' / ')}` },
+      { type: 'subsection', label: 'Professional Assessment' },
+      ...PROFESSIONAL_RATING_FIELDS.map((field) => ({ label: field.label, hint: `Rating: ${RATING_VALUES.join(' / ')}` })),
+      { type: 'subsection', label: 'Personality Assessment' },
+      ...PERSONALITY_RATING_FIELDS.map((field) => ({ label: field.label, hint: `Rating: ${RATING_VALUES.join(' / ')}` })),
+      { type: 'subsection', label: 'Computer Courses Assessment' },
+      { label: 'Course', hint: `Options: ${COMPUTER_COURSE_ASSESSMENT_COURSES.join(' / ')}` },
+      { label: 'Other Course' },
+      { label: 'Marks', hint: 'Out of 10' },
+      { label: 'Typing Language', hint: `Options: ${TYPING_LANGUAGE_OPTIONS.join(' / ')}` },
+      { label: 'Typing Speed', hint: '1 to 60 WPM' },
+      { label: 'Typing Accuracy', hint: 'Out of 100' },
+      { label: 'Computer Course Remark', tall: true },
+      { type: 'subsection', label: 'Interview Questions and Answers' },
+      { label: 'IQ Selections', hint: `Options: ${IQ_TQ_VALUES.join(' / ')}` },
+      { label: 'TQ Selections', hint: `Options: ${IQ_TQ_VALUES.join(' / ')}` },
+      { label: 'Grade' },
+      ...Array.from({ length: INTERVIEW_QUESTION_COUNT }, (_, index) => ({ label: `Question ${index + 1}`, hint: `Marks out of ${QUESTION_MARK_MAX}`, tall: true })),
+      { type: 'subsection', label: 'Success Interviewer Remark' },
+      { label: 'Suitable Industry' },
+      { label: 'Suitable Department' },
+      { label: 'HR Interviewer' },
+      { label: 'Remark', tall: true }
+    ]
+  },
+  {
+    title: 'Company Interviews',
+    entries: [
+      { type: 'subsection', label: 'Company Interview 1 (repeat if required)' },
+      ...interviewFieldSearchItems
+        .filter((item) => !item.interviewDocumentType)
+        .map((item) => ({ label: item.label, tall: ['Not Attend Remark', 'IF Not Interested Reason', 'Reply From Company', 'Positive Feedback', 'Negative Feedback', 'Overall Discussion', 'Note'].includes(item.label) })),
+      { type: 'subsection', label: 'Company-wise Interview Documents' },
+      ...interviewDocumentTypes.map((item) => ({ label: item.label, hint: 'Upload status / file name / date' }))
+    ]
+  },
+  {
+    title: 'Number of Visits',
+    entries: [
+      { label: 'Total Number of Visits', hint: 'Number' },
+      { type: 'subsection', label: 'Visit 1 (repeat if required)' },
+      { label: 'Date and Time of Visit', hint: 'Date and time' },
+      { label: 'Purpose for Visit', hint: `Options: ${visitPurposeOptions.filter(Boolean).join(' / ')}` },
+      { label: 'Other Purpose for Visit' },
+      { label: 'Meeting Staff Name' },
+      { label: 'Communication Details', tall: true }
+    ]
+  }
+]
+
+const createCandidateBlankTemplatePdf = () => {
+  const pageWidth = 595
+  const pageHeight = 842
+  const margin = 30
+  const gap = 12
+  const fieldWidth = (pageWidth - margin * 2 - gap) / 2
+  const pages = []
+  let ops = []
+  let y = margin
+
+  const pdfY = (topY) => pageHeight - topY
+  const color = ([r, g, b]) => `${r} ${g} ${b}`
+  const add = (value) => ops.push(value)
+  const wrapLines = (text, size, maxWidth) => {
+    const words = pdfPlainText(text || '').split(' ').filter(Boolean)
+    const lines = []
+    let line = ''
+    words.forEach((word) => {
+      const next = line ? `${line} ${word}` : word
+      if (next.length * size * 0.52 <= maxWidth || !line) {
+        line = next
+      } else {
+        lines.push(line)
+        line = word
+      }
+    })
+    if (line) lines.push(line)
+    return lines.length ? lines : ['']
+  }
+  const drawText = (text, x, topY, { size = 9, bold = false, fill = [0.06, 0.09, 0.16], maxWidth = 120, lineHeight = size * 1.25 } = {}) => {
+    const lines = wrapLines(text, size, maxWidth)
+    lines.forEach((line, index) => {
+      add(`BT ${color(fill)} rg /F${bold ? 2 : 1} ${size} Tf ${x.toFixed(2)} ${pdfY(topY + size + index * lineHeight).toFixed(2)} Td (${escapePdfText(line)}) Tj ET`)
+    })
+    return lines.length * lineHeight
+  }
+  const drawRect = (x, topY, width, height, { stroke = [0.82, 0.86, 0.92], fill = null, lineWidth = 0.7 } = {}) => {
+    add(`q ${lineWidth} w`)
+    if (fill) add(`${color(fill)} rg`)
+    if (stroke) add(`${color(stroke)} RG`)
+    add(`${x.toFixed(2)} ${(pageHeight - topY - height).toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)} re ${fill && stroke ? 'B' : fill ? 'f' : 'S'}`)
+    add('Q')
+  }
+  const drawLine = (x1, y1, x2, y2, stroke = [0.78, 0.83, 0.9], lineWidth = 0.7) => {
+    add(`q ${lineWidth} w ${color(stroke)} RG ${x1.toFixed(2)} ${pdfY(y1).toFixed(2)} m ${x2.toFixed(2)} ${pdfY(y2).toFixed(2)} l S Q`)
+  }
+  const pushPage = () => {
+    if (ops.length) pages.push(ops.join('\n'))
+    ops = []
+    y = margin
+  }
+  const drawPageHeader = (continued = false) => {
+    drawText('Candidate Management Blank Template', margin, y, { size: 14, bold: true, maxWidth: 330 })
+    drawText(continued ? 'Continued' : 'Blank PDF Form', pageWidth - margin - 120, y + 2, { size: 8.5, bold: true, fill: [0.39, 0.48, 0.61], maxWidth: 120 })
+    y += 24
+    drawLine(margin, y, pageWidth - margin, y)
+    y += 14
+  }
+  const ensureSpace = (height) => {
+    if (y + height <= pageHeight - margin) return
+    pushPage()
+    drawPageHeader(true)
+  }
+  const fieldHeight = (entry) => {
+    const labelLines = wrapLines(entry.label, 8, fieldWidth - 18)
+    const hintLines = entry.hint ? wrapLines(entry.hint, 7, fieldWidth - 18) : []
+    return Math.max(entry.tall ? 64 : 46, 28 + labelLines.length * 10 + hintLines.length * 8)
+  }
+  const drawField = (entry, x, topY, height) => {
+    drawRect(x, topY, fieldWidth, height, { fill: [1, 1, 1] })
+    const labelUsed = drawText(entry.label, x + 9, topY + 7, { size: 8, bold: true, fill: [0.12, 0.18, 0.28], maxWidth: fieldWidth - 18, lineHeight: 10 })
+    if (entry.hint) {
+      drawText(entry.hint, x + 9, topY + 9 + labelUsed, { size: 7, fill: [0.39, 0.48, 0.61], maxWidth: fieldWidth - 18, lineHeight: 8 })
+    }
+    drawLine(x + 9, topY + height - 12, x + fieldWidth - 9, topY + height - 12, [0.64, 0.7, 0.78], 0.6)
+  }
+  const drawSectionTitle = (title) => {
+    ensureSpace(34)
+    drawRect(margin, y, pageWidth - margin * 2, 23, { stroke: [0.1, 0.49, 0.78], fill: [0.93, 0.97, 1] })
+    drawText(title, margin + 9, y + 6, { size: 10.5, bold: true, fill: [0.02, 0.23, 0.42], maxWidth: pageWidth - margin * 2 - 18 })
+    y += 32
+  }
+  const drawSubsection = (label) => {
+    ensureSpace(22)
+    drawText(label, margin, y, { size: 8.5, bold: true, fill: [0.39, 0.48, 0.61], maxWidth: pageWidth - margin * 2 })
+    y += 13
+    drawLine(margin, y, pageWidth - margin, y, [0.9, 0.92, 0.95], 0.6)
+    y += 8
+  }
+
+  drawPageHeader(false)
+  drawText('Print this template when you need a clean blank checklist for candidate details, documents, success info, interviewer remarks, company interviews, and visits.', margin, y, {
+    size: 8.5,
+    fill: [0.32, 0.4, 0.52],
+    maxWidth: pageWidth - margin * 2,
+    lineHeight: 11
+  })
+  y += 26
+
+  candidateBlankTemplateSections().forEach((section) => {
+    drawSectionTitle(section.title)
+    let col = 0
+    let rowHeight = 0
+
+    section.entries.forEach((entry) => {
+      if (entry.type === 'subsection') {
+        if (col !== 0) {
+          y += rowHeight + 8
+          col = 0
+          rowHeight = 0
+        }
+        drawSubsection(entry.label)
+        return
+      }
+
+      const height = fieldHeight(entry)
+      if (col === 0) ensureSpace(height + 8)
+      const x = margin + col * (fieldWidth + gap)
+      drawField(entry, x, y, height)
+      rowHeight = Math.max(rowHeight, height)
+      col += 1
+
+      if (col === 2) {
+        y += rowHeight + 8
+        col = 0
+        rowHeight = 0
+      }
+    })
+
+    if (col !== 0) y += rowHeight + 8
+    y += 4
   })
 
   pushPage()
@@ -2313,6 +2721,17 @@ function CandidateApplicationField({ field, candidate, errors, onPathChange }) {
     )
   }
 
+  if (field.kind === 'collegeReferences') {
+    return (
+      <div className={className} data-global-field={globalFieldKey('details', field.key || field.label)}>
+        <CollegeReferencesEditor
+          references={candidate.collegeReferences}
+          onChange={(references) => onPathChange('collegeReferences', references)}
+        />
+      </div>
+    )
+  }
+
   if (field.kind === 'checkbox') {
     return (
       <div className={className} data-global-field={globalFieldKey('details', field.path || field.key || field.label)}>
@@ -2492,6 +2911,103 @@ function SiblingDetailsEditor({ siblings, onChange }) {
                       readOnly={field.readOnly}
                       onChange={(event) => updateSibling(siblingIndex, field, event.target.value)}
                       className={`${inputClass} ${field.readOnly ? 'bg-slate-50 text-slate-600' : ''}`}
+                    />
+                  )}
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function CollegeReferencesEditor({ references, onChange }) {
+  const rows = normalizedCollegeReferenceRows(references)
+
+  const updateReference = (index, field, value) => {
+    const nextRows = rows.map((row, rowIndex) => (rowIndex === index ? { ...row } : row))
+    const nextReference = {
+      ...nextRows[index],
+      [field.key]: normalizeApplicationFieldValue(field, value)
+    }
+
+    if (field.key === 'educationBranch' && value !== 'Other') {
+      nextReference.educationBranchOther = ''
+    }
+
+    if (field.key === 'designation' && value !== 'Other') {
+      nextReference.designationOther = ''
+    }
+
+    nextRows[index] = nextReference
+    onChange(nextRows)
+  }
+
+  const addReference = () => onChange([...rows, emptyCollegeReference()])
+
+  const removeReference = (index) => {
+    const nextRows = rows.filter((_, rowIndex) => rowIndex !== index)
+    onChange(nextRows.length ? nextRows : [emptyCollegeReference()])
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={addReference}
+          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-700 sm:w-auto"
+        >
+          <Plus className="h-4 w-4" />
+          Add College Reference
+        </button>
+      </div>
+
+      {rows.map((reference, referenceIndex) => (
+        <div key={referenceIndex} className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h5 className="text-sm font-bold text-slate-700">College Reference {referenceIndex + 1}</h5>
+            {rows.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => removeReference(referenceIndex)}
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remove
+              </button>
+            ) : null}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {collegeReferenceFields.map((field) => {
+              if (field.showWhen && reference[field.showWhen.key] !== field.showWhen.value) return null
+
+              return (
+                <label key={field.key} className="block text-sm font-semibold text-slate-700">
+                  {field.label}
+                  {field.options ? (
+                    <select
+                      className={inputClass}
+                      value={reference[field.key] || ''}
+                      onChange={(event) => updateReference(referenceIndex, field, event.target.value)}
+                    >
+                      {field.options.map((option) => (
+                        <option key={option || 'empty'} value={option}>
+                          {option || 'Select'}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={reference[field.key] || ''}
+                      inputMode={field.inputMode}
+                      maxLength={field.maxLength}
+                      onChange={(event) => updateReference(referenceIndex, field, event.target.value)}
+                      className={inputClass}
                     />
                   )}
                 </label>
@@ -3212,25 +3728,34 @@ function ComputerCourseAssessmentSection({ assessment = {}, onChange }) {
     return Number.isInteger(clamped) ? String(clamped) : String(clamped)
   }
 
+  const normalizeRangeNumberInput = (value, min, max) => {
+    const normalized = String(value || '').replace(/\D/g, '')
+    if (!normalized) return ''
+    const numeric = Number(normalized)
+    if (!Number.isFinite(numeric)) return ''
+    return String(Math.max(min, Math.min(max, numeric)))
+  }
+
   const updateCourseRow = (index, key, value) => {
     const nextRows = courseRows.map((row, rowIndex) => (rowIndex === index ? { ...row } : row))
     nextRows[index] = {
       ...(nextRows[index] || {}),
-      [key]: key === 'score' ? normalizeNumberInput(value, 10) : value
+      [key]: key === 'score' ? normalizeNumberInput(value, 10) : value,
+      ...(key === 'course' && value !== 'Other' ? { courseOther: '' } : {})
     }
     onChange('courseScores', nextRows)
   }
 
-  const addCourseRow = () => onChange('courseScores', [...courseRows, { course: '', score: '' }])
+  const addCourseRow = () => onChange('courseScores', [...courseRows, { course: '', courseOther: '', score: '' }])
 
   const removeCourseRow = (index) => {
     const nextRows = courseRows.filter((_, rowIndex) => rowIndex !== index)
-    onChange('courseScores', nextRows.length ? nextRows : [{ course: '', score: '' }])
+    onChange('courseScores', nextRows.length ? nextRows : [{ course: '', courseOther: '', score: '' }])
   }
 
   const updateTypingSpeed = (value) => {
-    onChange('typingSpeed', value)
-    if (value !== 'Other') onChange('typingSpeedOther', '')
+    onChange('typingSpeed', normalizeRangeNumberInput(value, 1, 60))
+    onChange('typingSpeedOther', '')
   }
 
   return (
@@ -3271,6 +3796,18 @@ function ComputerCourseAssessmentSection({ assessment = {}, onChange }) {
                   ))}
                 </select>
               </label>
+
+              {row.course === 'Other' ? (
+                <label className="block text-sm font-semibold text-slate-700">
+                  Other Course
+                  <input
+                    value={row.courseOther || ''}
+                    onChange={(event) => updateCourseRow(index, 'courseOther', event.target.value)}
+                    className={inputClass}
+                    placeholder="Enter course name"
+                  />
+                </label>
+              ) : null}
 
               <label className="block text-sm font-semibold text-slate-700">
                 Marks
@@ -3322,19 +3859,20 @@ function ComputerCourseAssessmentSection({ assessment = {}, onChange }) {
 
             <label className="block text-sm font-semibold text-slate-700">
               Speed
-              <select
-                className={inputClass}
-                value={assessment.typingSpeed || ''}
-                onChange={(event) => updateTypingSpeed(event.target.value)}
-              >
-                <option value="">Select</option>
-                {TYPING_SPEED_OPTIONS.map((speed) => (
-                  <option key={speed} value={speed}>
-                    {speed} WPM
-                  </option>
-                ))}
-                <option value="Other">Other</option>
-              </select>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  step="1"
+                  value={assessment.typingSpeed === 'Other' ? '' : assessment.typingSpeed || ''}
+                  onChange={(event) => updateTypingSpeed(event.target.value)}
+                  className="h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  placeholder="1 to 60"
+                  aria-label="Typing speed from 1 to 60 WPM"
+                />
+                <span className="shrink-0 text-xs font-bold text-slate-500">WPM</span>
+              </div>
             </label>
 
             {assessment.typingSpeed === 'Other' ? (
@@ -4117,6 +4655,7 @@ export default function AddCandidate() {
   const [directorUnlockCredentials, setDirectorUnlockCredentials] = useState(emptyDirectorUnlockCredentials)
   const [directorUnlocking, setDirectorUnlocking] = useState(false)
   const [directorAssessmentManuallyLocked, setDirectorAssessmentManuallyLocked] = useState(false)
+  const [draftLoaded, setDraftLoaded] = useState(isEdit)
   const autoSaveTimerRef = useRef(null)
   const autoSavePayloadRef = useRef('')
   const autoSaveRequestRef = useRef(0)
@@ -4127,6 +4666,38 @@ export default function AddCandidate() {
   useEffect(() => {
     if (isEdit) setActivePanel(panelFromSearch(searchParams))
   }, [isEdit, searchParams])
+
+  useEffect(() => {
+    if (isEdit) return
+
+    const draft = readStoredCmsCandidateDraft()
+    if (draft?.candidate) {
+      setCandidate({ ...emptyCandidateForm(), ...draft.candidate })
+      if (editablePanels.has(draft.activePanel)) setActivePanel(draft.activePanel)
+      if (draft.candidateDetailsStep !== undefined) {
+        setCandidateDetailsStep(Math.min(Math.max(Number(draft.candidateDetailsStep) || 0, 0), candidateDetailPanels.length - 1))
+      }
+      if (draft.interviewDraft) setInterviewDraft({ ...emptyInterviewRow(), ...draft.interviewDraft })
+      if (draft.interviewMode) setInterviewMode(draft.interviewMode)
+    }
+    setDraftLoaded(true)
+  }, [isEdit])
+
+  useEffect(() => {
+    if (isEdit || !draftLoaded) return undefined
+
+    const timeoutId = window.setTimeout(() => {
+      saveStoredCmsCandidateDraft({
+        candidate,
+        activePanel,
+        candidateDetailsStep,
+        interviewMode,
+        interviewDraft
+      })
+    }, 300)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [activePanel, candidate, candidateDetailsStep, draftLoaded, interviewDraft, interviewMode, isEdit])
 
   useEffect(() => {
     setDirectorApprovalToken('')
@@ -4247,6 +4818,25 @@ export default function AddCandidate() {
         }
       }
 
+      if (path === 'collegeReferences') {
+        const collegeReferences = normalizedCollegeReferenceRows(value)
+        const firstReference = collegeReferences[0] || emptyCollegeReference()
+        return {
+          ...current,
+          collegeReferences,
+          collegeName: firstReference.instituteName || '',
+          collegeEducationBranch: firstReference.educationBranch || '',
+          collegeEducationBranchOther: firstReference.educationBranch === 'Other' ? firstReference.educationBranchOther || '' : '',
+          instituteDesignation: firstReference.designation || '',
+          instituteDesignationOther: firstReference.designation === 'Other' ? firstReference.designationOther || '' : '',
+          placementReference: {
+            ...current.placementReference,
+            professorName: firstReference.representativeName || '',
+            professorContactNumber: firstReference.mobileNumber || ''
+          }
+        }
+      }
+
       const keys = path.split('.')
       const next = { ...current }
       let target = next
@@ -4316,6 +4906,37 @@ export default function AddCandidate() {
           ...next.postGraduateReference,
           designationOther: ''
         }
+      }
+
+      if (path === 'collegeCourseBranch' && value !== 'Other') {
+        next.collegeCourseBranchOther = ''
+      }
+
+      if (path === 'computerCourse' && value !== 'Typing') {
+        next.englishTyping = false
+        next.hindiTyping = false
+      }
+
+      if (path === 'computerCourse' && value !== 'Other') {
+        next.computerCourseOther = ''
+      }
+
+      if (path === 'certificationCourse' && value !== 'Other') {
+        next.certificationCourseOther = ''
+      }
+
+      if (path === 'keySkillCategory') {
+        next.keySkillItems = []
+        next.keySkillOther = ''
+        if (value !== 'Other') next.keySkillCategoryOther = ''
+      }
+
+      if (path === 'keySkillItems' && (!Array.isArray(value) || !value.includes('Other'))) {
+        next.keySkillOther = ''
+      }
+
+      if (path === 'careerResponsibilityRole' && value !== 'Other') {
+        next.careerResponsibilityRoleOther = ''
       }
 
       if (path === 'currentJobLocation' && value !== 'Other') {
@@ -5071,6 +5692,7 @@ export default function AddCandidate() {
       )
 
       toast.success(isEdit ? 'Candidate updated successfully' : 'Candidate saved successfully')
+      if (!isEdit) clearStoredCmsCandidateDraft()
       navigate('/admin/cms/candidates')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not save candidate')

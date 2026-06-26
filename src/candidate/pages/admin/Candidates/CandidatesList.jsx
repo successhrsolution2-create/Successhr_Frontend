@@ -5,6 +5,7 @@ import { CalendarDays, Download, Eye, Filter, Pencil, Plus, RotateCcw, Search, S
 import { PromptDialog } from '../../../components/ActionDialogs'
 import Pagination from '../../../components/Pagination'
 import api from '../../../api/axios'
+import { createCandidateBlankTemplatePdf, downloadBlob } from './AddCandidate'
 
 const isChecked = (value) => Boolean(value?.checked ?? value)
 
@@ -717,9 +718,22 @@ export default function CandidatesList() {
     }
   }
 
+  const downloadBlankTemplatePdf = () => {
+    downloadBlob(createCandidateBlankTemplatePdf(), 'Candidate-Management-Blank-Template.pdf')
+    toast.success('Blank template PDF downloaded')
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-end gap-2">
+        <button
+          type="button"
+          onClick={downloadBlankTemplatePdf}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-[#d4dde8] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d]"
+        >
+          <Download className="h-4 w-4" />
+          Blank Template PDF
+        </button>
         <button
           type="button"
           disabled={importing}
