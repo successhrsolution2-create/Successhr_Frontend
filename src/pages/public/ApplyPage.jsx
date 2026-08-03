@@ -1745,7 +1745,7 @@ function PublicShell({ children }) {
                 <img src="/success-logo.svg" alt="SUCCESS HR Solution" className="h-14 w-36 object-contain sm:h-16 sm:w-36 lg:w-40" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-lg font-black leading-tight text-sky-900 sm:text-2xl lg:text-3xl">SUCCESS HR SOLUTION'S</h1>
+                <h1 className="text-lg font-black leading-tight text-sky-900 sm:text-2xl lg:text-3xl">SUCCESS HR SOLUTION&apos;S</h1>
                 <p className="mt-0.5 text-sm font-extrabold leading-tight text-slate-950 sm:text-base lg:text-lg">Your Success is Our Mission...!</p>
                 <p className="mt-0.5 break-words text-[11px] font-semibold text-slate-600 sm:text-xs">www.successhrsolutions.com</p>
               </div>
@@ -1760,7 +1760,7 @@ function PublicShell({ children }) {
             </div>
             <div className="mt-1 grid gap-x-5 gap-y-1 lg:grid-cols-2">
               <p><span className="font-black">Sinner Office: -</span> Near Sai Xerox, below Yashraj Hotel, Near Waje Petrol Pump, Sinner- 422103 Nashik.</p>
-              <p><span className="font-black">Nashik Office: -</span> 311, 3rd Floor Atlanta Shopper's, Wasan Nagar, Pathardi Phata, Below Signus Hospital, Nashik.</p>
+              <p><span className="font-black">Nashik Office: -</span> 311, 3rd Floor Atlanta Shopper&apos;s, Wasan Nagar, Pathardi Phata, Below Signus Hospital, Nashik.</p>
             </div>
           </div>
         </header>

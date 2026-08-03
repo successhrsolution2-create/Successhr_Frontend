@@ -872,8 +872,9 @@ export const mapInterviewToForm = (row, fallbackReference = '') => ({
   commissionPercent: ''
 })
 
-export const mapApiToCandidateForm = (payload) => {
+export const mapApiToCandidateForm = (payload, context = null) => {
   const base = emptyCandidateForm()
+  const source = context || payload || {}
   const candidate = payload?.candidate || payload || {}
   const applicationDetails = candidate?.applicationDetails || {}
   const personal = applicationDetails.personal || {}
@@ -1086,8 +1087,8 @@ export const mapApiToCandidateForm = (payload) => {
       questions: buildQuestionRows(interviewForm?.questions)
     },
     interviews:
-      Array.isArray(payload?.interviews) && payload.interviews.length
-        ? payload.interviews.map((row) => mapInterviewToForm(row, candidate?.referenceName))
+      Array.isArray(source?.interviews) && source.interviews.length
+        ? source.interviews.map((row) => mapInterviewToForm(row, candidate?.referenceName))
         : [],
     candidateVisits: candidateVisitRows.map((row) => normalizeCandidateVisit(row)).filter(candidateVisitHasContent)
   }
@@ -1497,7 +1498,7 @@ export const mapCandidateFormToApi = (form) => ({
   totalExperience: text(form?.experienceType) === 'Fresher' ? 0 : numberOrUndefined(form?.totalExperience),
   experienceDepartment: text(form?.experienceDepartment),
   currentCompany: text(form?.currentCompany),
-  keyResponsibilities: keyResponsibilities || text(form?.keyResponsibilities),
+  keyResponsibilities: formatJobResponsibilities(form) || text(form?.keyResponsibilities),
   keySkills: splitList(formatKeySkills(form)),
   currentSalary: formatCurrentSalaryDetails(form) || text(form?.currentSalary),
   expectedSalary: formatExpectedSalaryDetails(form) || text(form?.expectedSalary),

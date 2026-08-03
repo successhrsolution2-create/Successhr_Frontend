@@ -4712,7 +4712,7 @@ export default function AddCandidate() {
     const loadCandidate = async () => {
       try {
         const { data } = await api.get(`/cms/candidates/${id}`)
-        const mappedCandidate = mapApiToCandidateForm(data)
+        const mappedCandidate = mapApiToCandidateForm(data.candidate, data)
         autoSavePayloadRef.current = JSON.stringify(mapCandidateFormToApi(mappedCandidate))
         setCandidate(mappedCandidate)
       } catch (error) {
