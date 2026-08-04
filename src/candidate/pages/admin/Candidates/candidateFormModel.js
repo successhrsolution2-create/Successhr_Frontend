@@ -1482,6 +1482,7 @@ export const mapCandidateFormToApi = (form) => ({
   permanentAddress: formatAddressParts(form, 'permanentAddress', form?.permanentAddress),
   whatsappNo: text(form?.whatsappNo),
   emailId: text(form?.email),
+  candidatePassword: text(form?.candidatePassword),
   education: formatEducationDetails(form) || text(form?.education),
   yearOfHigherEducation: text(form?.yearOfHigherEducation),
   computerCourses: formatComputerCourses(form) || text(form?.computerCourses),
