@@ -17,26 +17,15 @@ const schema = z.object({
 
 const accountTypes = [
   {
-    id: 'success',
-    label: 'Admin / Advisor',
-    shortLabel: 'Admin',
-    eyebrow: 'Success HR workspace',
-    title: 'Welcome back',
-    description: 'Use this for Super Admin, Manager, Candidate Management, and Business Advisor accounts.',
-    fieldLabel: 'Email or Employee ID',
-    placeholder: 'admin@consultancy.com or EMP001',
-    icon: ShieldCheck
-  },
-  {
-    id: 'crm',
-    label: 'Telecalling CRM',
-    shortLabel: 'CRM',
-    eyebrow: 'Lead performance workspace',
-    title: 'CRM login',
-    description: 'Use this for CRM super admin and CRM employee calling accounts.',
-    fieldLabel: 'CRM Email or Employee ID',
-    placeholder: 'crm@consultancy.com or CRM001',
-    icon: Headphones
+    id: 'companyAdmin',
+    label: 'Company Admin',
+    shortLabel: 'Company',
+    eyebrow: 'Company workspace',
+    title: 'Company admin login',
+    description: 'Use this for company interview, candidate feedback, and vacancy information.',
+    fieldLabel: 'Company Admin Email',
+    placeholder: 'company.admin@example.com',
+    icon: Building2
   }
 ]
 
@@ -47,20 +36,6 @@ const InputIcon = ({ children }) => (
     {children}
   </span>
 )
-
-const accountTypeFromLocation = (location) => {
-  const search = new URLSearchParams(location.search)
-  const requested = search.get('role') || search.get('account')
-
-  if (accountTypeIds.has(requested)) return requested
-  if (location.pathname.startsWith('/company-admin')) return 'companyAdmin'
-  return 'success'
-}
-
-const hasAccountHint = (location) => {
-  const search = new URLSearchParams(location.search)
-  return search.has('role') || search.has('account') || location.pathname.startsWith('/company-admin')
-}
 
 const managerDefaultPath = (user = {}) => {
   const access = Array.isArray(user.managerAccess) ? user.managerAccess : []
@@ -85,14 +60,15 @@ export default function Login() {
   const location = useLocation()
   const [showPassword, setShowPassword] = useState(false)
   const [loginError, setLoginError] = useState('')
-  const [accountType, setAccountType] = useState(() => accountTypeFromLocation(location))
+  const [accountType, setAccountType] = useState('companyAdmin')
+  const [companyAdminLoading, setCompanyAdminLoading] = useState(false)
   const { token, user, checking, loading } = useSelector((state) => state.auth)
   const {
     accessToken: crmAccessToken,
     role: crmRole,
     status: crmStatus
   } = useSelector((state) => state.crmAuth)
-  const isLoggingIn = loading || crmStatus === 'loading'
+  const isLoggingIn = loading || crmStatus === 'loading' || companyAdminLoading
   const isManagerLogin = location.pathname.startsWith('/manager/login')
   const selectedAccount = accountTypes.find((item) => item.id === accountType) || accountTypes[0]
   const isManagerSuccessLogin = isManagerLogin && accountType === 'success'
@@ -109,7 +85,7 @@ export default function Login() {
   })
 
   useEffect(() => {
-    if (hasAccountHint(location)) return
+
 
     if (!checking && token && user) {
       navigate(routeFor(user.role, user), { replace: true })
@@ -129,7 +105,21 @@ export default function Login() {
     setLoginError('')
     dispatch(clearAuthError())
 
-
+    if (accountType === 'companyAdmin') {
+      setCompanyAdminLoading(true)
+      try {
+        await companyAdminApi.post('/auth/login', {
+          email: values.email,
+          password: values.password
+        })
+        navigate('/company-admin/dashboard', { replace: true })
+      } catch (error) {
+        setLoginError(error.response?.data?.message || 'Company admin login failed')
+      } finally {
+        setCompanyAdminLoading(false)
+      }
+      return
+    }
 
     if (accountType === 'crm') {
       const crmResult = await dispatch(loginCrm(values))
@@ -180,10 +170,7 @@ export default function Login() {
               </p>
             </div>
           </div>
-          <div className="mt-8 rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-cyan-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Tip</p>
-            <p className="mt-1">Select the correct account type first. The system will check only that role.</p>
-          </div>
+
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 px-4 py-6 sm:px-10 sm:py-8 lg:py-12">
@@ -201,35 +188,7 @@ export default function Login() {
             <p className="mt-1 text-sm text-slate-500">Enter your account details to continue.</p>
           </div>
 
-          <div>
-            <p className="mb-2 text-sm font-semibold text-slate-700">Account Type</p>
-            <div className="grid gap-2 sm:grid-cols-3" role="tablist" aria-label="Account type">
-              {accountTypes.map((item) => {
-                const Icon = item.icon
-                const selected = item.id === accountType
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    onClick={() => {
-                      setAccountType(item.id)
-                      setLoginError('')
-                    }}
-                    className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-cyan-100 ${
-                      selected
-                        ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:text-slate-900'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{item.shortLabel}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+
 
           <label className="block text-sm font-semibold text-slate-700">
             {isManagerSuccessLogin ? 'Manager ID / Email' : selectedAccount.fieldLabel}

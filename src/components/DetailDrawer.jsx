@@ -439,6 +439,7 @@ export default function DetailDrawer({
                     <InputField label="Aadhaar Number" value={item.aadhaarNo || ''} onChange={(value) => updateField('aadhaarNo', value)} />
                     <InputField label="WhatsApp No" value={item.whatsappNo || ''} onChange={(value) => updateField('whatsappNo', value)} />
                     <InputField label="Email" value={item.emailId || ''} onChange={(value) => updateField('emailId', value)} />
+                    <InputField label="Candidate Portal Password" type="text" value={item.candidatePassword || ''} onChange={(value) => updateField('candidatePassword', value)} placeholder="Type new password to update" />
                     <InputField label="Applied For" value={item.appliedFor || ''} onChange={(value) => updateField('appliedFor', value)} />
                     <InputField label="Interested Department" value={item.interestedDepartment || ''} onChange={(value) => updateField('interestedDepartment', value)} />
                     <InputField label="Preferred Industry" value={item.preferredIndustry || ''} onChange={(value) => updateField('preferredIndustry', value)} />
@@ -740,7 +741,7 @@ export default function DetailDrawer({
   )
 }
 
-function InputField({ label, value, onChange, type = 'text' }) {
+function InputField({ label, value, onChange, type = 'text', placeholder }) {
   return (
     <label className="block text-sm font-semibold text-slate-700">
       {label}
@@ -748,6 +749,7 @@ function InputField({ label, value, onChange, type = 'text' }) {
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
         className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
       />
     </label>

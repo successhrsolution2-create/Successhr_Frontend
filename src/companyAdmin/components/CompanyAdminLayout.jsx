@@ -21,7 +21,7 @@ export default function CompanyAdminLayout() {
       const { data } = await companyAdminApi.get('/auth/me')
       setCompanyAdmin(data.companyAdmin)
     } catch {
-      navigate('/login?role=companyAdmin', { replace: true })
+      navigate('/company', { replace: true })
     } finally {
       setLoading(false)
     }
@@ -36,7 +36,7 @@ export default function CompanyAdminLayout() {
         if (active) setCompanyAdmin(data.companyAdmin)
       })
       .catch(() => {
-        if (active) navigate('/login?role=companyAdmin', { replace: true })
+        if (active) navigate('/company', { replace: true })
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -49,7 +49,7 @@ export default function CompanyAdminLayout() {
 
   const logout = async () => {
     await companyAdminApi.post('/auth/logout').catch(() => {})
-    navigate('/login?role=companyAdmin', { replace: true })
+    navigate('/company', { replace: true })
   }
 
   if (loading) return <LoadingScreen />

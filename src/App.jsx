@@ -7,6 +7,7 @@ import LoadingScreen from './components/LoadingScreen'
 import { fetchMe } from './store/authSlice'
 
 const Login = lazy(() => import('./pages/Login'))
+const CompanyLogin = lazy(() => import('./pages/CompanyLogin'))
 const SuperAdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
 const BusinessAdvisors = lazy(() => import('./pages/admin/BusinessAdvisors'))
 const AdminReferenceBoard = lazy(() => import('./pages/admin/ReferenceBoard'))
@@ -174,7 +175,8 @@ export default function App() {
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/login" element={<Login />} />
         <Route path="/manager/login" element={<Login />} />
-        <Route path="/company-admin/login" element={<Navigate to="/login?role=companyAdmin" replace />} />
+        <Route path="/company" element={<CompanyLogin />} />
+        <Route path="/company-admin/login" element={<Navigate to="/company" replace />} />
         <Route path="/company-admin" element={<CompanyAdminLayout />}>
           <Route index element={<Navigate to="/company-admin/dashboard" replace />} />
           <Route path="dashboard" element={<CompanyAdminDashboard />} />
