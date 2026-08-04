@@ -863,6 +863,7 @@ const candidateDetailPanels = [
       { path: 'mobile', label: 'Mobile Number', required: true, inputMode: 'numeric', maxLength: 10, digitsOnly: true, errorKey: 'mobile' },
       { path: 'whatsappNo', label: 'WhatsApp Number', inputMode: 'numeric', maxLength: 10, digitsOnly: true },
       { path: 'email', label: 'Email ID', type: 'email' },
+      { path: 'candidatePassword', label: 'Portal Password', type: 'text' },
       { path: 'aadhaarNo', label: 'Aadhar Card Number', inputMode: 'numeric', maxLength: 12, digitsOnly: true },
       { path: 'panNo', label: 'PAN Number', maxLength: 10, uppercase: true },
       { path: 'dateOfBirth', label: 'DOB', type: 'date' },

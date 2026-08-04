@@ -1742,7 +1742,7 @@ function PublicShell({ children }) {
           <div className="bg-gradient-to-r from-[#fffce3] via-[#f3faef] to-[#d9f4fb] px-3 py-3 sm:px-4">
             <div className="grid gap-2 text-center sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center sm:text-left">
               <div className="flex justify-center sm:justify-start">
-                <img src="/success-logo.svg" alt="SUCCESS HR Solution" className="h-14 w-36 object-contain sm:h-16 sm:w-36 lg:w-40" />
+                <img src="/success-logo.jpg" alt="SUCCESS HR Solution" className="h-14 w-36 object-contain sm:h-16 sm:w-36 lg:w-40" />
               </div>
               <div className="min-w-0">
                 <h1 className="text-lg font-black leading-tight text-sky-900 sm:text-2xl lg:text-3xl">SUCCESS HR SOLUTION&apos;S</h1>

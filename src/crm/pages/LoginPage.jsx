@@ -61,7 +61,7 @@ const LoginPage = () => {
         <div className="flex flex-col justify-between border-r border-line bg-white px-8 py-10 text-ink">
           <div>
             <div className="mb-8 rounded-md border border-line bg-white p-4">
-              <img src="/success-logo.svg" alt="Success HR Solutions" className="h-auto w-full object-contain" />
+              <img src="/success-logo.jpg" alt="Success HR Solutions" className="h-auto w-full object-contain" />
             </div>
             <p className="text-sm font-semibold uppercase tracking-normal text-brand-blue">Telecalling CRM</p>
             <h1 className="mt-3 text-3xl font-bold text-brand-blue-dark">Candidate Calling Workspace</h1>

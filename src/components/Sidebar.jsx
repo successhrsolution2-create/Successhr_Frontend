@@ -196,7 +196,7 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
         <div className="admin-sidebar-brand border-b border-[var(--border)] px-4 py-4">
           <div className="flex items-center justify-center">
             <img
-              src="/success-logo.svg"
+              src="/success-logo.jpg"
               alt="Success HR Solutions"
               className="h-12 w-full max-w-[178px] object-contain"
             />

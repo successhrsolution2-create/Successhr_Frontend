@@ -1664,7 +1664,7 @@ function PublicShell({ children }) {
         <header className="mb-4 rounded-lg bg-white px-2 py-3 shadow-sm ring-1 ring-slate-200 sm:mb-5 sm:px-5 sm:py-4">
           <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
-              <img src="/success-logo.svg" alt="SUCCESS HR Solution" className="h-8 w-20 shrink-0 object-contain sm:h-14 sm:w-48" />
+              <img src="/success-logo.jpg" alt="SUCCESS HR Solution" className="h-8 w-20 shrink-0 object-contain sm:h-14 sm:w-48" />
               <div className="min-w-0 flex-1">
                 <h1 className="text-xs font-bold leading-4 text-slate-950 sm:text-2xl sm:leading-8">Candidate Job Application Form</h1>
               </div>

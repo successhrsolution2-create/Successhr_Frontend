@@ -72,7 +72,7 @@ export default function CompanyAdminLayout() {
         }`}
       >
         <div className="border-b border-slate-200 px-5 py-5">
-          <img src="/success-logo.svg" alt="Success HR Solutions" className="h-12 w-full object-contain object-left" />
+          <img src="/success-logo.jpg" alt="Success HR Solutions" className="h-12 w-full object-contain object-left" />
           <div className="mt-5 rounded-xl border border-sky-100 bg-sky-50 px-3 py-3">
             <div className="flex items-center gap-2 text-sky-800">
               <Building2 className="h-4 w-4" />

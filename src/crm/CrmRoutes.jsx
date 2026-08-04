@@ -209,7 +209,7 @@ const Shell = () => {
         style={{ width: isDesktop ? `${sidebarWidth}px` : 'min(224px, 86vw)' }}
       >
         <div className="border-b border-white/10 px-4 pb-5 pt-14">
-          <img src="/success-logo.svg" alt="Success HR Solutions" className="mx-auto h-auto w-[168px] object-contain" />
+          <img src="/success-logo.jpg" alt="Success HR Solutions" className="mx-auto h-auto w-[168px] object-contain" />
         </div>
 
         <div className="space-y-5 px-3 py-5">
