@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../../../components/ActionDialogs'
 import {
   allCandidateDocumentTypes,
   candidateDocumentTypes,
+  candidateDocumentCategories,
   successDocumentTypes
 } from '../../../constants/candidateDocuments'
 import {
@@ -806,7 +807,7 @@ const viewPanelLabels = {
   details: 'Candidate Details',
   documents: 'Documents',
   successInfo: 'Success Info For Candidate',
-  assessment: 'Success Interviewer Remark',
+  assessment: 'Success Interviewer Remark / Forms',
   interviews: 'Company Interviews',
   visits: 'Number of Visits'
 }
@@ -1101,7 +1102,7 @@ const buildViewSearchItems = (candidate, visibleInterviews = []) => {
     ['HR Interviewer', candidate.interviewForm.hrInterviewer],
     ['Remark', candidate.interviewForm.remark]
   ].forEach(([label, value]) => {
-    items.push(createSearchItem({ label, panel: 'assessment', group: 'Success Interviewer Remark', value }))
+    items.push(createSearchItem({ label, panel: 'assessment', group: 'Success Interviewer Remark / Forms', value }))
   })
   ;(candidate.interviewForm.questions || []).forEach((row, index) => {
     items.push(
@@ -1441,7 +1442,7 @@ export default function CandidateDetail() {
         <TabButton active={activePanel === 'details'} label="Candidate Details" onClick={() => setActivePanel('details')} />
         <TabButton active={activePanel === 'documents'} label="Documents" onClick={() => setActivePanel('documents')} />
         <TabButton active={activePanel === 'successInfo'} label="Success Info For Candidate" onClick={() => setActivePanel('successInfo')} />
-        <TabButton active={activePanel === 'assessment'} label="Success Interviewer Remark" onClick={() => setActivePanel('assessment')} />
+        <TabButton active={activePanel === 'assessment'} label="Success Interviewer Remark / Forms" onClick={() => setActivePanel('assessment')} />
         <TabButton active={activePanel === 'interviews'} label="Company Interviews" onClick={() => setActivePanel('interviews')} />
         <TabButton active={activePanel === 'visits'} label="Number of Visits" onClick={() => setActivePanel('visits')} />
       </div>
@@ -1852,6 +1853,26 @@ export default function CandidateDetail() {
             </FieldGroup>
           </Section>
           ) : null}
+
+          <div className="mt-6 flex flex-col-reverse justify-end gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={() => setCandidateDetailsStep(Math.max(candidateDetailsStep - 1, 0))}
+              disabled={candidateDetailsStep === 0}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-32"
+            >
+              Back
+            </button>
+            {candidateDetailsStep < 3 ? (
+              <button
+                type="button"
+                onClick={() => setCandidateDetailsStep(Math.min(candidateDetailsStep + 1, 3))}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 sm:w-auto sm:min-w-40"
+              >
+                Next
+              </button>
+            ) : null}
+          </div>
         </>
       ) : null}
 
@@ -1861,9 +1882,18 @@ export default function CandidateDetail() {
             <p className="rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
               JPG/PNG images and PDF letters where applicable. Max 10MB each.
             </p>
-            <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-              {candidateDocumentTypes.map((item) => (
-                <DocumentTypeCard key={item.key} item={item} docs={candidateDocumentsByType[item.key] || []} />
+            <div className="space-y-6">
+              {candidateDocumentCategories.map((category) => (
+                <div key={category.title} className="space-y-3">
+                  <h3 className="text-sm font-bold uppercase text-slate-500">{category.title}</h3>
+                  <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+                    {candidateDocumentTypes
+                      .filter((item) => category.keys.includes(item.key))
+                      .map((item) => (
+                        <DocumentTypeCard key={item.key} item={item} docs={candidateDocumentsByType[item.key] || []} />
+                      ))}
+                  </div>
+                </div>
               ))}
             </div>
             {extraCandidateDocuments.length ? (
@@ -1986,7 +2016,7 @@ export default function CandidateDetail() {
       ) : null}
 
       {activePanel === 'assessment' ? (
-        <Section title="Success Interviewer Remark">
+        <Section title="Success Interviewer Remark / Forms">
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-xs font-bold uppercase text-slate-500">Candidate Name</p>
             <p className="mt-1 text-base font-bold text-slate-950">{candidate.fullName || '-'}</p>
@@ -2000,7 +2030,7 @@ export default function CandidateDetail() {
             <RatingGrid title="Personality Assessment" fields={PERSONALITY_RATING_FIELDS} ratings={candidate.interviewForm.personalityRatings} onEditHint={showEditHint} />
           </div>
 
-          <FieldGroup title="Success Interviewer Remark">
+          <FieldGroup title="Success Interviewer Remark / Forms">
             <Field label="Suitable Industry">
               <ReadOnlyInput value={candidate.interviewForm.suitableIndustry} onEditHint={showEditHint} />
             </Field>

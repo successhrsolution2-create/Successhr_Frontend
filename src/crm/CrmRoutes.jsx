@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, List, X } from 'lucide-react'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import RoleGuard from './components/RoleGuard.jsx'
 import { logout } from './store/authSlice.js'
@@ -276,26 +276,10 @@ const Shell = () => {
       <button
         type="button"
         aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-        className="fixed left-3 top-3 z-50 flex h-9 w-9 items-center justify-center rounded-md border border-white/15 bg-[#06172c]/95 text-white transition hover:bg-[#0b2546] focus:outline-none focus:ring-2 focus:ring-white/25"
+        className="fixed left-3 top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
         onClick={() => setIsSidebarOpen((value) => !value)}
       >
-        <span className="flex flex-col gap-1" aria-hidden="true">
-          <span
-            className={`block h-0.5 w-4 rounded-full bg-current transition ${
-              isSidebarOpen ? 'translate-y-1.5 rotate-45' : ''
-            }`}
-          />
-          <span
-            className={`block h-0.5 w-4 rounded-full bg-current transition ${
-              isSidebarOpen ? 'opacity-0' : ''
-            }`}
-          />
-          <span
-            className={`block h-0.5 w-4 rounded-full bg-current transition ${
-              isSidebarOpen ? '-translate-y-1.5 -rotate-45' : ''
-            }`}
-          />
-        </span>
+        {isSidebarOpen ? <X className="h-4 w-4" /> : <List className="h-4 w-4" />}
       </button>
 
       <div

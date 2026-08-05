@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   MapPin,
   Menu,
+  List,
   PanelsTopLeft,
   PhoneCall,
   Settings,
@@ -193,7 +194,7 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
         }`}
         style={{ width: isDesktop ? `${sidebarWidth}px` : 'min(280px, 88vw)' }}
       >
-        <div className="admin-sidebar-brand border-b border-[var(--border)] px-4 py-4">
+        <div className="admin-sidebar-brand border-b border-[var(--border)] pl-14 pr-4 py-4">
           <div className="flex items-center justify-center">
             <img
               src="/success-logo.jpg"
@@ -556,7 +557,7 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
             type="button"
             aria-label="Resize sidebar"
             title="Drag to resize sidebar"
-            className={`absolute right-0 top-0 hidden h-full w-2 cursor-col-resize items-center justify-center border-r border-[var(--border)] transition ${
+            className={`absolute right-0 top-0 flex h-full w-2 cursor-col-resize items-center justify-center border-r border-[var(--border)] transition ${
               isResizingSidebar ? 'bg-[var(--accent-blue-lt)]' : 'bg-transparent hover:bg-[#F3F4F6]'
             }`}
             onPointerDown={(event) => {
@@ -572,20 +573,20 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
         ) : null}
       </aside>
 
-      <button
-        type="button"
-        aria-label={open ? 'Close sidebar' : 'Open sidebar'}
-        className="fixed left-3 top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-white text-[var(--text-secondary)] shadow-sm transition hover:bg-[var(--accent-blue-lt)] hover:text-[var(--accent-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue-lt)] lg:hidden"
-        onClick={() => setOpen((value) => !value)}
-      >
-        {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-      </button>
+        <button
+          type="button"
+          aria-label={open ? 'Close sidebar' : 'Open sidebar'}
+          className="fixed left-3 top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-white text-[var(--text-secondary)] shadow-sm transition hover:bg-[var(--accent-blue-lt)] hover:text-[var(--accent-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue-lt)]"
+          onClick={() => setOpen((value) => !value)}
+        >
+          {open ? <X className="h-4 w-4" /> : <List className="h-4 w-4" />}
+        </button>
 
       <div
         className="admin-content-column flex min-h-screen min-w-0 flex-col bg-[var(--bg-main)] transition-[padding] duration-300"
         style={{ paddingLeft: isDesktop && open ? `${sidebarWidth}px` : isDesktop && !open ? '0px' : undefined }}
       >
-        {hideTopbar ? null : <Topbar onMenuClick={() => setOpen((value) => !value)} showMenuButton={false} />}
+        {hideTopbar ? null : <Topbar onMenuClick={() => setOpen((value) => !value)} />}
         <main
           className={`admin-content flex-1 overflow-x-hidden overflow-y-auto bg-[var(--bg-main)] ${
             isCandidateAdmin

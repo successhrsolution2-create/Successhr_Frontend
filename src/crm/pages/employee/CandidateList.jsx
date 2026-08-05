@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { Eye, Pencil, Trash2 } from 'lucide-react'
 import api from '../../api/axiosInstance.js'
 import Badge from '../../components/ui/Badge.jsx'
 import Modal from '../../components/ui/Modal.jsx'
@@ -1129,36 +1130,42 @@ const CandidateList = () => {
       key: 'actions',
       label: 'Actions',
       render: (row) => (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
           <button
             type="button"
-            className="h-8 rounded-md border border-line bg-white px-3 text-xs font-semibold text-brand-blue-dark transition hover:border-brand-blue hover:bg-brand-blue-soft"
+            className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 text-xs font-semibold text-sky-700 hover:bg-sky-50"
             onClick={(event) => {
               event.stopPropagation()
               setViewCandidate(row)
             }}
+            aria-label="View candidate"
           >
+            <Eye className="h-3.5 w-3.5" />
             View
           </button>
           <button
             type="button"
-            className="h-8 rounded-md border border-line bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-brand-blue hover:bg-brand-blue-soft"
+            className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 text-xs font-semibold text-amber-700 hover:bg-amber-50"
             onClick={(event) => {
               event.stopPropagation()
               updateCandidate(row)
             }}
+            aria-label="Update candidate"
           >
+            <Pencil className="h-3.5 w-3.5" />
             Update
           </button>
           <button
             type="button"
-            className="h-8 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={deletingId === row._id || bulkDeleting}
             onClick={(event) => {
               event.stopPropagation()
               requestDeleteCandidate(row)
             }}
+            aria-label="Delete candidate"
           >
+            <Trash2 className="h-3.5 w-3.5" />
             {deletingId === row._id ? 'Deleting...' : 'Delete'}
           </button>
         </div>
@@ -1193,20 +1200,20 @@ const CandidateList = () => {
       </div>
 
       <form className="rounded-md border border-line bg-white p-3 shadow-sm" onSubmit={(event) => event.preventDefault()}>
-        <div className="grid gap-3 md:grid-cols-5">
+        <div className="flex flex-wrap items-center gap-2">
           <input
-            className="crm-input"
+            className="crm-input h-9 w-full sm:w-auto sm:flex-1 sm:min-w-[160px]"
             placeholder="Search name, mobile, or No."
             value={filters.search}
             onChange={(e) => updateFilter('search', e.target.value)}
           />
-          <select className="crm-input" value={filters.interested} onChange={(e) => updateFilter('interested', e.target.value)}>
+          <select className="crm-input h-9 w-full sm:w-auto sm:flex-1 sm:min-w-[120px]" value={filters.interested} onChange={(e) => updateFilter('interested', e.target.value)}>
             <option value="">Interested</option>
             <option value="yes">Yes</option>
             <option value="no">No</option>
           </select>
           <select
-            className="crm-input"
+            className="crm-input h-9 w-full sm:w-auto sm:flex-1 sm:min-w-[120px]"
             value={filters.candidateClass}
             onChange={(e) => updateFilter('candidateClass', e.target.value)}
           >
@@ -1215,7 +1222,7 @@ const CandidateList = () => {
             <option value="2nd">2nd</option>
             <option value="3rd">3rd</option>
           </select>
-          <select className="crm-input" value={filters.callStatus} onChange={(e) => updateFilter('callStatus', e.target.value)}>
+          <select className="crm-input h-9 w-full sm:w-auto sm:flex-1 sm:min-w-[120px]" value={filters.callStatus} onChange={(e) => updateFilter('callStatus', e.target.value)}>
             <option value="">Status</option>
             <option value="pending">Pending</option>
             <option value="called">Called</option>
@@ -1223,16 +1230,14 @@ const CandidateList = () => {
             <option value="converted">Converted</option>
             <option value="rejected">Rejected</option>
           </select>
-          <select className="crm-input" value={filters.registrationInfo} onChange={(e) => updateFilter('registrationInfo', e.target.value)}>
+          <select className="crm-input h-9 w-full sm:w-auto sm:flex-1 sm:min-w-[120px]" value={filters.registrationInfo} onChange={(e) => updateFilter('registrationInfo', e.target.value)}>
             <option value="">Source</option>
             {sourceOptions.map((source) => (
               <option key={source} value={source}>{source}</option>
             ))}
           </select>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
           <input
-            className="crm-input h-9 w-full sm:w-44"
+            className="crm-input h-9 w-full sm:w-auto sm:flex-1 sm:min-w-[130px]"
             type="date"
             aria-label="From update date"
             title="From update date"
@@ -1240,19 +1245,21 @@ const CandidateList = () => {
             onChange={(e) => updateFilter('startDate', e.target.value)}
           />
           <input
-            className="crm-input h-9 w-full sm:w-44"
+            className="crm-input h-9 w-full sm:w-auto sm:flex-1 sm:min-w-[130px]"
             type="date"
             aria-label="To update date"
             title="To update date"
             value={filters.endDate}
             onChange={(e) => updateFilter('endDate', e.target.value)}
           />
-          <button type="button" className="crm-button-primary h-9 px-3 whitespace-nowrap" onClick={showTodayUpdates}>
-            Today
-          </button>
-          <button type="button" className="crm-button-secondary h-9 px-3" onClick={resetFilters}>
-            Reset
-          </button>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <button type="button" className="crm-button-primary h-9 px-3 whitespace-nowrap" onClick={showTodayUpdates}>
+              Today
+            </button>
+            <button type="button" className="crm-button-secondary h-9 px-3" onClick={resetFilters}>
+              Reset
+            </button>
+          </div>
         </div>
       </form>
 

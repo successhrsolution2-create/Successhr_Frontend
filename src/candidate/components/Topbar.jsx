@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import {
@@ -52,7 +52,7 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
   const settingsPath = user?.role === 'businessAdvisor' ? '/ba/settings' : '/candidate/admin/settings'
 
   return (
-    <div className="sticky top-0 z-30 flex h-14 min-w-0 items-center border-b bg-white px-3 shadow-sm sm:px-4">
+    <div className="sticky top-0 z-30 flex h-14 min-w-0 items-center border-b bg-white px-3 shadow-sm sm:px-4 pl-14 sm:pl-16">
 
       {showMenuButton ? (
         <button

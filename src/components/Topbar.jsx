@@ -180,50 +180,28 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
     <header className="admin-topbar sticky top-0 z-30 border-b border-[var(--border)] bg-white">
       <div className="flex min-h-14 min-w-0 items-center gap-3 px-4 py-2 sm:px-5">
 
-      {showMenuButton ? (
+      {!location.pathname.endsWith('/dashboard') && (
         <button
           type="button"
-          onClick={onMenuClick}
-          aria-label="Open menu"
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-white text-[var(--text-secondary)] hover:bg-[var(--accent-blue-lt)] hover:text-[var(--accent-blue)]"
+          onClick={handleBack}
+          aria-label="Go back"
+          title="Back"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-white px-3 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--accent-blue-lt)] hover:text-[var(--accent-blue)]"
         >
-          <Menu size={18} />
+          <ArrowLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Back</span>
         </button>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={handleBack}
-        aria-label="Go back"
-        title="Back"
-        className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-white px-3 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--accent-blue-lt)] hover:text-[var(--accent-blue)]"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span className="hidden sm:inline">Back</span>
-      </button>
+      )}
 
       <div className="min-w-0">
         <h1 className="truncate text-lg font-bold leading-6 text-[var(--text-primary)]">{pageTitle}</h1>
         <p className="mt-0.5 truncate text-[11px] font-medium text-[var(--text-secondary)]">{pageSubtitle}</p>
       </div>
 
-      <div className="admin-topbar-search ml-auto hidden h-9 w-full max-w-md items-center gap-2 rounded-full bg-[#F3F4F6] px-4 text-[var(--text-secondary)] md:flex">
-        <Search className="h-4 w-4 shrink-0" />
-        <input
-          type="search"
-          placeholder="Search Anything"
-          className="min-w-0 flex-1 border-0 bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
-        />
-      </div>
 
-      <div className="ml-auto flex items-center gap-2 md:ml-0">
-        <button
-          type="button"
-          aria-label="Open list view"
-          className="hidden h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-white text-[var(--text-secondary)] transition hover:bg-[var(--accent-blue-lt)] hover:text-[var(--accent-blue)] sm:inline-flex"
-        >
-          <List className="h-4 w-4" />
-        </button>
+
+      <div className="ml-auto flex items-center gap-2">
+
         <button
           type="button"
           aria-label="Notifications"

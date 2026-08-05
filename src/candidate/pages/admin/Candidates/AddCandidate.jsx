@@ -33,6 +33,7 @@ import {
   allowedDocumentImageTypes,
   allCandidateDocumentTypes,
   candidateDocumentTypes,
+  candidateDocumentCategories,
   computerCourseDocumentKeys,
   educationCertificateDocumentKeys,
   educationCertificateLabel,
@@ -89,7 +90,7 @@ const panelLabels = {
   details: 'Candidate Details',
   documents: 'Documents',
   successInfo: 'Success Info For Candidate',
-  assessment: 'Success Interviewer Remark',
+  assessment: 'Success Interviewer Remark / Forms',
   interviews: 'Company Interviews',
   visits: 'Number of Visits'
 }
@@ -575,7 +576,7 @@ const createSuccessRemarkPdf = (candidate) => {
     y += questionHeight + 18
   }
 
-  drawText('Success Interviewer Remark', margin, y, { size: 16, bold: true, maxWidth: 360 })
+  drawText('Success Interviewer Remark / Forms', margin, y, { size: 16, bold: true, maxWidth: 360 })
   y += 29
   drawLine(margin, y, pageWidth - margin, y, [0.89, 0.92, 0.96], 0.8)
   y += 22
@@ -1022,7 +1023,7 @@ const globalSearchPanelLabels = {
   details: 'Candidate Details',
   documents: 'Documents',
   successInfo: 'Success Info For Candidate',
-  assessment: 'Success Interviewer Remark',
+  assessment: 'Success Interviewer Remark / Forms',
   interviews: 'Company Interviews',
   visits: 'Number of Visits'
 }
@@ -1170,7 +1171,7 @@ const globalSearchItems = [
     { label: 'Suitable Department', valuePath: 'interviewForm.suitableDepartment' },
     { label: 'HR Interviewer', valuePath: 'interviewForm.hrInterviewer' },
     { label: 'Remark', valuePath: 'interviewForm.remark' }
-  ].map((item) => createGlobalSearchItem({ ...item, panel: 'assessment', group: 'Success Interviewer Remark', key: item.label })),
+  ].map((item) => createGlobalSearchItem({ ...item, panel: 'assessment', group: 'Success Interviewer Remark / Forms', key: item.label })),
   ...interviewFieldSearchItems.map((item) => createGlobalSearchItem({ ...item, panel: 'interviews', group: 'Interview Update', key: item.label })),
   ...candidateVisitFieldSearchItems.map((item) => createGlobalSearchItem({ ...item, panel: 'visits', group: 'Candidate Visits', key: item.label }))
 ]
@@ -1529,10 +1530,10 @@ const assessmentExportRows = (candidate) => {
     { category: 'Computer Courses Assessment', parameter: 'Typing Speed', selected: excelValue(typingSpeed), scale: 'WPM' },
     { category: 'Computer Courses Assessment', parameter: 'Typing Accuracy', selected: excelValue(computerAssessment.typingAccuracy), scale: 'Out of 100' },
     { category: 'Computer Courses Assessment', parameter: 'Remark', selected: excelValue(computerAssessment.remark), scale: '' },
-    { category: 'Success Interviewer Remark', parameter: 'Suitable Industry', selected: excelValue(form.suitableIndustry), scale: '' },
-    { category: 'Success Interviewer Remark', parameter: 'Suitable Department', selected: excelValue(form.suitableDepartment), scale: '' },
-    { category: 'Success Interviewer Remark', parameter: 'HR Interviewer', selected: excelValue(form.hrInterviewer), scale: '' },
-    { category: 'Success Interviewer Remark', parameter: 'Remark', selected: excelValue(form.remark), scale: '' }
+    { category: 'Success Interviewer Remark / Forms', parameter: 'Suitable Industry', selected: excelValue(form.suitableIndustry), scale: '' },
+    { category: 'Success Interviewer Remark / Forms', parameter: 'Suitable Department', selected: excelValue(form.suitableDepartment), scale: '' },
+    { category: 'Success Interviewer Remark / Forms', parameter: 'HR Interviewer', selected: excelValue(form.hrInterviewer), scale: '' },
+    { category: 'Success Interviewer Remark / Forms', parameter: 'Remark', selected: excelValue(form.remark), scale: '' }
   ]
 
   return rows
@@ -2025,7 +2026,7 @@ const candidateBlankTemplateSections = () => [
     ]
   },
   {
-    title: 'Success Interviewer Remark',
+    title: 'Success Interviewer Remark / Forms',
     entries: [
       { type: 'subsection', label: directorAssessmentLabel },
       ...DIRECTOR_ASSESSMENT_FIELDS.map((field) => ({ label: field.label, hint: `Options: ${DIRECTOR_RATING_VALUES.join(' / ')}` })),
@@ -2052,7 +2053,7 @@ const candidateBlankTemplateSections = () => [
       { label: 'TQ Selections', hint: `Options: ${IQ_TQ_VALUES.join(' / ')}` },
       { label: 'Grade' },
       ...Array.from({ length: INTERVIEW_QUESTION_COUNT }, (_, index) => ({ label: `Question ${index + 1}`, hint: `Marks out of ${QUESTION_MARK_MAX}`, tall: true })),
-      { type: 'subsection', label: 'Success Interviewer Remark' },
+      { type: 'subsection', label: 'Success Interviewer Remark / Forms' },
       { label: 'Suitable Industry' },
       { label: 'Suitable Department' },
       { label: 'HR Interviewer' },
@@ -3219,10 +3220,21 @@ function CandidateDocumentsPanel({
             className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
           />
         </div>
-        <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-          {filteredCandidateDocumentTypes.map((item) => (
-            <CandidateDocumentUploadCard key={item.key} item={item} {...uploadCardProps} />
-          ))}
+        <div className="space-y-6 mt-4">
+          {candidateDocumentCategories.map((category) => {
+            const categoryItems = filteredCandidateDocumentTypes.filter((item) => category.keys.includes(item.key))
+            if (categoryItems.length === 0) return null
+            return (
+              <div key={category.title} className="space-y-3">
+                <h3 className="text-sm font-bold uppercase text-slate-500">{category.title}</h3>
+                <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+                  {categoryItems.map((item) => (
+                    <CandidateDocumentUploadCard key={item.key} item={item} {...uploadCardProps} />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
 
         {filteredExtraDocuments.length ? (
@@ -5989,7 +6001,7 @@ export default function AddCandidate() {
         <FormTabButton active={activePanel === 'details'} label="Candidate Details" onClick={() => changeActivePanel('details')} />
         <FormTabButton active={activePanel === 'documents'} label="Documents" onClick={() => changeActivePanel('documents')} />
         <FormTabButton active={activePanel === 'successInfo'} label="Success Info For Candidate" onClick={() => changeActivePanel('successInfo')} />
-        <FormTabButton active={activePanel === 'assessment'} label="Success Interviewer Remark" onClick={() => changeActivePanel('assessment')} />
+        <FormTabButton active={activePanel === 'assessment'} label="Success Interviewer Remark / Forms" onClick={() => changeActivePanel('assessment')} />
         <FormTabButton active={activePanel === 'interviews'} label="Company Interviews" onClick={() => changeActivePanel('interviews')} />
         <FormTabButton active={activePanel === 'visits'} label="Number of Visits" onClick={() => changeActivePanel('visits')} />
       </div>
@@ -6193,7 +6205,7 @@ export default function AddCandidate() {
       ) : null}
 
       {activePanel === 'assessment' ? (
-        <Section title="Success Interviewer Remark">
+        <Section title="Success Interviewer Remark / Forms">
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-xs font-bold uppercase text-slate-500">Candidate Name</p>
             <p className="mt-1 text-base font-bold text-slate-950">{candidate.fullName || '-'}</p>
@@ -6232,7 +6244,7 @@ export default function AddCandidate() {
             onChange={updateComputerCourseAssessment}
           />
 
-          <FieldGroup title="Success Interviewer Remark">
+          <FieldGroup title="Success Interviewer Remark / Forms">
             <Field label="Suitable Industry" searchKey={globalFieldKey('assessment', 'Suitable Industry')}>
               <input className={inputClass} value={candidate.interviewForm.suitableIndustry} onChange={(event) => updateInterviewForm('suitableIndustry', event.target.value)} />
             </Field>

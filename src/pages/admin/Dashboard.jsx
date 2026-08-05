@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getSuperAdminDashboardSummary } from '../../api/superAdminDashboardApi'
+import CandidateRegistrationChart from './CandidateRegistrationChart'
 
 const COLORS = {
   advisor: '#2563eb',
@@ -45,6 +46,10 @@ const emptySummary = {
     todayCheckins: [],
     birthdays: [],
     anniversaries: []
+  },
+  candidateManagementStats: {
+    totalCandidates: 0,
+    todayCandidates: 0
   },
   pendingActions: [],
   recentActivity: []
@@ -183,30 +188,24 @@ function QuickActionTiles() {
   ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="flex flex-col gap-3">
       {actions.map((item) => (
         <Link
           key={item.title}
           to={item.to}
-          className="group flex min-h-[112px] flex-col justify-between rounded-[7px] border bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(16,24,40,0.09)]"
-          style={{ borderColor: colorAlpha(item.color, item.number === '02' || item.number === '03' ? 0.18 : 0.34), backgroundColor: item.tint }}
+          className="group flex items-center justify-between rounded-[7px] border border-[#eceef2] bg-white p-3 shadow-sm transition hover:border-[#d3d8e0] hover:shadow"
         >
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
             <span
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-[5px] text-[11px] font-black"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-[5px]"
               style={{ color: item.color, backgroundColor: colorAlpha(item.color, 0.1) }}
             >
-              {item.number}
-            </span>
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/80 text-[#777d86] opacity-0 transition group-hover:opacity-100">
               <item.icon className="h-4 w-4" />
             </span>
-          </div>
-
-          <div className="min-w-0 pt-4">
-            <p className="truncate text-[10px] font-black uppercase tracking-normal" style={{ color: item.color }}>{item.label}</p>
-            <h2 className="mt-1 truncate text-sm font-black text-[#111111]">{item.title}</h2>
-            <p className="mt-1 truncate text-[11px] font-medium text-[#6f7680]">{item.description}</p>
+            <div className="min-w-0">
+              <h2 className="truncate text-sm font-bold text-[#111111]">{item.title}</h2>
+              <p className="truncate text-[11px] font-medium text-[#6c727c]">{item.label}</p>
+            </div>
           </div>
         </Link>
       ))}
@@ -223,51 +222,58 @@ function PanelHeader({ title, action }) {
   )
 }
 
-function ActivityFeed({ items }) {
+function LatestCandidatesFeed({ candidates }) {
   return (
     <div className="space-y-3">
       <PanelHeader
-        title="Recent Activity"
-        action={
-          <Link to="/admin/references" className="text-[10px] font-black text-[#111111] underline-offset-2 hover:underline">
-            View Log
-          </Link>
-        }
+        title="Latest Registered Candidates"
       />
-      <Card className={`${items.length ? 'p-4' : 'border-dashed p-0'} min-h-[256px]`}>
-        {items.length ? (
-          <div className="divide-y divide-[#eceef2]">
-            {items.slice(0, 6).map((item, index) => (
-              <div key={`${item.module}-${index}-${item.text}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-[#eef4ff] text-[#2563eb]">
-                  <Activity className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-[#111111]">{item.text}</p>
-                  <p className="mt-0.5 truncate text-[11px] font-semibold text-[#8c929b]">{item.time}</p>
-                </div>
-                <span className="shrink-0 rounded-[4px] bg-[#f4f5f7] px-2 py-1 text-[10px] font-black uppercase text-[#59616d]">
-                  {(item.module || 'Admin').toUpperCase()}
-                </span>
-              </div>
-            ))}
+      <Card className={`${candidates.length ? 'p-0' : 'border-dashed p-0'} overflow-hidden`}>
+        {candidates.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-[#eceef2] bg-[#fafbfc] text-[10px] font-black uppercase tracking-widest text-[#8c929b]">
+                <tr>
+                  <th className="px-5 py-3">Candidate Info</th>
+                  <th className="px-5 py-3">Profile</th>
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-5 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#eceef2]">
+                {candidates.map((candidate) => (
+                  <tr key={candidate._id} className="transition hover:bg-[#fafbfc]">
+                    <td className="px-5 py-3">
+                      <p className="truncate font-bold text-[#111111]">{candidate.candidateName}</p>
+                      <p className="truncate text-xs font-medium text-[#6c727c]">{candidate.mobileNumber} {candidate.emailId ? `• ${candidate.emailId}` : ''}</p>
+                    </td>
+                    <td className="px-5 py-3 text-sm font-semibold text-[#525866]">{candidate.jobProfile || '-'}</td>
+                    <td className="px-5 py-3 text-xs font-medium text-[#8c929b]">
+                      {new Date(candidate.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="px-5 py-3 text-xs font-black uppercase">
+                      <span className={`inline-flex items-center rounded-sm px-1.5 py-0.5 ${
+                        candidate.status === 'not_viewed' ? 'bg-[#f4f5f7] text-[#59616d]' :
+                        candidate.status === 'selected' ? 'bg-[#eafbf3] text-[#10b981]' :
+                        'bg-[#eef4ff] text-[#2563eb]'
+                      }`}>
+                        {candidate.status?.replace('_', ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="relative flex min-h-[254px] items-center justify-center px-5 py-10">
             <div className="text-center">
               <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#f7f8fa] text-[#8c929b]">
-                <Activity className="h-5 w-5" />
+                <UserCheck className="h-5 w-5" />
               </span>
-              <p className="mt-4 text-sm font-bold text-[#7c838d]">No activity records found for this period</p>
-              <p className="mt-1 text-[11px] font-medium text-[#a1a7b0]">System is awaiting initial telemetry</p>
+              <p className="mt-4 text-sm font-bold text-[#7c838d]">No candidates registered yet</p>
+              <p className="mt-1 text-[11px] font-medium text-[#a1a7b0]">New registrations will appear here</p>
             </div>
-            <Link
-              to="/admin/references"
-              aria-label="Open activity log"
-              className="absolute bottom-[-18px] left-1/2 grid h-11 w-11 -translate-x-1/2 place-items-center rounded-full bg-[#202124] text-white shadow-[0_6px_18px_rgba(17,24,39,0.18)] transition hover:bg-[#111111]"
-            >
-              <ArrowDown className="h-5 w-5" />
-            </Link>
           </div>
         )}
       </Card>
@@ -385,6 +391,7 @@ export default function Dashboard() {
         advisorStats: { ...emptySummary.advisorStats, ...(data.advisorStats || {}) },
         crmStats: { ...emptySummary.crmStats, ...(data.crmStats || {}) },
         employeeStats: { ...emptySummary.employeeStats, ...(data.employeeStats || {}) },
+        candidateManagementStats: { ...emptySummary.candidateManagementStats, ...(data.candidateManagementStats || {}) },
         pendingActions: data.pendingActions || [],
         recentActivity: data.recentActivity || []
       })
@@ -399,7 +406,7 @@ export default function Dashboard() {
     loadDashboard()
   }, [loadDashboard])
 
-  const { advisorStats, crmStats, employeeStats } = summary
+  const { advisorStats, crmStats, employeeStats, candidateManagementStats } = summary
 
   const moduleCards = useMemo(() => [
     {
@@ -410,8 +417,7 @@ export default function Dashboard() {
       route: '/admin/references',
       stats: [
         { label: 'Advisors', value: formatNumber(advisorStats.totalAdvisors) },
-        { label: 'Companies', value: formatNumber(advisorStats.activeCompanies) },
-        { label: 'Revenue', value: formatMoney(advisorStats.totalEarnings) }
+        { label: 'Companies', value: formatNumber(advisorStats.activeCompanies) }
       ]
     },
     {
@@ -422,23 +428,21 @@ export default function Dashboard() {
       route: '/admin/crm/dashboard',
       stats: [
         { label: 'Candidates', value: formatNumber(crmStats.totalCandidates) },
-        { label: 'Employees', value: formatNumber(crmStats.successEmployees) },
         { label: 'Calls Today', value: formatNumber(crmStats.callsToday) }
       ]
     },
     {
-      code: 'SE',
-      title: 'Success Employee',
-      subtitle: 'Force tracking',
-      color: COLORS.employee,
-      route: '/ems',
+      code: 'CM',
+      title: 'Candidate Management',
+      subtitle: 'Registrations',
+      color: '#f97316', // using orange color for Candidate Management
+      route: '/admin/candidates',
       stats: [
-        { label: 'Employees', value: formatNumber(employeeStats.totalEmployees) },
-        { label: 'Present', value: formatNumber(employeeStats.presentToday) },
-        { label: 'Leaves', value: formatNumber(employeeStats.pendingLeaves) }
+        { label: 'Total Candidates', value: formatNumber(candidateManagementStats?.totalCandidates) },
+        { label: 'Today', value: formatNumber(candidateManagementStats?.todayCandidates) }
       ]
     }
-  ], [advisorStats, crmStats, employeeStats])
+  ], [advisorStats, crmStats, candidateManagementStats])
 
   return (
     <div className="min-h-[calc(100vh-7rem)] bg-white">
@@ -458,17 +462,23 @@ export default function Dashboard() {
               {moduleCards.map((card) => <ModuleCard key={card.title} {...card} />)}
             </div>
 
-            <div className="space-y-3">
-              <PanelHeader title="Quick Actions" />
-              <QuickActionTiles />
+            <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+              {/* Left Side: Chart */}
+              <div className="h-full min-h-[350px]">
+                <CandidateRegistrationChart />
+              </div>
+
+              {/* Right Side: Quick Actions */}
+              <div className="space-y-3">
+                <PanelHeader title="Quick Actions" />
+                <QuickActionTiles />
+              </div>
             </div>
 
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.54fr)]">
-              <ActivityFeed items={summary.recentActivity} />
-              <EmployeeSnapshot stats={employeeStats} />
+            <div className="grid gap-5">
+              <LatestCandidatesFeed candidates={summary.candidateManagementStats?.latestCandidates || []} />
             </div>
 
-            <TopAdvisors advisors={advisorStats.topAdvisors} />
           </>
         )}
       </div>

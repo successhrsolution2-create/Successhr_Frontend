@@ -1,10 +1,10 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import {
   ArrowLeftRight,
   UserCheck,
-  Menu,
+  List,
   X,
   PanelsTopLeft
 } from 'lucide-react'
@@ -176,15 +176,15 @@ export default function Sidebar({ role, children }) {
       <button
         type="button"
         aria-label={open ? 'Close sidebar' : 'Open sidebar'}
-        className="fixed left-3 top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-md border border-white/15 bg-[#06172c]/95 text-white transition hover:bg-[#0b2546] focus:outline-none focus:ring-2 focus:ring-white/25"
+        className="fixed left-3 top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
         onClick={() => setOpen((value) => !value)}
       >
-        {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+        {open ? <X className="h-4 w-4" /> : <List className="h-4 w-4" />}
       </button>
 
       <div
         className="flex min-h-screen min-w-0 flex-col transition-[padding] duration-300"
-        style={{ paddingLeft: isDesktop && open ? `${sidebarWidth}px` : !open ? '56px' : undefined }}
+        style={{ paddingLeft: isDesktop && open ? `${sidebarWidth}px` : isDesktop && !open ? '0px' : undefined }}
       >
         <Topbar onMenuClick={() => setOpen((value) => !value)} showMenuButton={false} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:p-5 lg:p-6">{children}</main>

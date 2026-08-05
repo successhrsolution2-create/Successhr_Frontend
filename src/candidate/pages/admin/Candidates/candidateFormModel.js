@@ -6,7 +6,7 @@ export const DIRECTOR_MODE_VALUES = ['Online', 'Offline']
 export const QUESTION_CHOICES = ['A', 'B', 'C']
 export const INTERVIEW_QUESTION_COUNT = 10
 export const QUESTION_MARK_MAX = 10
-export const COMPUTER_COURSE_ASSESSMENT_COURSES = ['Word', 'Excel', 'Tally', 'AutoCAD', 'CATIA', 'SolidWorks', 'CCC', 'Advance Excel', 'MS Office', 'DTP', 'M', 'MS-CIT', 'Other']
+export const COMPUTER_COURSE_ASSESSMENT_COURSES = ['Word', 'Excel', 'Tally', 'AutoCAD', 'CATIA', 'SolidWorks', 'CCC', 'Advance Excel', 'MS Office', 'DTP', 'MS-CIT', 'Other']
 export const TYPING_LANGUAGE_OPTIONS = ['English', 'Marathi']
 export const TYPING_SPEED_OPTIONS = Array.from({ length: 60 }, (_, index) => String(index + 1))
 

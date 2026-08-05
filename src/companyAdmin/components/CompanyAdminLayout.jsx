@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BriefcaseBusiness, Building2, ClipboardList, LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
+import { BriefcaseBusiness, Building2, ClipboardList, LayoutDashboard, LogOut, Menu, X, List } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import LoadingScreen from '../../components/LoadingScreen'
 import companyAdminApi from '../api'
@@ -66,9 +66,18 @@ export default function CompanyAdminLayout() {
         />
       ) : null}
 
+      <button
+        type="button"
+        aria-label={open ? 'Close sidebar' : 'Open sidebar'}
+        className="fixed left-3 top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
+        onClick={() => setOpen((value) => !value)}
+      >
+        {open ? <X className="h-4 w-4" /> : <List className="h-4 w-4" />}
+      </button>
+
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-[min(280px,88vw)] flex-col border-r border-slate-200 bg-white transition-transform duration-300 lg:w-64 ${
-          open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="border-b border-slate-200 px-5 py-5">
@@ -114,16 +123,11 @@ export default function CompanyAdminLayout() {
         </div>
       </aside>
 
-      <div className="min-h-screen lg:pl-64">
-        <header className="sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-6">
-          <button
-            type="button"
-            onClick={() => setOpen((current) => !current)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 lg:hidden"
-            aria-label={open ? 'Close menu' : 'Open menu'}
-          >
-            {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-          </button>
+      <div 
+        className="min-h-screen transition-[padding] duration-300"
+        style={{ paddingLeft: open ? '16rem' : '0' }}
+      >
+        <header className="sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-6 pl-14 sm:pl-16">
           <div>
             <h1 className="text-base font-bold text-slate-950 sm:text-lg">Company Admin Portal</h1>
             <p className="text-xs text-slate-500">Manage candidate interviews and manpower vacancies</p>

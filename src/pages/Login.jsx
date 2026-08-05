@@ -22,7 +22,7 @@ const accountTypes = [
     shortLabel: 'Admin',
     eyebrow: 'Success HR workspace',
     title: 'Welcome back',
-    description: 'Use this for Super Admin, Manager, Candidate Management, and Business Advisor accounts.',
+    description: 'Use this for Super Admin, Manager, and Candidate Management accounts.',
     fieldLabel: 'Email or Employee ID',
     placeholder: 'admin@consultancy.com or EMP001',
     icon: ShieldCheck
@@ -94,6 +94,7 @@ export default function Login() {
   } = useSelector((state) => state.crmAuth)
   const isLoggingIn = loading || crmStatus === 'loading'
   const isManagerLogin = location.pathname.startsWith('/manager/login')
+  const isAdvisorLogin = location.pathname.startsWith('/advisor')
   const selectedAccount = accountTypes.find((item) => item.id === accountType) || accountTypes[0]
   const isManagerSuccessLogin = isManagerLogin && accountType === 'success'
   const {
@@ -168,15 +169,17 @@ export default function Login() {
             <BrandLogo className="max-w-xs sm:max-w-xl" />
             <div className="mt-6 max-w-lg sm:mt-8">
               <p className="text-sm font-bold uppercase text-sky-700">
-                {isManagerSuccessLogin ? 'Manager workspace' : selectedAccount.eyebrow}
+                {isManagerSuccessLogin ? 'Manager workspace' : isAdvisorLogin ? 'Business Advisor workspace' : selectedAccount.eyebrow}
               </p>
               <h1 className="mt-3 text-2xl font-bold text-slate-950 sm:text-4xl">
-                {isManagerSuccessLogin ? 'Manager login' : selectedAccount.title}
+                {isManagerSuccessLogin ? 'Manager login' : isAdvisorLogin ? 'Advisor login' : selectedAccount.title}
               </h1>
               <p className="mt-3 text-base text-slate-600">
                 {isManagerSuccessLogin
                   ? 'Use your manager ID and password to access assigned Candidate, CRM, and Success Employee modules.'
-                  : selectedAccount.description}
+                  : isAdvisorLogin
+                    ? 'Use your advisor credentials to log into your dedicated portal.'
+                    : selectedAccount.description}
               </p>
             </div>
           </div>
@@ -196,43 +199,45 @@ export default function Login() {
               </div>
             </div>
             <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">
-              {isManagerSuccessLogin ? 'Manager Login' : 'Login'}
+              {isManagerSuccessLogin ? 'Manager Login' : isAdvisorLogin ? 'Advisor Login' : 'Login'}
             </h2>
             <p className="mt-1 text-sm text-slate-500">Enter your account details to continue.</p>
           </div>
 
-          <div>
-            <p className="mb-2 text-sm font-semibold text-slate-700">Account Type</p>
-            <div className="grid gap-2 sm:grid-cols-3" role="tablist" aria-label="Account type">
-              {accountTypes.map((item) => {
-                const Icon = item.icon
-                const selected = item.id === accountType
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    onClick={() => {
-                      setAccountType(item.id)
-                      setLoginError('')
-                    }}
-                    className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-cyan-100 ${
-                      selected
-                        ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:text-slate-900'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{item.shortLabel}</span>
-                  </button>
-                )
-              })}
+          {!isAdvisorLogin && (
+            <div>
+              <p className="mb-2 text-sm font-semibold text-slate-700">Account Type</p>
+              <div className="grid gap-2 sm:grid-cols-3" role="tablist" aria-label="Account type">
+                {accountTypes.map((item) => {
+                  const Icon = item.icon
+                  const selected = item.id === accountType
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      onClick={() => {
+                        setAccountType(item.id)
+                        setLoginError('')
+                      }}
+                      className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-cyan-100 ${
+                        selected
+                          ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:text-slate-900'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{item.shortLabel}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           <label className="block text-sm font-semibold text-slate-700">
-            {isManagerSuccessLogin ? 'Manager ID / Email' : selectedAccount.fieldLabel}
+            {isManagerSuccessLogin ? 'Manager ID / Email' : isAdvisorLogin ? 'Advisor Email or ID' : selectedAccount.fieldLabel}
             <div className="relative mt-1">
               <InputIcon>
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">

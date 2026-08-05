@@ -174,6 +174,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/advisor" element={<Login />} />
         <Route path="/manager/login" element={<Login />} />
         <Route path="/company" element={<CompanyLogin />} />
         <Route path="/company-admin/login" element={<Navigate to="/company" replace />} />

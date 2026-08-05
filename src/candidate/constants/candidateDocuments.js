@@ -1,4 +1,4 @@
-export const MAX_DOCUMENT_IMAGE_SIZE = 10 * 1024 * 1024
+﻿export const MAX_DOCUMENT_IMAGE_SIZE = 10 * 1024 * 1024
 
 const imageTypes = ['image/jpeg', 'image/png']
 const letterTypes = ['image/jpeg', 'image/png', 'application/pdf']
@@ -184,7 +184,7 @@ export const candidateDocumentTypes = [
 export const successDocumentTypes = [
   {
     key: 'candidatePhoto',
-    label: 'Photo Of Candidate With Letter / Receipt',
+    label: 'Photo Of Candidate With Letter / Receipt (With Success Document)',
     accept: imageAccept,
     allowedTypes: imageTypes,
     typeMessage: 'only JPG or PNG images are allowed'
@@ -219,7 +219,7 @@ export const successDocumentTypes = [
   },
   {
     key: 'jobJoiningDocumentLetter',
-    label: 'Job Joining Document Letter',
+    label: 'Letter Of Success',
     accept: letterAccept,
     allowedTypes: letterTypes,
     typeMessage: 'only JPG, PNG, or PDF files are allowed'
@@ -271,3 +271,22 @@ export const standaloneCandidateDocumentTypes = candidateDocumentTypes.filter(
 )
 
 export const allowedDocumentImageTypes = new Set(imageTypes)
+
+export const candidateDocumentCategories = [
+  {
+    title: 'Education Documents',
+    keys: ['tenthCertificate', 'twelfthCertificate', 'graduateCertificate', 'postGraduateCertificate']
+  },
+  {
+    title: 'KYC and Personal Documents',
+    keys: ['updatedResume', 'aadharCard', 'panCard', 'passportSizePhoto', 'medicalFitnessCertificate']
+  },
+  {
+    title: 'Experience Documents',
+    keys: ['experienceLetter', 'salarySlip', 'bankStatement']
+  },
+  {
+    title: 'Computer Courses Documents',
+    keys: ['msCitCertificate', 'cccCertificate', 'advancedExcelCertificate', 'powerPointCertificate', 'tallyCertificate', 'autoCadCertificate', 'typingCertificate', 'catiaCertificate', 'sapCertification', 'cCppCertification', 'computerCourseCertificate', 'otherCertificationCertificate']
+  }
+];
