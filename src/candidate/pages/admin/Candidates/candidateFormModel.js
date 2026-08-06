@@ -606,6 +606,7 @@ export const emptyInterviewRow = () => ({
   companyName: '',
   jobRole: '',
   referencePerson: '',
+  hrRecruiterName: '',
   attendInterview: '',
   interestedForJoin: '',
   remark: '',
@@ -852,6 +853,7 @@ export const mapInterviewToForm = (row, fallbackReference = '') => ({
   companyName: text(row?.companyName),
   jobRole: text(row?.jobRole),
   referencePerson: text(row?.reference || fallbackReference || 'Walk-in'),
+  hrRecruiterName: text(row?.hrRecruiterName),
   attendInterview: text(row?.attendInterview),
   interestedForJoin: text(row?.interestedForJoin),
   remark: text(row?.remark),
@@ -1555,6 +1557,7 @@ export const interviewHasContent = (row) =>
     text(row?.companyName).trim() ||
       text(row?.jobRole).trim() ||
       text(row?.referencePerson).trim() ||
+      text(row?.hrRecruiterName).trim() ||
       text(row?.attendInterview).trim() ||
       text(row?.interestedForJoin).trim() ||
       text(row?.remark).trim() ||
@@ -1579,6 +1582,7 @@ export const mapFormInterviewToApi = (row) => ({
   companyName: text(row?.companyName),
   jobRole: text(row?.jobRole),
   reference: text(row?.referencePerson),
+  hrRecruiterName: text(row?.hrRecruiterName),
   attendInterview: text(row?.attendInterview),
   interestedForJoin: text(row?.interestedForJoin),
   interviewDate: row?.date || null,

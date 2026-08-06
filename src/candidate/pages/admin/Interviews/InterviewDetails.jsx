@@ -37,6 +37,7 @@ const interviewDetailFields = [
   ['companyName', 'Company Name'],
   ['jobRole', 'Job Role/Department'],
   ['referencePerson', 'Reference Person'],
+  ['hrRecruiterName', 'HR Recruiter Name'],
   ['remark', 'Remark'],
   ['date', 'Date'],
   ['attendInterview', 'Attend Interview'],
@@ -49,7 +50,7 @@ const interviewDetailFields = [
   ['negativeFeedback', 'Negative Feedback'],
   ['overallDiscussion', 'Overall Discussion'],
   ['note', 'Note'],
-  ['updatedBy', 'Update By']
+  ['updatedBy', 'Updated By (Staff Name)']
 ]
 
 function BackToInterviewsButton({ onClick }) {

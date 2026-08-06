@@ -1046,7 +1046,7 @@ const interviewFieldSearchItems = [
   { label: 'Negative Feedback', interviewKeys: ['negativeFeedback'] },
   { label: 'Overall Discussion', interviewKeys: ['overallDiscussion'] },
   { label: 'Note', interviewKeys: ['note'] },
-  { label: 'Update By', interviewKeys: ['updatedBy'] },
+  { label: 'Updated By (Staff Name)', interviewKeys: ['updatedBy'] },
   { label: 'Company-wise Interview Documents', interviewDocumentType: '*' }
 ]
 
@@ -1639,7 +1639,7 @@ const flatExportPairs = (candidate) => {
       ['Negative Feedback', row.negativeFeedback],
       ['Overall Discussion', row.overallDiscussion],
       ['Note', row.note],
-      ['Update By', row.updatedBy],
+      ['Updated By (Staff Name)', row.updatedBy],
       ['Documents', interviewDocumentExportSummary(row.documents)]
     ].forEach(([label, value]) => pairs.push([`${prefix} / ${label}`, value]))
   })
@@ -2580,7 +2580,7 @@ const createCompanyInterviewPdf = (candidate, interview) => {
     ['Interested For Join', interview.interestedForJoin],
     ['Selection Chances', interview.selectionChances],
     ['Rating For Company (/5)', interview.ratingForCompany],
-    ['Update By', interview.updatedBy]
+    ['Updated By (Staff Name)', interview.updatedBy]
   ])
 
   drawSectionTitle('Discussion And Feedback')
@@ -4393,6 +4393,16 @@ function InterviewUpdatePanel({
             onChange={(value) => onChange('referencePerson', value)}
             searchKey={globalFieldKey('interviews', 'Reference')}
           />
+          {draft.referencePerson === 'HR Recruiter' ? (
+            <InterviewInput
+              label="HR Recruiter Name"
+              value={draft.hrRecruiterName}
+              readOnly={readOnly}
+              placeholder="Enter recruiter name"
+              onChange={(value) => onChange('hrRecruiterName', value)}
+              searchKey={globalFieldKey('interviews', 'HR Recruiter Name')}
+            />
+          ) : null}
           <InterviewInput
             label="Date Of Interview"
             type="date"
@@ -4472,12 +4482,12 @@ function InterviewUpdatePanel({
           />
           <InterviewTextarea label="Note" value={draft.note} readOnly={readOnly} placeholder="Additional note" onChange={(value) => onChange('note', value)} searchKey={globalFieldKey('interviews', 'Note')} />
           <InterviewInput
-            label="Update By"
+            label="Updated By (Staff Name)"
             value={draft.updatedBy}
             readOnly={readOnly}
             placeholder="SJP HR"
             onChange={(value) => onChange('updatedBy', value)}
-            searchKey={globalFieldKey('interviews', 'Update By')}
+            searchKey={globalFieldKey('interviews', 'Updated By (Staff Name)')}
           />
         </div>
 
@@ -4743,7 +4753,7 @@ export default function AddCandidate() {
     const loadAdvisorOptions = async () => {
       try {
         const { data } = await api.get('/ba/all')
-      const items = Array.isArray(data) ? data : []
+        const items = Array.isArray(data) ? data : []
         const labels = items
           .map((item) => {
             const name = String(item?.fullName || item?.userId?.name || '').trim()
@@ -4752,9 +4762,9 @@ export default function AddCandidate() {
             return code ? `${name || code} (${code})` : name
           })
           .filter(Boolean)
-        setAdvisorReferenceOptions(['Walk-in', ...labels])
+        setAdvisorReferenceOptions(['Walk-in', 'HR Recruiter', ...labels])
       } catch (_error) {
-        setAdvisorReferenceOptions(['Walk-in'])
+        setAdvisorReferenceOptions(['Walk-in', 'HR Recruiter'])
       }
     }
 
@@ -5277,6 +5287,7 @@ export default function AddCandidate() {
           row.companyName,
           row.jobRole,
           row.referencePerson,
+          row.hrRecruiterName,
           row.date,
           row.selectionChances,
           row.ratingForCompany,

@@ -788,6 +788,7 @@ const interviewDetailFields = [
   ['companyName', 'Name Of Company'],
   ['jobRole', 'Job Role/Department'],
   ['referencePerson', 'Reference'],
+  ['hrRecruiterName', 'HR Recruiter Name'],
   ['attendInterview', 'Attend Interview'],
   ['interestedForJoin', 'Interested For Join'],
   ['date', 'Date Of Interview'],
@@ -800,7 +801,7 @@ const interviewDetailFields = [
   ['negativeFeedback', 'Negative Feedback'],
   ['overallDiscussion', 'Overall Discussion'],
   ['note', 'Note'],
-  ['updatedBy', 'Update By']
+  ['updatedBy', 'Updated By (Staff Name)']
 ]
 
 const viewPanelLabels = {
@@ -975,6 +976,7 @@ const buildViewSearchItems = (candidate, visibleInterviews = []) => {
           row.selectionChances,
           row.status,
           row.referencePerson,
+          row.hrRecruiterName,
           row.note,
           ...(row.documents || []).flatMap((doc) => [doc.documentLabel, doc.fileName])
         ],
