@@ -318,6 +318,11 @@ const extraDocumentMatchesSearch = (doc, term) => {
 const isImageDocLike = (doc = {}) =>
   String(doc?.mimeType || '').startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp)$/i.test(String(doc?.fileName || ''))
 
+const isPendingCandidateDocument = (doc = {}) =>
+  Boolean(doc?.isPendingUpload) || String(doc?._id || '').startsWith('pending-candidate-document:')
+
+const isPendingCandidateDocumentId = (docId) => String(docId || '').startsWith('pending-candidate-document:')
+
 const interviewDocumentTypes = [
   { key: 'appointmentLetter', label: 'Appointment Letter' },
   { key: 'offerLetter', label: 'Offer Letter' },
@@ -3347,6 +3352,9 @@ function CandidateDocumentUploadCard({
   const uploadedCount = documentCountsByType[item.key] || 0
   const allowMultiple = educationCertificateDocumentKeys.has(item.key) || computerCourseDocumentKeys.has(item.key)
   const hasDocuments = uploadedDocs.length > 0
+  const hasPendingDocuments = uploadedDocs.some((doc) => isPendingCandidateDocument(doc))
+  const statusText = uploadedDoc ? (isPendingCandidateDocument(uploadedDoc) ? 'Pending upload' : 'Provided') : 'Not provided'
+  const statusClass = uploadedDoc ? (isPendingCandidateDocument(uploadedDoc) ? 'text-sky-700' : 'text-emerald-700') : 'text-amber-700'
   const enabled = Boolean(enabledDocumentTypes?.[item.key])
   const firstDoc = uploadedDocs[0]
   const firstDocId = String(firstDoc?._id || '')
@@ -3405,11 +3413,11 @@ function CandidateDocumentUploadCard({
         <div className="mt-2 flex items-start justify-between gap-2">
           <div className="min-w-0">
           {item.description ? <p className="mt-0.5 text-[11px] font-semibold leading-4 text-slate-500">{item.description}</p> : null}
-          <p className={`mt-0.5 text-xs font-semibold ${uploadedDoc ? 'text-emerald-700' : 'text-amber-700'}`}>
-            {uploadedDoc ? 'Provided' : 'Not provided'}
+          <p className={`mt-0.5 text-xs font-semibold ${statusClass}`}>
+            {statusText}
           </p>
           {uploadedDoc?.fileName ? <p className="mt-0.5 truncate text-[11px] text-slate-500">{uploadedDoc.fileName}</p> : null}
-          {uploadedCount > 1 ? <p className="mt-0.5 text-[11px] font-semibold text-indigo-600">{uploadedCount} files uploaded</p> : null}
+          {uploadedCount > 1 ? <p className="mt-0.5 text-[11px] font-semibold text-indigo-600">{uploadedCount} files {hasPendingDocuments ? 'selected' : 'uploaded'}</p> : null}
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
           <button
@@ -3478,7 +3486,7 @@ function CandidateDocumentFilesDialog({
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-slate-900">{educationCertificateDocumentKeys.has(item.key) ? educationCertificateLabel(item) : item.label}</p>
-            <p className="text-xs font-semibold text-slate-500">{docs.length} uploaded file{docs.length === 1 ? '' : 's'}</p>
+            <p className="text-xs font-semibold text-slate-500">{docs.length} file{docs.length === 1 ? '' : 's'}</p>
           </div>
           <button
             type="button"
@@ -4667,6 +4675,7 @@ export default function AddCandidate() {
   const [previewDocument, setPreviewDocument] = useState(null)
   const [uploadingInterviewDocumentType, setUploadingInterviewDocumentType] = useState('')
   const [deletingInterviewDocumentId, setDeletingInterviewDocumentId] = useState('')
+  const [pendingCandidateDocuments, setPendingCandidateDocuments] = useState([])
   const [pendingInterviewFiles, setPendingInterviewFiles] = useState({})
   const [documentInterviewId, setDocumentInterviewId] = useState('')
   const [globalSearchTerm, setGlobalSearchTerm] = useState('')
@@ -5672,7 +5681,7 @@ export default function AddCandidate() {
     setCandidateDetailsStep(step)
   }
 
-  const saveCandidateCore = async () => {
+  const saveCandidateCore = async ({ keepSaving = false } = {}) => {
     if (!validate()) {
       toast.error('Please fill required candidate details')
       return null
@@ -5724,41 +5733,50 @@ export default function AddCandidate() {
       toast.error(error.response?.data?.message || 'Could not save candidate')
       return null
     } finally {
-      setSaving(false)
+      if (!keepSaving) setSaving(false)
     }
   }
 
-  const save = async () => {
-    const savedId = await saveCandidateCore()
-    if (savedId) {
-      toast.success(isEdit ? 'Candidate updated successfully' : 'Candidate saved successfully')
-      navigate('/admin/cms/candidates')
-    }
-  }
+  const getCandidateDocumentConfig = (documentType) =>
+    allCandidateDocumentTypes.find((item) => item.key === documentType)
 
-  const uploadDocuments = async (documentType, files) => {
-    let currentId = id
-    if (!isEdit || !currentId) {
-      currentId = await saveCandidateCore()
-      if (!currentId) return
-      navigate(`/admin/cms/candidates/${currentId}?panel=${activePanel}`, { replace: true })
-    }
-    const fileList = Array.from(files || []).filter(Boolean)
-    if (!fileList.length) return
-    const documentConfig = allCandidateDocumentTypes.find((item) => item.key === documentType)
+  const validateCandidateDocumentFiles = (documentType, fileList) => {
+    const documentConfig = getCandidateDocumentConfig(documentType)
     const allowedTypes = new Set(documentConfig?.allowedTypes || Array.from(allowedDocumentImageTypes))
 
     for (const file of fileList) {
       if (!allowedTypes.has(file.type)) {
         toast.error(`${file.name}: ${documentConfig?.typeMessage || 'only JPG/PNG images are allowed'}`)
-        return
+        return false
       }
       if (file.size <= 0 || file.size > MAX_DOCUMENT_IMAGE_SIZE) {
         toast.error(`${file.name}: file must be 10MB or less`)
-        return
+        return false
       }
     }
 
+    return true
+  }
+
+  const createPendingCandidateDocument = (documentType, file) => {
+    const documentConfig = getCandidateDocumentConfig(documentType)
+    const timestamp = Date.now()
+    const randomId = Math.random().toString(36).slice(2)
+
+    return {
+      _id: `pending-candidate-document:${documentType}:${timestamp}:${randomId}`,
+      documentType,
+      documentLabel: documentConfig?.label || documentType,
+      fileName: file.name,
+      mimeType: file.type,
+      fileSize: file.size,
+      uploadedAt: new Date(timestamp).toISOString(),
+      isPendingUpload: true,
+      file
+    }
+  }
+
+  const uploadCandidateDocumentFiles = async (candidateId, documentType, fileList) => {
     setUploadingDocumentType(documentType)
     try {
       let latestCandidate = null
@@ -5767,7 +5785,7 @@ export default function AddCandidate() {
         payload.append('documentType', documentType)
         payload.append('document', file)
         // eslint-disable-next-line no-await-in-loop
-        const { data } = await api.post(`/cms/candidates/${currentId}/documents`, payload)
+        const { data } = await api.post(`/cms/candidates/${candidateId}/documents`, payload)
         latestCandidate = data?.candidate || latestCandidate
       }
 
@@ -5777,15 +5795,74 @@ export default function AddCandidate() {
           documents: Array.isArray(latestCandidate.documents) ? latestCandidate.documents : current.documents
         }))
       }
-      toast.success(fileList.length > 1 ? `${fileList.length} documents uploaded` : 'Document uploaded')
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not upload document')
     } finally {
       setUploadingDocumentType('')
     }
   }
 
+  const uploadPendingCandidateDocuments = async (candidateId) => {
+    for (const pendingDocument of pendingCandidateDocuments) {
+      if (!pendingDocument?.file) continue
+      // eslint-disable-next-line no-await-in-loop
+      await uploadCandidateDocumentFiles(candidateId, pendingDocument.documentType, [pendingDocument.file])
+      setPendingCandidateDocuments((current) =>
+        current.filter((doc) => String(doc?._id || '') !== String(pendingDocument._id))
+      )
+    }
+  }
+
+  const save = async () => {
+    const savedId = await saveCandidateCore({ keepSaving: true })
+    if (!savedId) {
+      setSaving(false)
+      return
+    }
+
+    try {
+      if (pendingCandidateDocuments.length) {
+        await uploadPendingCandidateDocuments(savedId)
+      }
+      toast.success(isEdit ? 'Candidate updated successfully' : 'Candidate saved successfully')
+      navigate('/admin/cms/candidates')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Candidate saved, but documents could not upload')
+      if (!isEdit) {
+        navigate(`/admin/cms/candidates/${savedId}?panel=documents`, { replace: true })
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const uploadDocuments = async (documentType, files) => {
+    const fileList = Array.from(files || []).filter(Boolean)
+    if (!fileList.length) return
+    if (!validateCandidateDocumentFiles(documentType, fileList)) return
+
+    if (!isEdit || !id) {
+      setPendingCandidateDocuments((current) => [
+        ...current,
+        ...fileList.map((file) => createPendingCandidateDocument(documentType, file))
+      ])
+      toast.success(fileList.length > 1 ? `${fileList.length} documents selected` : 'Document selected')
+      return
+    }
+
+    try {
+      await uploadCandidateDocumentFiles(id, documentType, fileList)
+      toast.success(fileList.length > 1 ? `${fileList.length} documents uploaded` : 'Document uploaded')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not upload document')
+    }
+  }
+
   const removeDocument = async (docId) => {
+    if (isPendingCandidateDocumentId(docId)) {
+      setPendingCandidateDocuments((current) => current.filter((doc) => String(doc?._id || '') !== String(docId)))
+      toast.success('Selected document removed')
+      return
+    }
+
     if (!isEdit || !id || !docId) return
 
     setDeletingDocumentId(docId)
@@ -5804,6 +5881,21 @@ export default function AddCandidate() {
   }
 
   const viewDocument = async (doc) => {
+    if (isPendingCandidateDocument(doc) && doc?.file) {
+      const objectUrl = URL.createObjectURL(doc.file)
+      if (isImageDocLike(doc)) {
+        setPreviewDocument({
+          url: objectUrl,
+          name: doc?.documentLabel || doc?.fileName || 'Document'
+        })
+        return
+      }
+
+      window.open(objectUrl, '_blank', 'noopener,noreferrer')
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000)
+      return
+    }
+
     const docId = String(doc?._id || '')
     if (!isEdit || !id || !docId) return
 
@@ -5832,7 +5924,7 @@ export default function AddCandidate() {
       type: 'candidate',
       docId,
       interviewId: '',
-      label: 'this candidate image'
+      label: 'this candidate document'
     })
   }
 
@@ -5856,6 +5948,18 @@ export default function AddCandidate() {
   }
 
   const downloadDocument = async (doc) => {
+    if (isPendingCandidateDocument(doc) && doc?.file) {
+      const objectUrl = URL.createObjectURL(doc.file)
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = doc?.fileName || doc?.documentLabel || 'candidate-document'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+      return
+    }
+
     const docId = String(doc?._id || '')
     if (!isEdit || !id || !docId) return
 
@@ -5921,10 +6025,11 @@ export default function AddCandidate() {
 
   if (loading) return <div className={cardClass}>Loading candidate...</div>
 
-  const documentsByType = latestDocumentsByType(candidate.documents)
-  const documentCountsByType = countDocumentsByType(candidate.documents)
-  const documentsByTypeList = documentsGroupedByType(candidate.documents)
-  const extraDocuments = unmatchedDocuments(candidate.documents)
+  const visibleCandidateDocuments = [...(candidate.documents || []), ...pendingCandidateDocuments]
+  const documentsByType = latestDocumentsByType(visibleCandidateDocuments)
+  const documentCountsByType = countDocumentsByType(visibleCandidateDocuments)
+  const documentsByTypeList = documentsGroupedByType(visibleCandidateDocuments)
+  const extraDocuments = unmatchedDocuments(visibleCandidateDocuments)
   const autoSaveStatusText =
     autoSaveStatus === 'pending'
       ? 'Unsaved changes'
@@ -6463,8 +6568,8 @@ export default function AddCandidate() {
 
       <ConfirmDialog
         open={deleteDocumentPrompt.open}
-        title="Delete Image"
-        message={`Are you sure you want to delete ${deleteDocumentPrompt.label || 'this image'}?`}
+        title="Delete Document"
+        message={`Are you sure you want to delete ${deleteDocumentPrompt.label || 'this document'}?`}
         confirmText="Yes, delete"
         cancelText="No"
         danger
