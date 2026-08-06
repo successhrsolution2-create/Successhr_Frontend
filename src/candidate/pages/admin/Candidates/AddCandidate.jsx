@@ -5669,16 +5669,16 @@ export default function AddCandidate() {
     setCandidateDetailsStep(step)
   }
 
-  const save = async () => {
+  const saveCandidateCore = async () => {
     if (!validate()) {
       toast.error('Please fill required candidate details')
-      return
+      return null
     }
 
     const incompleteInterview = candidate.interviews.find((row) => interviewHasContent(row) && !String(row.companyName || '').trim())
     if (incompleteInterview) {
       toast.error('Company name is required for interview rows')
-      return
+      return null
     }
 
     try {
@@ -5715,13 +5715,21 @@ export default function AddCandidate() {
           .map((row) => api.post(`/cms/candidates/${candidateId}/interviews`, mapFormInterviewToApi(row)))
       )
 
-      toast.success(isEdit ? 'Candidate updated successfully' : 'Candidate saved successfully')
       if (!isEdit) clearStoredCmsCandidateDraft()
-      navigate('/admin/cms/candidates')
+      return candidateId
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not save candidate')
+      return null
     } finally {
       setSaving(false)
+    }
+  }
+
+  const save = async () => {
+    const savedId = await saveCandidateCore()
+    if (savedId) {
+      toast.success(isEdit ? 'Candidate updated successfully' : 'Candidate saved successfully')
+      navigate('/admin/cms/candidates')
     }
   }
 
