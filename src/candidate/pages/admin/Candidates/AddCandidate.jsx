@@ -5457,9 +5457,12 @@ export default function AddCandidate() {
     const files = Array.from(fileList || [])
     if (!files.length) return
     if (!validateInterviewDocumentFiles(files)) return
-    if (!isEdit) {
-      toast.error('Save candidate first to upload interview documents')
-      return
+    
+    let currentId = id
+    if (!isEdit || !currentId) {
+      currentId = await saveCandidateCore()
+      if (!currentId) return
+      navigate(`/admin/cms/candidates/${currentId}?panel=${activePanel}`, { replace: true })
     }
 
     if (!isMongoId(targetInterviewId)) {
@@ -5734,9 +5737,11 @@ export default function AddCandidate() {
   }
 
   const uploadDocuments = async (documentType, files) => {
-    if (!isEdit || !id) {
-      toast.error('Save candidate first to upload documents')
-      return
+    let currentId = id
+    if (!isEdit || !currentId) {
+      currentId = await saveCandidateCore()
+      if (!currentId) return
+      navigate(`/admin/cms/candidates/${currentId}?panel=${activePanel}`, { replace: true })
     }
     const fileList = Array.from(files || []).filter(Boolean)
     if (!fileList.length) return
@@ -5762,7 +5767,7 @@ export default function AddCandidate() {
         payload.append('documentType', documentType)
         payload.append('document', file)
         // eslint-disable-next-line no-await-in-loop
-        const { data } = await api.post(`/cms/candidates/${id}/documents`, payload)
+        const { data } = await api.post(`/cms/candidates/${currentId}/documents`, payload)
         latestCandidate = data?.candidate || latestCandidate
       }
 
