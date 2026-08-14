@@ -68,7 +68,7 @@ export default function CandidateForm() {
       await api.post('/candidates', payload)
 
       toast.success('Reference submitted successfully!')
-      navigate('/ba/students')
+      navigate('/ba/candidates')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not submit reference')
     } finally {
@@ -79,7 +79,7 @@ export default function CandidateForm() {
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-4 sm:space-y-6">
       <div>
-        <Link to="/ba/students" className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+        <Link to="/ba/candidates" className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-700">
           <ArrowLeft className="h-4 w-4" />
           My Candidates
         </Link>

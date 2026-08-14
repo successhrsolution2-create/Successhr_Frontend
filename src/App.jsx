@@ -27,6 +27,8 @@ const CompanyForm = lazy(() => import('./pages/ba/CompanyForm'))
 const BAStudents = lazy(() => import('./pages/ba/Students'))
 const BACompanies = lazy(() => import('./pages/ba/Companies'))
 const BAEarnings = lazy(() => import('./pages/ba/Earnings'))
+const BACandidates = lazy(() => import('./pages/ba/Candidates'))
+const BACandidateForm = lazy(() => import('./pages/ba/CandidateForm'))
 
 const InterviewList = lazy(() => import('./pages/admin/Interviews/InterviewList'))
 const ApplyPage = lazy(() => import('./pages/public/ApplyPage'))
@@ -114,11 +116,9 @@ function CrmAdminShell({ children }) {
 
 function CandidateManagementShell({ children, hideTopbar = false }) {
   const role = useSelector((state) => state.auth.user?.role)
-  return (
-    <AppShell role={role === 'superAdmin' ? 'superAdmin' : role === 'manager' ? 'manager' : 'candidateAdmin'} hideTopbar={hideTopbar}>
+  return <AppShell role={role === 'superAdmin' ? 'superAdmin' : role === 'manager' ? 'manager' : 'candidateAdmin'} hideTopbar={hideTopbar}>
       {children}
     </AppShell>
-  )
 }
 
 function EmployeeManagementShell({ children }) {
@@ -711,6 +711,26 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/ba/candidates"
+          element={
+            <ProtectedRoute roles={['businessAdvisor']}>
+              <AppShell role="businessAdvisor">
+                <BACandidates />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ba/candidates/new"
+          element={
+            <ProtectedRoute roles={['businessAdvisor']}>
+              <AppShell role="businessAdvisor">
+                <BACandidateForm key="new" />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="/ba/student/new" element={<Navigate to="/ba/students/new" replace />} />
         <Route path="/ba/company/new" element={<Navigate to="/ba/companies/new" replace />} />
@@ -721,7 +741,7 @@ export default function App() {
         <Route path="/admin/candidates" element={<Navigate to="/admin/references" replace />} />
         <Route path="/admin/candidates/new" element={<Navigate to="/admin/references" replace />} />
         <Route path="/admin/candidates/:id" element={<Navigate to="/admin/references" replace />} />
-        <Route path="/admin/companies/new" element={<Navigate to="/admin/cms/companies/new" replace />} />
+
         <Route path="/candidate" element={<Navigate to="/admin/cms/candidates" replace />} />
         <Route path="/candidate/admin/dashboard" element={<Navigate to="/admin/cms/candidates" replace />} />
         <Route path="/candidate/admin/cms/candidates" element={<Navigate to="/admin/cms/candidates" replace />} />
