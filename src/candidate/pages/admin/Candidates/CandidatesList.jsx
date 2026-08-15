@@ -144,7 +144,7 @@ const uniqueSortedText = (values) => {
 }
 
 const toLegacyShape = (item, index = 0, total = 0) => ({
-  id: item._id,
+  id: item._id || item.id,
   code: fallbackCode(item, index, total),
   formMeta: item.formMeta || {},
   fullName: item.fullName || '',

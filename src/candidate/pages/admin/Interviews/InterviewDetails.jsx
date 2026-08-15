@@ -120,6 +120,11 @@ export default function InterviewDetails() {
 
   useEffect(() => {
     const load = async () => {
+      if (!id || id === 'undefined') {
+        navigate('/admin/cms/candidates', { replace: true })
+        return
+      }
+
       setLoading(true)
       try {
         const [{ data: candidateData }, { data: interviewData }] = await Promise.all([

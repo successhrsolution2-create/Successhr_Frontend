@@ -4742,6 +4742,11 @@ export default function AddCandidate() {
     if (!isEdit) return
 
     const loadCandidate = async () => {
+      if (!id || id === 'undefined') {
+        navigate('/admin/cms/candidates', { replace: true })
+        return
+      }
+
       try {
         const { data } = await api.get(`/cms/candidates/${id}`)
         const mappedCandidate = mapApiToCandidateForm(data.candidate, data)
