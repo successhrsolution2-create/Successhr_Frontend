@@ -40,7 +40,6 @@ const baLinks = [
 ]
 
 const businessAdvisorAdminLinks = [
-  { to: '/admin/references', label: 'Reference Board', icon: PanelsTopLeft },
   { to: '/admin/business-advisors', label: 'Success Advisors', icon: Users, end: true },
   { to: '/admin/students', label: 'Advisor Candidates', icon: UserCircle },
   { to: '/admin/companies', label: 'Advisor Companies', icon: Building2 },

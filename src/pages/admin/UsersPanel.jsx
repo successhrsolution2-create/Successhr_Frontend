@@ -189,13 +189,13 @@ export default function UsersPanel() {
       />
 
       <ConfirmDialog
-        isOpen={!!deletingUser}
-        onClose={() => setDeletingUser(null)}
+        open={!!deletingUser}
+        onCancel={() => setDeletingUser(null)}
         onConfirm={handleDeleteConfirm}
         title="Delete User"
         message={`Are you sure you want to delete ${deletingUser?.name}? This action cannot be undone.`}
-        confirmLabel="Delete User"
-        isDestructive
+        confirmText="Delete User"
+        danger={true}
       />
     </div>
   )
