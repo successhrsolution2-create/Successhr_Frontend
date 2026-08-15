@@ -1130,34 +1130,35 @@ const CandidateList = () => {
       key: 'actions',
       label: 'Actions',
       render: (row) => (
-        <div className="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
+        <div className="flex flex-nowrap items-center gap-1.5 whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
           <button
             type="button"
-            className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+            title="View Candidate"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-600 hover:shadow-sky-500/40"
             onClick={(event) => {
               event.stopPropagation()
               setViewCandidate(row)
             }}
             aria-label="View candidate"
           >
-            <Eye className="h-3.5 w-3.5" />
-            View
+            <Eye className="h-4 w-4" />
           </button>
           <button
             type="button"
-            className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 text-xs font-semibold text-amber-700 hover:bg-amber-50"
+            title="Update Candidate"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-500/30 transition hover:bg-amber-600 hover:shadow-amber-500/40"
             onClick={(event) => {
               event.stopPropagation()
               updateCandidate(row)
             }}
             aria-label="Update candidate"
           >
-            <Pencil className="h-3.5 w-3.5" />
-            Update
+            <Pencil className="h-4 w-4" />
           </button>
           <button
             type="button"
-            className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+            title="Delete Candidate"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600 hover:shadow-rose-500/40 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={deletingId === row._id || bulkDeleting}
             onClick={(event) => {
               event.stopPropagation()
@@ -1165,8 +1166,7 @@ const CandidateList = () => {
             }}
             aria-label="Delete candidate"
           >
-            <Trash2 className="h-3.5 w-3.5" />
-            {deletingId === row._id ? 'Deleting...' : 'Delete'}
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       )

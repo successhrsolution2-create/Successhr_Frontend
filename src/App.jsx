@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
+import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from './components/Sidebar'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoadingScreen from './components/LoadingScreen'
@@ -20,6 +21,7 @@ const CrmRoutes = lazy(() => import('./crm/CrmRoutes'))
 const CrmAdminDashboard = lazy(() => import('./pages/admin/Crm/AdminDashboard'))
 const CrmAdminReports = lazy(() => import('./pages/admin/Crm/AdminReports'))
 const AdminSettings = lazy(() => import('./pages/admin/Settings'))
+const UsersPanel = lazy(() => import('./pages/admin/UsersPanel'))
 const BADashboard = lazy(() => import('./pages/ba/Dashboard'))
 const BAProfile = lazy(() => import('./pages/ba/Profile'))
 const StudentForm = lazy(() => import('./pages/ba/StudentForm'))
@@ -46,8 +48,10 @@ const EMSEmployeeAdd = lazy(() => import('./modules/ems/pages/employees/Employee
 const EMSEmployeeEdit = lazy(() => import('./modules/ems/pages/employees/EmployeeEdit'))
 const EMSEmployeeProfile = lazy(() => import('./modules/ems/pages/employees/EmployeeProfile'))
 const EMSDepartmentList = lazy(() => import('./modules/ems/pages/departments/DepartmentList'))
+const EMSLocationsAndSchedules = lazy(() => import('./modules/ems/pages/LocationsAndSchedules'))
 const EMSLocationList = lazy(() => import('./modules/ems/pages/locations/LocationList'))
 const EMSScheduleList = lazy(() => import('./modules/ems/pages/schedules/ScheduleList'))
+const EMSAttendanceAndLeaves = lazy(() => import('./modules/ems/pages/AttendanceAndLeaves'))
 const EMSAttendanceToday = lazy(() => import('./modules/ems/pages/attendance/AttendanceToday'))
 const EMSAttendanceReport = lazy(() => import('./modules/ems/pages/attendance/AttendanceReport'))
 const EMSLeaveList = lazy(() => import('./modules/ems/pages/leaves/LeaveList'))
@@ -96,7 +100,23 @@ function HomeRedirect() {
 }
 
 function AppShell({ role, children, hideTopbar = false }) {
-  return <Sidebar role={role} hideTopbar={hideTopbar}>{children}</Sidebar>
+  const location = useLocation();
+  return (
+    <Sidebar role={role} hideTopbar={hideTopbar}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="h-full"
+        >
+          {children}
+        </motion.div>
+      </AnimatePresence>
+    </Sidebar>
+  )
 }
 
 function SettingsShell() {
@@ -203,6 +223,16 @@ export default function App() {
             <ProtectedRoute roles={['superAdmin']}>
               <AppShell role="superAdmin">
                 <SuperAdminDashboard />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <UsersPanel />
               </AppShell>
             </ProtectedRoute>
           }
@@ -515,7 +545,7 @@ export default function App() {
           element={
             <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
               <EmployeeManagementShell>
-                <EMSLocationList />
+                <EMSLocationsAndSchedules />
               </EmployeeManagementShell>
             </ProtectedRoute>
           }
@@ -535,7 +565,7 @@ export default function App() {
           element={
             <ProtectedRoute roles={employeeManagementRoles} managerAccess="employeeManagement">
               <EmployeeManagementShell>
-                <EMSAttendanceToday />
+                <EMSAttendanceAndLeaves />
               </EmployeeManagementShell>
             </ProtectedRoute>
           }

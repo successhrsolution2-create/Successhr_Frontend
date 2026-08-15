@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Eye, Trash2, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
@@ -368,55 +368,55 @@ const [deletePrompt, setDeletePrompt] = useState({
                     )}
                   </td>
 
-                  <td className="px-4 py-2">
+                  <td className="px-5 py-3">
                     <StatusBadge status={company.status} />
                   </td>
 
-                  <td className="px-4 py-2">
-                    <div className="flex flex-wrap gap-2">
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-1.5">
 
                       {/* VIEW BUTTON */}
                       <button
                         type="button"
+                        title="View company"
                         onClick={() => {
                           setDrawerMode('view')
                           setSelected(company)
                         }}
-                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-sky-200 bg-white px-2.5 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-600 hover:shadow-sky-500/40"
                         aria-label="View company"
                       >
-                        <Eye className="h-3.5 w-3.5" />
-                        View
+                        <Eye className="h-4 w-4" />
                       </button>
 
                       {/* EDIT BUTTON */}
                       <button
                         type="button"
+                        title="Edit company"
                         onClick={() => {
                           setDrawerMode('edit')
                           setSelected(company)
                         }}
-                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-amber-200 bg-white px-2.5 text-xs font-semibold text-amber-700 hover:bg-amber-50"
-                        aria-label="Update company"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-500/30 transition hover:bg-amber-600 hover:shadow-amber-500/40"
+                        aria-label="Edit company"
                       >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Update
+                        <Pencil className="h-4 w-4" />
                       </button>
 
                       {/* DELETE BUTTON */}
                       <button
                         type="button"
+                        title="Delete company"
                        onClick={() =>
   setDeletePrompt({
     open: true,
     company
   })
 }
-                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-rose-200 bg-white px-2.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600 hover:shadow-rose-500/40"
                         aria-label="Delete company"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Delete
+                        <Trash2 className="h-4 w-4" />
                       </button>
 
                     </div>

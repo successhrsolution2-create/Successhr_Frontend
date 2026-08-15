@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Download, Eye, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -372,14 +372,21 @@ export default function Candidates() {
                       : '-'}
                   </td>
                   <td className="px-5 py-3">
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => setSelected(Candidate)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sky-600 hover:bg-sky-50" aria-label="View Candidate">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        title="View Candidate"
+                        onClick={() => setSelected(Candidate)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-600 hover:shadow-sky-500/40"
+                        aria-label="View Candidate"
+                      >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
+                        title="Delete Candidate"
                         onClick={() => setDeletePrompt({ open: true, candidate: Candidate })}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600 hover:shadow-rose-500/40"
                         aria-label="Delete Candidate"
                       >
                         <Trash2 className="h-4 w-4" />

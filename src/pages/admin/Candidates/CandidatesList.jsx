@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Download, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -153,33 +153,33 @@ export default function CandidatesList() {
                   <td className="px-5 py-3 text-slate-700">{candidate.currentSalary || '-'}</td>
                   <td className="px-5 py-3 text-slate-700">{(candidate.keySkills || []).join(', ') || '-'}</td>
                   <td className="px-5 py-3">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
+                        title="View Candidate"
                         onClick={() => navigate(`/admin/cms/candidates/${candidate._id}`)}
-                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-600 hover:shadow-sky-500/40"
                         aria-label="View candidate"
                       >
                         <Eye className="h-4 w-4" />
-                        View
                       </button>
                       <button
                         type="button"
+                        title="Update Candidate"
                         onClick={() => navigate(`/admin/cms/candidates/${candidate._id}/edit`)}
-                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-700 hover:bg-amber-50"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-500/30 transition hover:bg-amber-600 hover:shadow-amber-500/40"
                         aria-label="Update candidate"
                       >
                         <Pencil className="h-4 w-4" />
-                        Update
                       </button>
                       <button
                         type="button"
+                        title="Delete Candidate"
                         onClick={() => setDeleting(candidate)}
-                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600 hover:shadow-rose-500/40"
                         aria-label="Delete candidate"
                       >
                         <Trash2 className="h-4 w-4" />
-                        Delete
                       </button>
                     </div>
                   </td>

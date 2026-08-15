@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Download, Eye, Trash2, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
@@ -677,51 +677,47 @@ const [deletePrompt, setDeletePrompt] = useState({
                       '-'
                     )}
                   </td>
-
                   <td className="px-4 py-2">
-                    <div className="flex flex-wrap gap-2">
-
+                    <div className="flex items-center gap-1.5">
                       {/* VIEW BUTTON */}
                       <button
                         type="button"
+                        title="View Student"
                         onClick={() => {
                           setDrawerMode('view')
                           setSelected(student)
                         }}
-                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-sky-200 bg-white px-2.5 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-600 hover:shadow-sky-500/40"
                         aria-label="View student"
                       >
-                        <Eye className="h-3.5 w-3.5" />
-                        View
+                        <Eye className="h-4 w-4" />
                       </button>
 
-                      {/* EDIT BUTTON */}
+                      {/* EDIT/UPDATE BUTTON */}
                       <button
                         type="button"
+                        title="Update Status"
                         onClick={() => openStatusUpdate(student)}
-                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-amber-200 bg-white px-2.5 text-xs font-semibold text-amber-700 hover:bg-amber-50"
-                        aria-label="Update status and advisor payment"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-500/30 transition hover:bg-amber-600 hover:shadow-amber-500/40"
+                        aria-label="Update student"
                       >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Update
+                        <Pencil className="h-4 w-4" />
                       </button>
-
                       {/* DELETE BUTTON */}
                       <button
                         type="button"
-                       onClick={() =>
-  setDeletePrompt({
-    open: true,
-    student
-  })
-}
-                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-rose-200 bg-white px-2.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                        title="Delete Student"
+                        onClick={() =>
+                          setDeletePrompt({
+                            open: true,
+                            student
+                          })
+                        }
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600 hover:shadow-rose-500/40"
                         aria-label="Delete student"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Delete
+                        <Trash2 className="h-4 w-4" />
                       </button>
-
                     </div>
                   </td>
                 </tr>

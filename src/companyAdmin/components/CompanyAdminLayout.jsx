@@ -56,7 +56,7 @@ export default function CompanyAdminLayout() {
   if (!companyAdmin) return null
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="admin-shell min-h-screen bg-slate-50 text-slate-900">
       {open ? (
         <button
           type="button"
@@ -76,42 +76,46 @@ export default function CompanyAdminLayout() {
       </button>
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(280px,88vw)] flex-col border-r border-slate-200 bg-white transition-transform duration-300 lg:w-64 ${
+        className={`admin-sidebar fixed inset-y-0 left-0 z-50 flex w-[min(280px,88vw)] max-w-[88vw] transform flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--bg-sidebar)] text-[var(--text-primary)] transition-transform duration-300 ease-out lg:max-w-none lg:w-64 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="border-b border-slate-200 px-5 py-5">
-          <img src="/success-logo.jpg" alt="Success HR Solutions" className="h-12 w-full object-contain object-left" />
-          <div className="mt-5 rounded-xl border border-sky-100 bg-sky-50 px-3 py-3">
-            <div className="flex items-center gap-2 text-sky-800">
-              <Building2 className="h-4 w-4" />
-              <p className="truncate text-sm font-bold">{companyAdmin.companyName}</p>
-            </div>
-            <p className="mt-1 truncate text-xs font-semibold text-slate-600">{companyAdmin.name}</p>
-            <p className="truncate text-xs text-slate-500">{companyAdmin.email}</p>
+        <div className="admin-sidebar-brand relative flex items-center justify-center border-b border-white/10 px-4 py-3">
+          <div className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-2 shadow-lg">
+            <img src="/success-logo.jpg" alt="Success HR Solutions" className="h-12 w-auto max-w-[170px] object-contain" />
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">Company Portal</p>
+        <nav className="admin-sidebar-nav flex-1 space-y-2.5 overflow-y-auto overflow-x-hidden px-3 pb-3 pt-2">
+          <p className="px-3 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-slate-400">Company Portal</p>
+          <div className="mt-2 mb-4 rounded-xl border border-white/10 bg-white/5 px-3 py-3 mx-2">
+            <div className="flex items-center gap-2 text-slate-200">
+              <Building2 className="h-4 w-4" />
+              <p className="truncate text-sm font-bold text-white">{companyAdmin.companyName}</p>
+            </div>
+            <p className="mt-1 truncate text-xs font-semibold text-slate-300">{companyAdmin.name}</p>
+            <p className="truncate text-xs text-slate-400">{companyAdmin.email}</p>
+          </div>
           {links.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
-                `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                  isActive ? 'bg-sky-50 text-sky-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                `flex min-h-[46px] items-center gap-3 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-[15px] font-bold transition ${
+                  isActive
+                    ? 'bg-gradient-to-r from-[#5b4fe8] via-[#7048f2] to-[#8743f7] text-white shadow-[0_8px_24px_-4px_rgba(112,72,242,0.5)]'
+                    : 'text-slate-200 hover:bg-white/10 hover:text-white'
                 }`
               }
             >
               <item.icon className="h-4 w-4" />
-              {item.label}
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="border-t border-slate-200 p-3">
+        <div className="admin-sidebar-footer border-t border-white/10 p-3.5">
           <button
             type="button"
             onClick={logout}

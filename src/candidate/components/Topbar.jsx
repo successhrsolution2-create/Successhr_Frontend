@@ -65,16 +65,7 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
         </button>
       ) : null}
 
-      <button
-        type="button"
-        onClick={handleBack}
-        aria-label="Go back"
-        title="Back"
-        className="mr-2 inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span className="hidden sm:inline">Back</span>
-      </button>
+
 
       {/* PROFILE */}
       <div className="relative ml-auto min-w-0" ref={ref}>

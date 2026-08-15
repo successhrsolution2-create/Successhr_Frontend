@@ -192,52 +192,51 @@ const Shell = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7fafc]">
+    <div className="admin-shell min-h-screen bg-[#f7fafc]">
       {isSidebarOpen && (
         <button
           type="button"
           aria-label="Close sidebar overlay"
-          className="fixed inset-0 z-20 bg-slate-950/45 lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-950/45 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-[min(224px,86vw)] overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,#09264a_0%,#071f3d_42%,#06172c_100%)] text-white transition-transform duration-300 ease-out lg:max-w-none ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`admin-sidebar fixed inset-y-0 left-0 z-50 flex w-[min(224px,86vw)] transform flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--bg-sidebar)] text-[var(--text-primary)] transition-transform duration-300 ease-out lg:static lg:max-w-none ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
         style={{ width: isDesktop ? `${sidebarWidth}px` : 'min(224px, 86vw)' }}
       >
-        <div className="border-b border-white/10 px-4 pb-5 pt-14">
-          <img src="/success-logo.jpg" alt="Success HR Solutions" className="mx-auto h-auto w-[168px] object-contain" />
+        <div className="admin-sidebar-brand relative flex items-center justify-center border-b border-white/10 px-4 py-3">
+          <div className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-2 shadow-lg">
+            <img src="/success-logo.jpg" alt="Success HR Solutions" className="h-12 w-auto max-w-[170px] object-contain" />
+          </div>
         </div>
 
-        <div className="space-y-5 px-3 py-5">
-          <div className="border-t border-white/10 pt-4">
-            <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-              CRM Management
-            </p>
-          </div>
+        <nav className="admin-sidebar-nav flex-1 space-y-2.5 overflow-y-auto overflow-x-hidden px-3 pb-3 pt-2">
+          <p className="px-3 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-slate-400">
+            CRM Management
+          </p>
 
-          <nav className="space-y-1">
           {links.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
+              onClick={() => setIsSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex h-9 items-center gap-3 rounded-md px-3 text-[13px] font-medium transition ${
+                `flex min-h-[46px] items-center gap-3 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-[15px] font-bold transition ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#2f8dff] to-[#316dff] text-white'
-                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    ? 'bg-gradient-to-r from-[#5b4fe8] via-[#7048f2] to-[#8743f7] text-white shadow-[0_8px_24px_-4px_rgba(112,72,242,0.5)]'
+                    : 'text-slate-200 hover:bg-white/10 hover:text-white'
                 }`
               }
             >
               <SidebarIcon type={link.icon} />
-              <span className="min-w-0 truncate">{link.label}</span>
+              <span>{link.label}</span>
             </NavLink>
           ))}
-          </nav>
-        </div>
+        </nav>
 
         {isDesktop && isSidebarOpen ? (
           <button

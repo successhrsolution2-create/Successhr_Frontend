@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { CalendarDays, Download, Eye, Filter, Pencil, Plus, RotateCcw, Search, ShieldCheck, Trash2, Upload, UserRoundPlus, Users } from 'lucide-react'
+import { CalendarDays, Download, Eye, Filter, Pencil, Plus, RotateCcw, Search, ShieldCheck, Trash2, Upload, UserRoundPlus, Users, FileSpreadsheet } from 'lucide-react'
 import { PromptDialog } from '../../../components/ActionDialogs'
 import Pagination from '../../../components/Pagination'
 import api from '../../../api/axios'
 import { createCandidateBlankTemplatePdf, downloadBlob } from './AddCandidate'
+import ExportCandidateModal from './ExportCandidateModal'
 
 const isChecked = (value) => Boolean(value?.checked ?? value)
 
@@ -444,6 +445,7 @@ export default function CandidatesList() {
   const [totalCandidates, setTotalCandidates] = useState(0)
   const [stats, setStats] = useState({ total: 0, newToday: 0, selected: 0, activeInterviews: 0 })
   const [selectedCandidateIds, setSelectedCandidateIds] = useState([])
+  const [showExportModal, setShowExportModal] = useState(false)
 
   const loadCandidates = useCallback(async (targetPage = page) => {
     try {
@@ -732,7 +734,15 @@ export default function CandidatesList() {
           className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-[#d4dde8] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d]"
         >
           <Download className="h-4 w-4" />
-          Blank Template PDF
+          Template
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowExportModal(true)}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          Export Data
         </button>
         <button
           type="button"
@@ -906,13 +916,13 @@ export default function CandidatesList() {
           <table className="w-full min-w-[1160px] table-fixed text-[13px] text-slate-900">
             <colgroup>
               <col className="w-[4%]" />
-              <col className="w-[8%]" />
+              <col className="w-[9%]" />
               <col className="w-[12%]" />
-              <col className="w-[19%]" />
-              <col className="w-[10%]" />
-              <col className="w-[14%]" />
-              <col className="w-[16%]" />
-              <col className="w-[17%]" />
+              <col className="w-[26%]" />
+              <col className="w-[13%]" />
+              <col className="w-[15%]" />
+              <col className="w-[8%]" />
+              <col className="w-[13%]" />
             </colgroup>
             <thead className="bg-white text-left text-xs font-semibold uppercase text-slate-600">
               <tr className="border-b border-[#d4dde8]">
@@ -935,7 +945,7 @@ export default function CandidatesList() {
                 <th className="px-3 py-3 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[#d4dde8]">
               {paginated.map((candidate) => (
                 <tr key={candidate.id} className="border-b border-[#d4dde8] bg-white hover:bg-[#f8fbff]">
                   <td className="border-r border-[#d4dde8] px-3 py-3 text-center">
@@ -980,58 +990,41 @@ export default function CandidatesList() {
                   <td className="border-r border-[#d4dde8] px-3 py-3">
                     {(() => {
                       const visits = Array.isArray(candidate.candidateVisits) ? candidate.candidateVisits : []
-                      const lastVisit = lastCandidateVisit(visits)
-                      const visitDate = formatVisitDateTime(lastVisit?.visitDateTime)
-                      const purpose = lastVisit ? selectedOptionValue(lastVisit.purpose, lastVisit.purposeOther) : ''
                       return (
-                        <div className="min-w-0 space-y-1 leading-4">
-                          <span className="inline-flex rounded-full bg-[#eef6ff] px-2 py-0.5 text-[11px] font-bold text-[#00427d]">
-                            {visits.length} Visit{visits.length === 1 ? '' : 's'}
-                          </span>
-                          {lastVisit ? (
-                            <div className="min-w-0 text-[11px] font-semibold text-slate-600">
-                              <span className="block truncate text-slate-900" title={`${visitDate.date} ${visitDate.time}`.trim()}>
-                                Last: {visitDate.date}{visitDate.time ? `, ${visitDate.time}` : ''}
-                              </span>
-                              <span className="block truncate" title={purpose || '-'}>
-                                {purpose || '-'}
-                              </span>
-                              <span className="block truncate" title={lastVisit.meetingStaffName || '-'}>
-                                Staff: {lastVisit.meetingStaffName || '-'}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="block text-[11px] font-semibold text-slate-400">No visit added</span>
-                          )}
-                        </div>
+                        <span className="inline-flex rounded-full bg-[#eef6ff] px-2 py-0.5 text-[11px] font-bold text-[#00427d]">
+                          {visits.length} Visit{visits.length === 1 ? '' : 's'}
+                        </span>
                       )
                     })()}
                   </td>
                   <td className="px-3 py-3">
-                    <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
+                        title="View Candidate"
                         onClick={() => navigate(`/admin/cms/candidates/${candidate.id}`)}
-                        className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-2.5 text-xs font-semibold text-[#00427d] transition hover:border-[#0b65ac] hover:bg-[#eef6ff]"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-600 hover:shadow-sky-500/40"
                         aria-label="View candidate"
                       >
-                        View
+                        <Eye className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
+                        title="Update Candidate"
                         onClick={() => navigate(`/admin/cms/candidates/${candidate.id}/edit`)}
-                        className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-[#d4dde8] bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-[#0b65ac] hover:bg-[#eef6ff] hover:text-[#00427d]"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-500/30 transition hover:bg-amber-600 hover:shadow-amber-500/40"
                         aria-label="Edit candidate"
                       >
-                        Update
+                        <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
+                        title="Delete Candidate"
                         onClick={() => setDeleting(candidate)}
-                        className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-rose-600 px-2.5 text-xs font-semibold text-white transition hover:bg-rose-700"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600 hover:shadow-rose-500/40"
                         aria-label="Delete candidate"
                       >
-                        Delete
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -1088,6 +1081,11 @@ export default function CandidatesList() {
         onCancel={cancelImportPreview}
         onConfirm={confirmImportPreview}
         onRemoveRow={removeImportPreviewRow}
+      />
+      
+      <ExportCandidateModal 
+        isOpen={showExportModal} 
+        onClose={() => setShowExportModal(false)} 
       />
     </div>
   )

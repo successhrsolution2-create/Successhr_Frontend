@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
@@ -118,24 +118,24 @@ export default function CompaniesList() {
                   <td className="px-4 py-2 leading-5 text-slate-700">{company.mobileNo || '-'}</td>
                   <td className="px-4 py-2 leading-5 text-slate-700">{company.jobRequirements?.jobProfile || '-'}</td>
                   <td className="px-4 py-2">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
+                        title="Update Company"
                         onClick={() => navigate(`/admin/cms/companies/${company._id}/edit`)}
-                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-amber-200 bg-white px-2.5 text-xs font-semibold text-amber-700 hover:bg-amber-50"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-500/30 transition hover:bg-amber-600 hover:shadow-amber-500/40"
                         aria-label="Update company"
                       >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Update
+                        <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
+                        title="Delete Company"
                         onClick={() => setDeleting(company)}
-                        className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-rose-200 bg-white px-2.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600 hover:shadow-rose-500/40"
                         aria-label="Delete company"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Delete
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>

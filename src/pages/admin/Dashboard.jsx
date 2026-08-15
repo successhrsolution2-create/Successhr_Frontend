@@ -11,6 +11,7 @@ import {
 import { Link } from 'react-router-dom'
 import { getSuperAdminDashboardSummary } from '../../api/superAdminDashboardApi'
 import CandidateRegistrationChart from './CandidateRegistrationChart'
+import CandidateDistributionPieChart from './CandidateDistributionPieChart'
 
 const COLORS = {
   advisor: '#2563eb',
@@ -49,7 +50,9 @@ const emptySummary = {
   },
   candidateManagementStats: {
     totalCandidates: 0,
-    todayCandidates: 0
+    todayCandidates: 0,
+    latestCandidates: [],
+    recentCandidateLogs: []
   },
   pendingActions: [],
   recentActivity: []
@@ -64,6 +67,16 @@ const moneyFormatter = new Intl.NumberFormat('en-IN', {
 
 const formatNumber = (value) => numberFormatter.format(Number(value || 0))
 const formatMoney = (value) => moneyFormatter.format(Number(value || 0))
+const formatDateTime = (value) =>
+  value
+    ? new Date(value).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    : '-'
 
 const colorAlpha = (hex, opacity) => {
   const value = hex.replace('#', '')
@@ -106,35 +119,29 @@ function ModuleCard({ code, title, subtitle, color, route, stats }) {
   return (
     <Link
       to={route}
-      className="group block min-h-[142px] rounded-[7px] border border-[#e6e8ed] bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.09)] transition hover:-translate-y-0.5 hover:border-[#cfd6e4] hover:shadow-[0_8px_24px_rgba(16,24,40,0.10)]"
+      className="group block min-h-[148px] rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3.5">
           <span
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-[6px] text-[13px] font-black"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-sm font-black"
             style={{ color, backgroundColor: colorAlpha(color, 0.1) }}
           >
             {code}
           </span>
           <div className="min-w-0">
-            <h2 className="truncate text-sm font-black leading-5 text-[#111111]">{title}</h2>
-            <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-normal text-[#777d86]">{subtitle}</p>
+            <h2 className="truncate text-base font-extrabold leading-tight text-slate-900">{title}</h2>
+            <p className="mt-1 truncate text-xs font-semibold text-slate-500">{subtitle}</p>
           </div>
         </div>
-        <span
-          className="shrink-0 rounded-[4px] px-2 py-1 text-[10px] font-black uppercase tracking-normal"
-          style={{ color, backgroundColor: colorAlpha(color, 0.12) }}
-        >
-          Active
-        </span>
       </div>
 
-      <div className="mt-5 border-t border-[#eceef2] pt-4">
-        <div className="grid grid-cols-3 gap-3">
+      <div className="mt-5 border-t border-slate-100 pt-4">
+        <div className="grid grid-cols-2 gap-4">
           {stats.map((item) => (
             <div key={item.label} className="min-w-0">
-              <p className="truncate text-[10px] font-black uppercase tracking-normal text-[#777d86]">{item.label}</p>
-              <p className="mt-1 truncate text-xl font-black leading-none text-[#111111]">{item.value}</p>
+              <p className="truncate text-xs font-bold uppercase tracking-wider text-slate-400">{item.label}</p>
+              <p className="mt-1.5 truncate text-2xl font-black leading-none text-slate-900">{item.value}</p>
             </div>
           ))}
         </div>
@@ -147,9 +154,9 @@ function QuickActionTiles() {
   const actions = [
     {
       number: '01',
-      title: 'Register Business Admin',
+      title: 'Register Business Advisor',
       description: 'Onboard new administrative partner',
-      label: 'Business Admin',
+      label: 'Business Advisor',
       to: '/admin/business-advisors?action=create',
       icon: BriefcaseBusiness,
       color: COLORS.advisor,
@@ -188,23 +195,23 @@ function QuickActionTiles() {
   ]
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {actions.map((item) => (
         <Link
           key={item.title}
           to={item.to}
-          className="group flex items-center justify-between rounded-[7px] border border-[#eceef2] bg-white p-3 shadow-sm transition hover:border-[#d3d8e0] hover:shadow"
+          className="group flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5">
             <span
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-[5px]"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-lg"
               style={{ color: item.color, backgroundColor: colorAlpha(item.color, 0.1) }}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <h2 className="truncate text-sm font-bold text-[#111111]">{item.title}</h2>
-              <p className="truncate text-[11px] font-medium text-[#6c727c]">{item.label}</p>
+              <h2 className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-blue-600">{item.title}</h2>
+              <p className="truncate text-xs font-medium text-slate-500">{item.label}</p>
             </div>
           </div>
         </Link>
@@ -216,63 +223,86 @@ function QuickActionTiles() {
 function PanelHeader({ title, action }) {
   return (
     <div className="flex min-h-6 items-center justify-between gap-3">
-      <h2 className="truncate text-[11px] font-black uppercase tracking-[0.12em] text-[#6c727c]">{title}</h2>
+      <h2 className="truncate text-xs font-black uppercase tracking-wider text-slate-500">{title}</h2>
       {action}
     </div>
   )
 }
 
-function LatestCandidatesFeed({ candidates }) {
+const candidateLogColors = {
+  cms: '#f97316',
+  business_advisor: COLORS.advisor,
+  candidate_apply: COLORS.employee,
+  candidate_apply_ba: '#0ea5e9'
+}
+
+function RecentCandidateLogs({ logs }) {
+  const visibleLogs = Array.isArray(logs) ? logs.slice(0, 8) : []
+
   return (
     <div className="space-y-3">
       <PanelHeader
-        title="Latest Registered Candidates"
+        title="Recent Candidate Added Logs"
+        action={
+          <Link to="/admin/cms/candidates" className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline">
+            View All
+          </Link>
+        }
       />
-      <Card className={`${candidates.length ? 'p-0' : 'border-dashed p-0'} overflow-hidden`}>
-        {candidates.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-[#eceef2] bg-[#fafbfc] text-[10px] font-black uppercase tracking-widest text-[#8c929b]">
-                <tr>
-                  <th className="px-5 py-3">Candidate Info</th>
-                  <th className="px-5 py-3">Profile</th>
-                  <th className="px-5 py-3">Date</th>
-                  <th className="px-5 py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#eceef2]">
-                {candidates.map((candidate) => (
-                  <tr key={candidate._id} className="transition hover:bg-[#fafbfc]">
-                    <td className="px-5 py-3">
-                      <p className="truncate font-bold text-[#111111]">{candidate.candidateName}</p>
-                      <p className="truncate text-xs font-medium text-[#6c727c]">{candidate.mobileNumber} {candidate.emailId ? `• ${candidate.emailId}` : ''}</p>
-                    </td>
-                    <td className="px-5 py-3 text-sm font-semibold text-[#525866]">{candidate.jobProfile || '-'}</td>
-                    <td className="px-5 py-3 text-xs font-medium text-[#8c929b]">
-                      {new Date(candidate.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td className="px-5 py-3 text-xs font-black uppercase">
-                      <span className={`inline-flex items-center rounded-sm px-1.5 py-0.5 ${
-                        candidate.status === 'not_viewed' ? 'bg-[#f4f5f7] text-[#59616d]' :
-                        candidate.status === 'selected' ? 'bg-[#eafbf3] text-[#10b981]' :
-                        'bg-[#eef4ff] text-[#2563eb]'
-                      }`}>
-                        {candidate.status?.replace('_', ' ')}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <Card className={`${visibleLogs.length ? 'p-0' : 'border-dashed p-0'} overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm`}>
+        {visibleLogs.length ? (
+          <div className="divide-y divide-slate-100">
+            {visibleLogs.map((log) => {
+              const color = candidateLogColors[log.sourceType] || COLORS.ink
+              return (
+                <Link
+                  key={log.id || `${log.candidateId}-${log.createdAt}`}
+                  to={log.route || '/admin/cms/candidates'}
+                  className="grid gap-3 px-5 py-3.5 transition hover:bg-slate-50 md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.85fr)_auto]"
+                >
+                  <div className="flex min-w-0 items-center gap-3.5">
+                    <span
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-lg"
+                      style={{ color, backgroundColor: colorAlpha(color, 0.1) }}
+                    >
+                      <Activity className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-slate-900">{log.candidateName || 'Unnamed candidate'}</p>
+                      <p className="truncate text-xs font-medium text-slate-500">
+                        {[log.candidateCode, log.mobileNumber, log.emailId].filter(Boolean).join(' / ') || '-'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 md:self-center">
+                    <span
+                      className="inline-flex rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wider"
+                      style={{ color, backgroundColor: colorAlpha(color, 0.12) }}
+                    >
+                      {log.sourceLabel || 'Candidate'}
+                    </span>
+                    <p className="mt-1 truncate text-xs font-medium text-slate-500">
+                      Added by {log.addedBy || '-'}
+                    </p>
+                  </div>
+
+                  <div className="min-w-0 md:text-right">
+                    <p className="truncate text-xs font-bold text-slate-900">{log.time || '-'}</p>
+                    <p className="mt-1 truncate text-xs font-medium text-slate-400">{formatDateTime(log.createdAt)}</p>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         ) : (
-          <div className="relative flex min-h-[254px] items-center justify-center px-5 py-10">
-            <div className="text-center">
-              <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#f7f8fa] text-[#8c929b]">
-                <UserCheck className="h-5 w-5" />
+          <div className="flex min-h-[180px] items-center justify-center px-5 py-8 text-center">
+            <div>
+              <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400">
+                <Activity className="h-5 w-5" />
               </span>
-              <p className="mt-4 text-sm font-bold text-[#7c838d]">No candidates registered yet</p>
-              <p className="mt-1 text-[11px] font-medium text-[#a1a7b0]">New registrations will appear here</p>
+              <p className="mt-4 text-sm font-bold text-slate-700">No candidate logs yet</p>
+              <p className="mt-1 text-xs font-medium text-slate-400">New candidate additions will appear here</p>
             </div>
           </div>
         )}
@@ -280,6 +310,7 @@ function LatestCandidatesFeed({ candidates }) {
     </div>
   )
 }
+
 
 function TopAdvisors({ advisors }) {
   const maxEarnings = Math.max(...advisors.map((advisor) => Number(advisor.earnings || 0)), 1)
@@ -441,8 +472,19 @@ export default function Dashboard() {
         { label: 'Total Candidates', value: formatNumber(candidateManagementStats?.totalCandidates) },
         { label: 'Today', value: formatNumber(candidateManagementStats?.todayCandidates) }
       ]
+    },
+    {
+      code: 'SE',
+      title: 'Success Employee',
+      subtitle: 'Workforce management',
+      color: COLORS.employee,
+      route: '/ems',
+      stats: [
+        { label: 'Total Employees', value: formatNumber(employeeStats?.totalEmployees) },
+        { label: 'Present Today', value: formatNumber(employeeStats?.presentToday) }
+      ]
     }
-  ], [advisorStats, crmStats, candidateManagementStats])
+  ], [advisorStats, crmStats, candidateManagementStats, employeeStats])
 
   return (
     <div className="min-h-[calc(100vh-7rem)] bg-white">
@@ -458,27 +500,29 @@ export default function Dashboard() {
           <DashboardSkeleton />
         ) : (
           <>
-            <div className="grid gap-5 lg:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {moduleCards.map((card) => <ModuleCard key={card.title} {...card} />)}
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-              {/* Left Side: Chart */}
-              <div className="h-full min-h-[350px]">
+            {/* Charts Row: Bar Chart & Pie Chart */}
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,1fr)]">
+              <div className="h-full min-h-[360px]">
                 <CandidateRegistrationChart />
               </div>
-
-              {/* Right Side: Quick Actions */}
-              <div className="space-y-3">
-                <PanelHeader title="Quick Actions" />
-                <QuickActionTiles />
+              <div className="h-full min-h-[360px]">
+                <CandidateDistributionPieChart />
               </div>
+            </div>
+
+            {/* Quick Actions Row */}
+            <div className="space-y-3">
+              <PanelHeader title="Quick Actions" />
+              <QuickActionTiles />
             </div>
 
             <div className="grid gap-5">
-              <LatestCandidatesFeed candidates={summary.candidateManagementStats?.latestCandidates || []} />
+              <RecentCandidateLogs logs={summary.candidateManagementStats?.recentCandidateLogs || []} />
             </div>
-
           </>
         )}
       </div>

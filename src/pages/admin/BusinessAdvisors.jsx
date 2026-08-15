@@ -621,12 +621,11 @@ function ActionButton({ label, color, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex min-h-8 items-center justify-center gap-1 rounded-md border bg-white px-2.5 text-xs font-semibold ${color}`}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border bg-white shadow-sm transition ${color}`}
       aria-label={label}
       title={label}
     >
       {children}
-      {label}
     </button>
   )
 }

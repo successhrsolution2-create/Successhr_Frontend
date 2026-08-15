@@ -147,16 +147,6 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
               </button>
             ) : null}
 
-            <button
-              type="button"
-              onClick={handleBack}
-              aria-label="Go back"
-              title="Back"
-              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-white px-2.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--accent-blue-lt)] hover:text-[var(--accent-blue)]"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back</span>
-            </button>
 
             <div className="min-w-0">
               <h1 className="truncate text-lg font-bold leading-6 text-[var(--text-primary)]">{candidateAdminTitle}</h1>
@@ -180,18 +170,19 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
     <header className="admin-topbar sticky top-0 z-30 border-b border-[var(--border)] bg-white">
       <div className="flex min-h-14 min-w-0 items-center gap-3 px-4 py-2 sm:px-5">
 
-      {!location.pathname.endsWith('/dashboard') && (
+      {showMenuButton ? (
         <button
           type="button"
-          onClick={handleBack}
-          aria-label="Go back"
-          title="Back"
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-white px-3 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--accent-blue-lt)] hover:text-[var(--accent-blue)]"
+          onClick={onMenuClick}
+          aria-label="Toggle sidebar"
+          title="Toggle sidebar"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none"
         >
-          <ArrowLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">Back</span>
+          <Menu className="h-4.5 w-4.5" />
         </button>
-      )}
+      ) : null}
+
+
 
       <div className="min-w-0">
         <h1 className="truncate text-lg font-bold leading-6 text-[var(--text-primary)]">{pageTitle}</h1>
