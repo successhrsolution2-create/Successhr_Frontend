@@ -1887,7 +1887,7 @@ export default function CandidateDetail() {
         <>
           <Section title="Candidate Documents" icon={Upload}>
             <p className="rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
-              JPG/PNG images and PDF letters where applicable. Max 10MB each.
+              JPG/PNG images, PDF letters, and videos where applicable. Max 50MB each.
             </p>
             <div className="space-y-6">
               {candidateDocumentCategories.map((category) => (

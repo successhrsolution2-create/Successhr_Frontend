@@ -1,4 +1,4 @@
-﻿export const MAX_DOCUMENT_IMAGE_SIZE = 10 * 1024 * 1024
+﻿export const MAX_DOCUMENT_IMAGE_SIZE = 50 * 1024 * 1024
 
 const imageTypes = ['image/jpeg', 'image/png']
 const letterTypes = ['image/jpeg', 'image/png', 'application/pdf']
@@ -266,9 +266,12 @@ export const groupedCandidateDocumentKeys = new Set([
   ...computerCourseDocumentKeys
 ])
 
-export const standaloneCandidateDocumentTypes = candidateDocumentTypes.filter(
-  (documentType) => !groupedCandidateDocumentKeys.has(documentType.key)
-)
+export const standaloneCandidateDocumentTypes = [
+  ...candidateDocumentTypes.filter(
+    (documentType) => !groupedCandidateDocumentKeys.has(documentType.key)
+  ),
+  ...successDocumentTypes.filter((documentType) => documentType.key === 'selectedVideo')
+]
 
 export const allowedDocumentImageTypes = new Set(imageTypes)
 

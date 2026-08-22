@@ -445,7 +445,7 @@ export default function Dashboard() {
       title: 'Success Advisor',
       subtitle: 'Operational units',
       color: COLORS.advisor,
-      route: '/admin/references',
+      route: '/admin/business-advisors',
       stats: [
         { label: 'Advisors', value: formatNumber(advisorStats.totalAdvisors) },
         { label: 'Companies', value: formatNumber(advisorStats.activeCompanies) }

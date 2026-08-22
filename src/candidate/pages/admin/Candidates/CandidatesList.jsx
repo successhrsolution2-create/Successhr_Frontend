@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { CalendarDays, Download, Eye, Filter, Pencil, Plus, RotateCcw, Search, ShieldCheck, Trash2, Upload, UserRoundPlus, Users, FileSpreadsheet } from 'lucide-react'
+import { CalendarDays, Download, Eye, Filter, Pencil, Plus, RotateCcw, Search, ShieldCheck, Trash2, Upload, UserRoundPlus, Users, FileSpreadsheet, FileText } from 'lucide-react'
 import { PromptDialog } from '../../../components/ActionDialogs'
 import Pagination from '../../../components/Pagination'
 import api from '../../../api/axios'
@@ -999,6 +999,15 @@ export default function CandidatesList() {
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        title="Generate Document"
+                        onClick={() => navigate(`/admin/cms/candidates/${candidate.id}/documents`)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-600 hover:shadow-indigo-500/40"
+                        aria-label="Generate Document"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </button>
                       <button
                         type="button"
                         title="View Candidate"

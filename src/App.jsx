@@ -11,7 +11,7 @@ const Login = lazy(() => import('./pages/Login'))
 const CompanyLogin = lazy(() => import('./pages/CompanyLogin'))
 const SuperAdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
 const BusinessAdvisors = lazy(() => import('./pages/admin/BusinessAdvisors'))
-const AdminReferenceBoard = lazy(() => import('./pages/admin/ReferenceBoard'))
+
 const AdminStudents = lazy(() => import('./pages/admin/Students'))
 const AdminCompanies = lazy(() => import('./pages/admin/Companies'))
 const CompanyManagement = lazy(() => import('./pages/admin/CompanyManagement'))
@@ -37,6 +37,7 @@ const ApplyPage = lazy(() => import('./pages/public/ApplyPage'))
 const CmsCandidatesList = lazy(() => import('./candidate/pages/admin/Candidates/CandidatesList'))
 const CmsAddCandidate = lazy(() => import('./candidate/pages/admin/Candidates/AddCandidate'))
 const CmsCandidateDetail = lazy(() => import('./candidate/pages/admin/Candidates/CandidateDetail'))
+const CmsCandidateDocuments = lazy(() => import('./candidate/pages/admin/Candidates/CandidateDocuments'))
 const CmsCompaniesList = lazy(() => import('./candidate/pages/admin/Candidates/CompaniesList'))
 const CmsCompanyForm = lazy(() => import('./candidate/pages/admin/Candidates/CompanyForm'))
 const CmsProcessPanel = lazy(() => import('./candidate/pages/admin/CommissionProcessPanel'))
@@ -207,16 +208,7 @@ export default function App() {
         <Route path="/apply" element={<ApplyPage />} />
         <Route path="/apply/:code" element={<ApplyPage />} />
 
-        <Route
-          path="/admin/references"
-          element={
-            <ProtectedRoute roles={['superAdmin']}>
-              <AppShell role="superAdmin">
-                <AdminReferenceBoard />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+
         <Route
           path="/admin/dashboard"
           element={
@@ -321,6 +313,16 @@ export default function App() {
             <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
               <CandidateManagementShell hideTopbar>
                 <CmsAddCandidate />
+              </CandidateManagementShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/cms/candidates/:id/documents"
+          element={
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell>
+                <CmsCandidateDocuments />
               </CandidateManagementShell>
             </ProtectedRoute>
           }
@@ -741,26 +743,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/ba/candidates"
-          element={
-            <ProtectedRoute roles={['businessAdvisor']}>
-              <AppShell role="businessAdvisor">
-                <BACandidates />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/ba/candidates/new"
-          element={
-            <ProtectedRoute roles={['businessAdvisor']}>
-              <AppShell role="businessAdvisor">
-                <BACandidateForm key="new" />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+
 
         <Route path="/ba/student/new" element={<Navigate to="/ba/students/new" replace />} />
         <Route path="/ba/company/new" element={<Navigate to="/ba/companies/new" replace />} />

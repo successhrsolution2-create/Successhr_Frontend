@@ -2,7 +2,7 @@ import { UploadCloud, X } from 'lucide-react'
 import { useState } from 'react'
 import { ConfirmDialog } from './ActionDialogs'
 
-export default function FileUpload({ files = [], onFiles, onRemove, multiple = false, accept = 'image/*,.pdf' }) {
+export default function FileUpload({ files = [], onFiles, onRemove, multiple = false, accept = 'image/*,.pdf,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm' }) {
   const [removeIndex, setRemoveIndex] = useState(null)
 
   const handleChange = (event) => {
@@ -24,7 +24,7 @@ export default function FileUpload({ files = [], onFiles, onRemove, multiple = f
       <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-4 py-6 text-center hover:border-cyan-400 hover:bg-sky-50/40">
         <UploadCloud className="mb-2 h-8 w-8 text-sky-500" />
         <span className="text-sm font-semibold text-slate-800">Choose files</span>
-        <span className="mt-1 text-xs text-slate-500">JPG, PNG, or PDF up to 5MB</span>
+        <span className="mt-1 text-xs text-slate-500">JPG, PNG, PDF, or video up to 50MB</span>
         <input type="file" className="sr-only" accept={accept} multiple={multiple} onChange={handleChange} />
       </label>
 

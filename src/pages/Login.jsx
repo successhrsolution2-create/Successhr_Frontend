@@ -6,8 +6,12 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Building2, Eye, EyeOff, Headphones, ShieldCheck, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { clearAuthError, loginUser } from '../store/authSlice'
+import { clearAuthError, loginUser, logout } from '../store/authSlice'
 import { login as loginCrm } from '../crm/store/authSlice'
+import axios from 'axios'
+
+const defaultHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+const API_ROOT = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : `http://${defaultHost}:5000`)
 import BrandLogo from '../components/BrandLogo'
 import companyAdminApi from '../companyAdmin/api'
 
@@ -19,25 +23,27 @@ const schema = z.object({
 const accountTypes = [
   {
     id: 'success',
-    label: 'Admin / Advisor',
-    shortLabel: 'Admin',
-    eyebrow: 'Success HR workspace',
-    title: 'Welcome back',
-    description: 'Use this for Super Admin, Manager, and Candidate Management accounts.',
-    fieldLabel: 'Email or Employee ID',
-    placeholder: 'admin@consultancy.com or EMP001',
-    icon: ShieldCheck
+    label: 'Admin',
+    fieldLabel: 'Admin Email or Employee ID',
+    placeholder: 'admin@consultancy.com or EMP001'
+  },
+  {
+    id: 'cms',
+    label: 'CMS',
+    fieldLabel: 'CMS Email or Employee ID',
+    placeholder: 'cms@consultancy.com'
   },
   {
     id: 'crm',
-    label: 'Telecalling CRM',
-    shortLabel: 'CRM',
-    eyebrow: 'Lead performance workspace',
-    title: 'CRM login',
-    description: 'Use this for CRM super admin and CRM employee calling accounts.',
+    label: 'CRM',
     fieldLabel: 'CRM Email or Employee ID',
-    placeholder: 'crm@consultancy.com or CRM001',
-    icon: Headphones
+    placeholder: 'crm@consultancy.com or CRM001'
+  },
+  {
+    id: 'manager',
+    label: 'Manager',
+    fieldLabel: 'Manager Email or Employee ID',
+    placeholder: 'manager@consultancy.com or EMP001'
   }
 ]
 
@@ -87,6 +93,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [accountType, setAccountType] = useState(() => accountTypeFromLocation(location))
+  const [isSubmittingForm, setIsSubmittingForm] = useState(false)
   const { token, user, checking, loading } = useSelector((state) => state.auth)
   const {
     accessToken: crmAccessToken,
@@ -111,7 +118,7 @@ export default function Login() {
   })
 
   useEffect(() => {
-    if (hasAccountHint(location)) return
+    if (hasAccountHint(location) || isSubmittingForm) return
 
     if (!checking && token && user) {
       navigate(routeFor(user.role, user), { replace: true })
@@ -129,9 +136,8 @@ export default function Login() {
 
   const onSubmit = async (values) => {
     setLoginError('')
+    setIsSubmittingForm(true)
     dispatch(clearAuthError())
-
-
 
     if (accountType === 'crm') {
       const crmResult = await dispatch(loginCrm(values))
@@ -139,129 +145,128 @@ export default function Login() {
       if (loginCrm.fulfilled.match(crmResult)) {
         dispatch(clearAuthError())
         navigate(routeFor(crmResult.payload.user?.role), { replace: true })
+        setIsSubmittingForm(false)
         return
       }
 
       setLoginError(crmResult.payload || 'Invalid CRM login details')
+      setIsSubmittingForm(false)
       return
     }
 
     const result = await dispatch(loginUser(values))
 
     if (loginUser.fulfilled.match(result)) {
+      const loggedUser = result.payload.user
+
+      if (loggedUser.role === 'businessAdvisor' && !isAdvisorLogin) {
+        try { await axios.post(`${API_ROOT}/api/auth/logout`, {}, { withCredentials: true }) } catch (err) {}
+        dispatch(logout())
+        setLoginError('Access denied. Please login via the Advisor portal (/advisor).')
+        setIsSubmittingForm(false)
+        return
+      }
+
+      if (loggedUser.role !== 'businessAdvisor' && isAdvisorLogin) {
+        try { await axios.post(`${API_ROOT}/api/auth/logout`, {}, { withCredentials: true }) } catch (err) {}
+        dispatch(logout())
+        setLoginError('Access denied. Please login via the Admin portal (/admin).')
+        setIsSubmittingForm(false)
+        return
+      }
+
+      // Strict Front-to-Back Role Validation
+      if (!isAdvisorLogin) {
+        let isRoleMatch = true;
+        if (accountType === 'success' && loggedUser.role !== 'superAdmin') isRoleMatch = false;
+        if (accountType === 'cms' && loggedUser.role !== 'candidateAdmin') isRoleMatch = false;
+        if (accountType === 'manager' && loggedUser.role !== 'manager') isRoleMatch = false;
+
+        if (!isRoleMatch) {
+          try { await axios.post(`${API_ROOT}/api/auth/logout`, {}, { withCredentials: true }) } catch (err) {}
+          dispatch(logout())
+          setLoginError('Access denied. Your credentials do not match the selected role.')
+          setIsSubmittingForm(false)
+          return
+        }
+      }
+
       dispatch(clearAuthError())
-      navigate(routeFor(result.payload.user.role, result.payload.user), { replace: true })
+      navigate(routeFor(loggedUser.role, loggedUser), { replace: true })
+      setIsSubmittingForm(false)
       return
     }
 
     setLoginError(result.payload || 'Invalid email or password')
+    setIsSubmittingForm(false)
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
-      {/* Left Panel: Branding / Abstract */}
-      <div className="hidden lg:relative lg:flex lg:w-1/2 lg:flex-col lg:justify-between lg:overflow-hidden lg:bg-slate-900 lg:px-12 lg:py-16">
-        {/* Abstract Background Elements */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-1/4 -top-1/4 h-[800px] w-[800px] rounded-full bg-indigo-600/20 blur-[120px]" />
-          <div className="absolute -bottom-1/4 -right-1/4 h-[600px] w-[600px] rounded-full bg-cyan-500/20 blur-[100px]" />
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-        </div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-          className="relative z-10"
-        >
-          <BrandLogo className="max-w-[240px] brightness-0 invert" />
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.8 }}
-          className="relative z-10 max-w-lg"
-        >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm font-semibold text-indigo-300 backdrop-blur-md">
-            <Sparkles className="h-4 w-4" />
-            {isManagerSuccessLogin ? 'Manager workspace' : isAdvisorLogin ? 'Business Advisor workspace' : selectedAccount.eyebrow}
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:leading-[1.1]">
-            {isManagerSuccessLogin ? 'Manager Portal' : isAdvisorLogin ? 'Advisor Portal' : selectedAccount.title}
-          </h1>
-          <p className="mt-6 text-lg leading-relaxed text-slate-300">
-            {isManagerSuccessLogin
-              ? 'Use your manager ID and password to access assigned Candidate, CRM, and Success Employee modules.'
-              : isAdvisorLogin
-                ? 'Use your advisor credentials to log into your dedicated portal and manage your candidates.'
-                : selectedAccount.description}
-          </p>
-        </motion.div>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
+      {/* Dynamic Light Background Elements */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] animate-pulse rounded-full bg-indigo-300/40 mix-blend-multiply blur-[100px]" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-10%] right-[-10%] h-[600px] w-[600px] animate-pulse rounded-full bg-cyan-300/40 mix-blend-multiply blur-[120px]" style={{ animationDuration: '10s' }} />
+        <div className="absolute right-[20%] top-[20%] h-[300px] w-[300px] animate-pulse rounded-full bg-emerald-200/40 mix-blend-multiply blur-[80px]" style={{ animationDuration: '12s' }} />
       </div>
 
-      {/* Right Panel: Form */}
-      <div className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-slate-50 lg:bg-white">
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="w-full max-w-[440px] space-y-8 rounded-2xl bg-white p-8 shadow-2xl shadow-slate-200/50 lg:shadow-none lg:bg-transparent lg:p-0"
-        >
-          <div className="lg:hidden mb-8">
-            <BrandLogo className="mx-auto max-w-[200px]" />
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-              Sign in to your account
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Enter your credentials to securely access your workspace.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {!isAdvisorLogin && (
-              <div>
-                <label className="text-sm font-semibold text-slate-700">Account Type</label>
-                <div className="mt-2 grid grid-cols-2 gap-3" role="tablist">
-                  {accountTypes.map((item) => {
-                    const Icon = item.icon
-                    const selected = item.id === accountType
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={selected}
-                        onClick={() => {
-                          setAccountType(item.id)
-                          setLoginError('')
-                        }}
-                        className={`relative flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold transition-all focus:outline-none ${
-                          selected
-                            ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600 shadow-sm'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                        }`}
-                      >
-                        <Icon className={`h-4 w-4 ${selected ? 'text-indigo-600' : 'text-slate-400'}`} />
-                        {item.shortLabel}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border border-white/60 bg-white shadow-2xl shadow-indigo-900/10">
+        {/* Login Form */}
+        <div className="relative flex flex-col justify-center p-8 sm:p-12">
+          <form onSubmit={handleSubmit(onSubmit)} className="mx-auto w-full max-w-sm space-y-6">
+            <div className="flex justify-center mb-6 mt-2">
+              <img 
+                src="/success-logo.jpg" 
+                alt="Success HR Solutions" 
+                style={{ height: '44px', width: 'auto', objectFit: 'contain' }} 
+              />
+            </div>
+            
+            <div className="text-center">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Welcome
+              </h2>
+              <p className="mt-1.5 text-sm text-slate-500">
+                Please enter your credentials to access your portal
+              </p>
+            </div>
 
             <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700">
+              {!isAdvisorLogin && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Select Role</label>
+                  <div className="relative">
+                    <select
+                      value={accountType}
+                      onChange={(e) => {
+                        setAccountType(e.target.value)
+                        setLoginError('')
+                      }}
+                      className="block w-full appearance-none rounded-xl border-0 bg-white/50 py-3.5 pl-4 pr-10 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200/60 backdrop-blur-sm transition-all hover:bg-white focus:bg-white focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 font-medium cursor-pointer"
+                    >
+                      <option value="" disabled hidden>Select Role</option>
+                      {accountTypes.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">
                   {isManagerSuccessLogin ? 'Manager ID / Email' : isAdvisorLogin ? 'Advisor Email or ID' : selectedAccount.fieldLabel}
                 </label>
-                <div className="relative mt-2">
+                <div className="group relative">
                   <InputIcon>
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 text-slate-400 transition-colors group-focus-within:text-indigo-600" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 7.5v9a2.25 2.25 0 0 1-2.25 2.25H4.5A2.25 2.25 0 0 1 2.25 16.5v-9A2.25 2.25 0 0 1 4.5 5.25h15A2.25 2.25 0 0 1 21.75 7.5Z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="m3 7 9 6 9-6" />
                     </svg>
@@ -269,25 +274,21 @@ export default function Login() {
                   <input
                     type="text"
                     {...register('email')}
-                    className="block w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-600/15 sm:text-sm"
+                    className="block w-full rounded-xl border-0 bg-white/50 py-3.5 pl-11 pr-4 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200/60 backdrop-blur-sm transition-all hover:bg-white focus:bg-white focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     placeholder={selectedAccount.placeholder}
                     autoComplete="username"
                   />
                 </div>
-                {errors.email && (
-                  <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mt-2 text-xs font-medium text-red-500">
-                    {errors.email.message}
-                  </motion.p>
-                )}
+                {errors.email && <span className="block text-xs font-medium text-rose-500">{errors.email.message}</span>}
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">
                   Password
                 </label>
-                <div className="relative mt-2">
+                <div className="group relative">
                   <InputIcon>
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 text-slate-400 transition-colors group-focus-within:text-indigo-600" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V7.875a4.125 4.125 0 1 0-8.25 0V10.5" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 10.5h10.5A1.875 1.875 0 0 1 19.125 12.375v6.375A1.875 1.875 0 0 1 17.25 20.625H6.75A1.875 1.875 0 0 1 4.875 18.75v-6.375A1.875 1.875 0 0 1 6.75 10.5Z" />
                     </svg>
@@ -295,23 +296,19 @@ export default function Login() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     {...register('password')}
-                    className="hide-password-toggle block w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-12 text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-600/15 sm:text-sm"
+                    className="hide-password-toggle block w-full rounded-xl border-0 bg-white/50 py-3.5 pl-11 pr-12 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200/60 backdrop-blur-sm transition-all hover:bg-white focus:bg-white focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     placeholder="Enter your password"
                     autoComplete="current-password"
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-slate-400 transition hover:text-indigo-600 focus:outline-none"
+                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-slate-400 transition-colors hover:text-indigo-600 focus:outline-none"
                     onClick={() => setShowPassword((current) => !current)}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
-                {errors.password && (
-                  <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mt-2 text-xs font-medium text-red-500">
-                    {errors.password.message}
-                  </motion.p>
-                )}
+                {errors.password && <span className="block text-xs font-medium text-rose-500">{errors.password.message}</span>}
               </div>
             </div>
 
@@ -321,15 +318,13 @@ export default function Login() {
                   initial={{ opacity: 0, height: 0, y: -10 }}
                   animate={{ opacity: 1, height: 'auto', y: 0 }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="rounded-xl bg-red-50 p-4"
+                  className="rounded-xl border border-rose-200/50 bg-rose-50/50 p-4 backdrop-blur-sm"
                 >
                   <div className="flex">
-                    <div className="flex-shrink-0">
-                      <ShieldCheck className="h-5 w-5 text-red-400" aria-hidden="true" />
-                    </div>
+                    <ShieldCheck className="h-5 w-5 flex-shrink-0 text-rose-500" aria-hidden="true" />
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-red-800">Authentication Failed</h3>
-                      <div className="mt-1 text-sm text-red-700">
+                      <h3 className="text-sm font-medium text-rose-800">Authentication Failed</h3>
+                      <div className="mt-1 text-sm text-rose-600">
                         {loginError}
                       </div>
                     </div>
@@ -341,19 +336,22 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 hover:shadow-indigo-600/30 focus:outline-none focus:ring-4 focus:ring-indigo-600/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+              className="relative flex w-full justify-center rounded-xl bg-indigo-600 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition-all hover:bg-indigo-500 hover:shadow-indigo-600/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70"
             >
               {isLoggingIn ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>Authenticating...</span>
-                </div>
+                <span className="flex items-center gap-2">
+                  <svg className="h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Authenticating...
+                </span>
               ) : (
                 'Sign In'
               )}
             </button>
           </form>
-        </motion.div>
+        </div>
       </div>
     </div>
   )

@@ -250,7 +250,7 @@ export default function DetailDrawer({
                       type="file"
                       multiple
                       className="sr-only"
-                      accept="image/*,.pdf"
+                      accept="image/*,.pdf,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
                       onChange={(event) => {
                         const files = Array.from(event.target.files || [])
                         if (files.length) {

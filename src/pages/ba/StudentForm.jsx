@@ -1051,7 +1051,7 @@ export default function StudentForm() {
     }
 
     if (file.size <= 0 || file.size > MAX_DOCUMENT_IMAGE_SIZE) {
-      toast.error(`${file.name} must be 10MB or less`)
+      toast.error(`${file.name} must be 50MB or less`)
       return false
     }
 
@@ -2630,6 +2630,9 @@ function ComputerCourseUploadGroup({ documents, addDocumentFiles, removeDocument
 function DocumentUpload({ documentType, label, files, onFiles, onRemove }) {
   const inputId = `document-${documentType.key}`
   const inputRef = useRef(null)
+  const acceptsVideo = documentType.allowedTypes?.some((type) => type.startsWith('video/'))
+  const acceptsPdf = documentType.allowedTypes?.includes('application/pdf')
+  const fileTypeLabel = acceptsVideo ? 'MP4, MOV, or WebM' : acceptsPdf ? 'JPG, PNG, or PDF' : 'JPG or PNG'
 
   return (
     <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
@@ -2638,7 +2641,7 @@ function DocumentUpload({ documentType, label, files, onFiles, onRemove }) {
           <label htmlFor={inputId} className="block text-sm font-bold text-slate-900">
             {label || documentType.label}
           </label>
-          <p className="mt-1 text-xs font-semibold text-slate-500">JPG, PNG, or PDF up to 10MB</p>
+          <p className="mt-1 text-xs font-semibold text-slate-500">{fileTypeLabel} up to 50MB</p>
         </div>
         <button
           type="button"

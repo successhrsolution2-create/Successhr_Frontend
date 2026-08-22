@@ -3214,7 +3214,7 @@ function CandidateDocumentsPanel({
   return (
     <>
       <Section title="Candidate Documents" icon={Upload}>
-        <p className="rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">JPG/PNG images and PDF letters where applicable. Max 10MB each.</p>
+        <p className="rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">JPG/PNG images, PDF letters, and videos where applicable. Max 50MB each.</p>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -3580,7 +3580,7 @@ function InterviewDocumentsPanel({
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h4 className="text-sm font-bold text-slate-900">Interview Documents</h4>
-          <p className="text-xs font-semibold text-slate-500">Appointment, offer, interview, and confirmation letters. JPG, PNG, or PDF up to 10MB.</p>
+          <p className="text-xs font-semibold text-slate-500">Appointment, offer, interview, and confirmation letters. JPG, PNG, or PDF up to 50MB.</p>
         </div>
       </div>
       <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
@@ -5436,7 +5436,7 @@ export default function AddCandidate() {
 
     const oversized = files.find((file) => file.size > MAX_DOCUMENT_IMAGE_SIZE)
     if (oversized) {
-      toast.error('Each interview document must be 10MB or less')
+      toast.error('Each interview document must be 50MB or less')
       return false
     }
 
@@ -5755,7 +5755,7 @@ export default function AddCandidate() {
         return false
       }
       if (file.size <= 0 || file.size > MAX_DOCUMENT_IMAGE_SIZE) {
-        toast.error(`${file.name}: file must be 10MB or less`)
+        toast.error(`${file.name}: file must be 50MB or less`)
         return false
       }
     }

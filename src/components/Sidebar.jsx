@@ -33,8 +33,7 @@ const adminMainLinks = [
 
 const baLinks = [
   { to: '/ba/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/ba/students', label: 'My Students', icon: UserCheck },
-  { to: '/ba/candidates', label: 'My Candidates', icon: Users },
+  { to: '/ba/students', label: 'My Candidates', icon: UserCheck },
   { to: '/ba/companies', label: 'My Companies', icon: Building2 },
   { to: '/ba/earnings', label: 'My Earnings', icon: Wallet }
 ]

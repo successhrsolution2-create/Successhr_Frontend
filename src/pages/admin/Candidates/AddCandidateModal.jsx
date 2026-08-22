@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { X, UploadCloud } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
 const initialForm = {
   // Section 1
@@ -75,7 +75,7 @@ export default function AddCandidateModal({ open, onClose }) {
   const handleFile = (name, file) => {
     if (!file) return
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('File must be less than 10MB')
+      toast.error('File must be less than 50MB')
       return
     }
     setFiles((f) => ({ ...f, [name]: file }))
