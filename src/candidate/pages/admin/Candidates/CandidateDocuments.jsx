@@ -249,7 +249,7 @@ export default function CandidateDocuments() {
       <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => navigate(`/admin/candidates/${id}`)}
+            onClick={() => navigate(`/admin/cms/candidates/${id}`)}
             className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
           >
             <ArrowLeft size={20} />
