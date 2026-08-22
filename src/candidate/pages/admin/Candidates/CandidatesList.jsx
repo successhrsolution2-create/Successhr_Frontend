@@ -916,13 +916,13 @@ export default function CandidatesList() {
           <table className="w-full min-w-[1160px] table-fixed text-[13px] text-slate-900">
             <colgroup>
               <col className="w-[4%]" />
-              <col className="w-[9%]" />
+              <col className="w-[6%]" />
               <col className="w-[12%]" />
               <col className="w-[26%]" />
               <col className="w-[13%]" />
               <col className="w-[15%]" />
               <col className="w-[8%]" />
-              <col className="w-[13%]" />
+              <col className="w-[16%]" />
             </colgroup>
             <thead className="bg-white text-left text-xs font-semibold uppercase text-slate-600">
               <tr className="border-b border-[#d4dde8]">
