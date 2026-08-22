@@ -362,7 +362,7 @@ function CandidateGlobalSearch({ value, results, onChange, onSelect }) {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
       }}
     >
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
       <input
         type="search"
         value={value}
@@ -372,7 +372,7 @@ function CandidateGlobalSearch({ value, results, onChange, onSelect }) {
           setOpen(true)
         }}
         placeholder="Search any field, value, document, or interview..."
-        className="h-11 w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-10 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+        className="h-11 w-full rounded-lg border border-slate-300 bg-white py-2 pl-11 pr-10 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
       />
       {value ? (
         <button
@@ -461,7 +461,7 @@ function TabButton({ active, label, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg px-4 py-3 text-sm font-semibold ${
+      className={`w-full sm:w-auto rounded-lg px-2 py-3 text-xs sm:text-sm font-semibold transition-colors ${
         active ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
       }`}
     >
@@ -1445,7 +1445,7 @@ export default function CandidateDetail() {
         <CandidateGlobalSearch value={globalSearchTerm} results={globalSearchResults} onChange={setGlobalSearchTerm} onSelect={selectGlobalSearchResult} />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
         <TabButton active={activePanel === 'details'} label="Candidate Details" onClick={() => setActivePanel('details')} />
         <TabButton active={activePanel === 'documents'} label="Documents" onClick={() => setActivePanel('documents')} />
         <TabButton active={activePanel === 'successInfo'} label="Success Info For Candidate" onClick={() => setActivePanel('successInfo')} />

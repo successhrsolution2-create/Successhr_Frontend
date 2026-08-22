@@ -695,7 +695,7 @@ function FormTabButton({ active, label, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 py-2.5 text-center text-sm font-semibold sm:w-auto ${
+      className={`w-full sm:w-auto inline-flex min-h-11 items-center justify-center rounded-lg px-2 py-2 text-center text-xs sm:text-sm font-semibold transition-colors ${
         active ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
       }`}
     >
@@ -715,7 +715,7 @@ function GlobalFieldSearch({ value, results, onChange, onSelect }) {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
       }}
     >
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
       <input
         type="search"
         value={value}
@@ -725,7 +725,7 @@ function GlobalFieldSearch({ value, results, onChange, onSelect }) {
           setOpen(true)
         }}
         placeholder="Search any field, value, document, or interview..."
-        className="h-11 w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-10 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+        className="h-11 w-full rounded-lg border border-slate-300 bg-white py-2 pl-11 pr-10 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
       />
       {value ? (
         <button
@@ -6131,7 +6131,7 @@ export default function AddCandidate() {
         <GlobalFieldSearch value={globalSearchTerm} results={globalSearchResults} onChange={setGlobalSearchTerm} onSelect={handleGlobalFieldSelect} />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
         <FormTabButton active={activePanel === 'details'} label="Candidate Details" onClick={() => changeActivePanel('details')} />
         <FormTabButton active={activePanel === 'documents'} label="Documents" onClick={() => changeActivePanel('documents')} />
         <FormTabButton active={activePanel === 'successInfo'} label="Success Info For Candidate" onClick={() => changeActivePanel('successInfo')} />
