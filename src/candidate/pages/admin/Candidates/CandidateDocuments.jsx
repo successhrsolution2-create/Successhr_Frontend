@@ -174,7 +174,9 @@ export default function CandidateDocuments() {
 
     const candData = doc.data || {}
     const rawName = (candData.name || candidate?.fullName || '').trim()
-    const candName = rawName ? (rawName.toLowerCase().startsWith('mr') ? rawName : `Mr. ${rawName}`) : ''
+    const lowerName = rawName.toLowerCase()
+    const hasTitle = lowerName.startsWith('mr') || lowerName.startsWith('ms') || lowerName.startsWith('mrs') || lowerName.startsWith('dr')
+    const candName = rawName ? (hasTitle ? rawName : `Mr. ${rawName}`) : ''
 
     const fmtInterviewDate = formatDate(candData.interviewDate)
 
