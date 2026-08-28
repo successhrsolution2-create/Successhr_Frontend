@@ -100,7 +100,7 @@ export const callStatusTone = {
   pending: 'slate',
   called: 'sky',
   followup: 'amber',
-  converted: 'emerald',
+  sure: 'emerald',
   rejected: 'red'
 }
 

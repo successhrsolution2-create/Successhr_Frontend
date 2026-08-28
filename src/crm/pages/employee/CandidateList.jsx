@@ -28,10 +28,11 @@ const PAGE_LIMIT = 20
 const sourceOptions = ['RC data', 'WRC data', 'College contacts']
 
 const getRecruiterId = (candidate) => {
+  if (candidate?.enteredRecruiterId) return candidate.enteredRecruiterId
   const recruiter = candidate?.recruiterId || candidate?.recruiter
   if (!recruiter) return '-'
   if (typeof recruiter === 'string') return recruiter
-  return recruiter._id || recruiter.id || '-'
+  return recruiter.employeeId || recruiter.name || recruiter.email || recruiter._id || recruiter.id || '-'
 }
 
 const getTodayInputValue = () => {
@@ -207,7 +208,7 @@ const normalizeRegistrationInfo = (value) => {
 const normalizeCallStatus = (value) => {
   const normalized = normalizeImportHeader(value)
   if (normalized.includes('follow')) return 'followup'
-  if (normalized.includes('convert')) return 'converted'
+  if (normalized.includes('sure')) return 'sure'
   if (normalized.includes('reject')) return 'rejected'
   if (normalized.includes('called')) return 'called'
   return 'pending'
@@ -1227,7 +1228,7 @@ const CandidateList = () => {
             <option value="pending">Pending</option>
             <option value="called">Called</option>
             <option value="followup">Follow-up</option>
-            <option value="converted">Converted</option>
+            <option value="sure">Sure</option>
             <option value="rejected">Rejected</option>
           </select>
           <select className="crm-input h-9 w-full sm:w-auto sm:flex-1 sm:min-w-[120px]" value={filters.registrationInfo} onChange={(e) => updateFilter('registrationInfo', e.target.value)}>

@@ -21,7 +21,7 @@ const fileHref = (file) => {
 
 export default function CompanyInterviewInfo() {
   const [records, setRecords] = useState([])
-  const [vacancies, setVacancies] = useState([])
+
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -31,14 +31,10 @@ export default function CompanyInterviewInfo() {
   useEffect(() => {
     let active = true
 
-    Promise.all([
-      api.get('/company-management/interview-info'),
-      api.get('/company-management/vacancies')
-    ])
-      .then(([interviewResult, vacancyResult]) => {
+    api.get('/company-management/interview-info')
+      .then((interviewResult) => {
         if (!active) return
         setRecords(interviewResult.data.interviewInfo || [])
-        setVacancies(vacancyResult.data.vacancies || [])
       })
       .catch((error) => {
         if (active) toast.error(error.response?.data?.message || 'Could not load candidate interview information')
@@ -75,25 +71,7 @@ export default function CompanyInterviewInfo() {
     })
   }, [records, search])
 
-  const filteredVacancies = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    if (!term) return vacancies
 
-    return vacancies.filter((vacancy) => {
-      const values = [
-        vacancy.companyName,
-        vacancy.companyAdminId?.name,
-        vacancy.companyAdminId?.email,
-        vacancy.jobProfile,
-        vacancy.department,
-        vacancy.education,
-        vacancy.experience,
-        vacancy.salaryRange,
-        vacancy.jobLocation
-      ]
-      return values.some((value) => String(value || '').toLowerCase().includes(term))
-    })
-  }, [vacancies, search])
 
   const paginated = useMemo(() => {
     const start = (page - 1) * pageSize
@@ -110,8 +88,8 @@ export default function CompanyInterviewInfo() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Company Submissions</h1>
-        <p className="mt-1 text-sm text-slate-500">Review candidate interview forms and separate manpower vacancies submitted by company admins.</p>
+        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Interview Feedback</h1>
+        <p className="mt-1 text-sm text-slate-500">Review candidate interview forms submitted by company admins.</p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -124,7 +102,7 @@ export default function CompanyInterviewInfo() {
               setSearch(event.target.value)
               setPage(1)
             }}
-            placeholder="Search company, candidate, vacancy, status..."
+            placeholder="Search company, candidate, status..."
             className="h-10 w-full rounded-lg border border-slate-300 pl-9 pr-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
@@ -193,33 +171,6 @@ export default function CompanyInterviewInfo() {
         />
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-4 py-3">
-          <h2 className="text-lg font-bold text-slate-950">Manpower Vacancy Information</h2>
-          <p className="mt-1 text-sm text-slate-500">Vacancies submitted through the company admin Add Vacancy page.</p>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {filteredVacancies.map((vacancy) => (
-            <article key={vacancy._id} className="grid gap-3 px-4 py-4 lg:grid-cols-[1fr_1fr_1fr]">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-slate-950">{vacancy.jobProfile || 'Untitled Vacancy'}</p>
-                <p className="mt-1 text-xs text-slate-500">{vacancy.companyName || '-'} | {vacancy.companyAdminId?.name || '-'}</p>
-              </div>
-              <div className="min-w-0 text-sm text-slate-600">
-                <p className="truncate font-semibold">{vacancy.department || '-'}</p>
-                <p className="truncate text-xs text-slate-500">Vacancy: {vacancy.numberOfVacancy ?? '-'} | {vacancy.jobLocation || '-'}</p>
-              </div>
-              <div className="min-w-0 text-sm text-slate-600">
-                <p className="truncate font-semibold">{vacancy.salaryRange || '-'}</p>
-                <p className="truncate text-xs text-slate-500">Updated: {formatDate(vacancy.updatedAt)}</p>
-              </div>
-            </article>
-          ))}
-          {!filteredVacancies.length ? (
-            <p className="px-4 py-10 text-center text-sm font-semibold text-slate-500">No manpower vacancies submitted yet.</p>
-          ) : null}
-        </div>
-      </section>
 
       {selected ? <InfoModal record={selected} onClose={() => setSelected(null)} onUpdate={updateRecord} /> : null}
     </div>

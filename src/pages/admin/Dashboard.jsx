@@ -229,6 +229,63 @@ function PanelHeader({ title, action }) {
   )
 }
 
+function RecentActivityLogs({ logs }) {
+  const visibleLogs = Array.isArray(logs) ? logs.slice(0, 8) : []
+
+  const moduleColors = {
+    employee: COLORS.employee,
+    crm: COLORS.crm,
+    advisor: COLORS.advisor,
+    company_admin: '#8b5cf6'
+  }
+
+  const moduleLabels = {
+    employee: 'Employee',
+    crm: 'CRM',
+    advisor: 'Advisor',
+    company_admin: 'Company'
+  }
+
+  return (
+    <div className="space-y-3">
+      <PanelHeader title="Recent Activity Logs" />
+      <Card className={`${visibleLogs.length ? 'p-0' : 'border-dashed p-0'} overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm`}>
+        {visibleLogs.length ? (
+          <div className="divide-y divide-slate-100">
+            {visibleLogs.map((log, i) => {
+              const color = moduleColors[log.module] || COLORS.ink
+              return (
+                <div key={i} className="flex items-center gap-3.5 px-5 py-4 transition hover:bg-slate-50">
+                  <span
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-lg"
+                    style={{ color, backgroundColor: colorAlpha(color, 0.1) }}
+                  >
+                    <Activity className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-slate-900 leading-snug">{log.text}</p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <span
+                        className="inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                        style={{ color, backgroundColor: colorAlpha(color, 0.12) }}
+                      >
+                        {moduleLabels[log.module] || 'System'}
+                      </span>
+                      <span className="text-xs font-medium text-slate-500">{log.time}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="py-12 text-center text-sm font-semibold text-slate-500">No recent activity</div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
 const candidateLogColors = {
   cms: '#f97316',
   business_advisor: COLORS.advisor,
@@ -520,8 +577,9 @@ export default function Dashboard() {
               <QuickActionTiles />
             </div>
 
-            <div className="grid gap-5">
+            <div className="grid gap-5 lg:grid-cols-2">
               <RecentCandidateLogs logs={summary.candidateManagementStats?.recentCandidateLogs || []} />
+              <RecentActivityLogs logs={summary.recentActivity || []} />
             </div>
           </>
         )}

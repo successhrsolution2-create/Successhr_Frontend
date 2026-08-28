@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BriefcaseBusiness, Building2, ClipboardList, LayoutDashboard, LogOut, Menu, X, List } from 'lucide-react'
+import { BriefcaseBusiness, Building2, ClipboardList, LayoutDashboard, LogOut, Menu, X, List, UserCircle, ChevronDown } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import LoadingScreen from '../../components/LoadingScreen'
 import companyAdminApi from '../api'
@@ -15,6 +15,7 @@ export default function CompanyAdminLayout() {
   const [companyAdmin, setCompanyAdmin] = useState(null)
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const loadCompanyAdmin = async () => {
     try {
@@ -131,10 +132,49 @@ export default function CompanyAdminLayout() {
         className="min-h-screen transition-[padding] duration-300"
         style={{ paddingLeft: open ? '16rem' : '0' }}
       >
-        <header className="sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-6 pl-14 sm:pl-16">
+        <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6 pl-14 sm:pl-16">
           <div>
             <h1 className="text-base font-bold text-slate-950 sm:text-lg">Company Admin Portal</h1>
             <p className="text-xs text-slate-500">Manage candidate interviews and manpower vacancies</p>
+          </div>
+
+          <div className="relative min-w-0">
+            <button
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1 transition hover:bg-slate-50 sm:px-3"
+            >
+              <UserCircle className="h-7 w-7 text-sky-600" />
+              <div className="flex flex-col text-left hidden sm:flex">
+                <span className="max-w-44 truncate text-[13px] font-bold leading-tight text-slate-900">
+                  {companyAdmin?.name || 'Company User'}
+                </span>
+                <span className="max-w-44 truncate text-[10px] font-medium text-slate-500">
+                  Company Admin
+                </span>
+              </div>
+              <ChevronDown
+                size={16}
+                className={`text-slate-500 transition ${profileOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {profileOpen && (
+              <div className="absolute right-0 z-50 mt-3 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-slate-900">{companyAdmin?.name}</p>
+                  <p className="truncate text-xs text-slate-500">{companyAdmin?.email}</p>
+                </div>
+                <div className="py-1">
+                  <button
+                    onClick={logout}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50"
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 

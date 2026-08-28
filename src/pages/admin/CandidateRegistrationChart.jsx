@@ -170,7 +170,7 @@ export default function CandidateRegistrationChart() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
-              margin={{ top: 12, right: 12, left: -22, bottom: 4 }}
+              margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
               onMouseMove={(state) => {
                 if (state?.activeTooltipIndex !== undefined) {
                   setActiveIndex(state.activeTooltipIndex)
@@ -189,27 +189,23 @@ export default function CandidateRegistrationChart() {
                 </linearGradient>
               </defs>
 
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#e2e8f0"
-                strokeOpacity={0.6}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
 
               <XAxis
                 dataKey="label"
-                axisLine={false}
-                tickLine={false}
                 tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
-                dy={8}
+                axisLine={{ stroke: '#94a3b8' }}
+                tickLine={{ stroke: '#94a3b8' }}
+                label={{ value: 'Registration Period', position: 'insideBottom', offset: -15, fill: '#475569', fontSize: 13, fontWeight: 'bold' }}
               />
 
               <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }}
                 allowDecimals={false}
-                domain={[0, 'auto']}
+                domain={[0, 'dataMax']}
+                tick={{ fontSize: 11, fill: '#64748b', fontWeight: 500 }}
+                axisLine={{ stroke: '#94a3b8' }}
+                tickLine={{ stroke: '#94a3b8' }}
+                label={{ value: 'Total Registrations', angle: -90, position: 'insideLeft', offset: 15, fill: '#475569', fontSize: 13, fontWeight: 'bold' }}
               />
 
               <Tooltip

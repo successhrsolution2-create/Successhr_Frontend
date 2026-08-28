@@ -1,15 +1,21 @@
-import { useState, useEffect } from 'react'
+
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { FileText, Download, Trash2, ArrowLeft, Plus, Pencil, Eye } from 'lucide-react'
 import api from '../../../api/axios'
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import PizZip from 'pizzip'
+import Docxtemplater from 'docxtemplater'
 import download from 'downloadjs'
+import { toJpeg } from 'html-to-image'
+import { jsPDF } from 'jspdf'
+import { createRoot } from 'react-dom/client'
+import ReceiptTemplate from '../../../../components/ReceiptTemplate'
 
 export default function CandidateDocuments() {
   const { id } = useParams()
   const navigate = useNavigate()
-  
+
   const [candidate, setCandidate] = useState(null)
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,7 +28,15 @@ export default function CandidateDocuments() {
     postOf: '',
     ilNumber: '',
     interviewDate: '',
-    interviewTime: ''
+    interviewTime: '',
+    chargePercent: '100%',
+    // Receipt specific fields
+    sjpsNumber: 'SJPS ',
+    receiptDate: '',
+    towards: 'Placement Registration Charges',
+    paymentMethod: 'Cash',
+    amount: '450',
+    gstin: '27BUEPA5163R1Z8'
   })
   const [saving, setSaving] = useState(false)
   const [editingDocId, setEditingDocId] = useState(null)
@@ -36,7 +50,7 @@ export default function CandidateDocuments() {
       // Load candidate
       const { data: candData } = await api.get(`/cms/candidates/${id}`)
       setCandidate(candData.candidate || candData)
-      
+
       // Load generated documents
       const { data: docsData } = await api.get(`/cms/candidates/${id}/generated-documents`)
       setDocuments(docsData)
@@ -53,7 +67,7 @@ export default function CandidateDocuments() {
 
   const handleCreate = async (e) => {
     e.preventDefault()
-    
+
     if (!selectedType) {
       return toast.error('Please select a document type')
     }
@@ -75,11 +89,14 @@ export default function CandidateDocuments() {
         await api.post(`/cms/candidates/${id}/generated-documents`, payload)
         toast.success('Document created successfully')
       }
-      
+
       setShowCreateModal(false)
       setSelectedType('')
       setEditingDocId(null)
-      setFormData({ companyName: '', companyAddress: '', contactPerson: '', postOf: '', ilNumber: '', interviewDate: '', interviewTime: '' })
+      setFormData({
+        companyName: '', companyAddress: '', contactPerson: '', postOf: '', ilNumber: '', interviewDate: '', interviewTime: '', chargePercent: '100%',
+        sjpsNumber: 'SJPS ', receiptDate: '', towards: 'Placement Registration Charges', paymentMethod: 'Cash', amount: '450', gstin: '27BUEPA5163R1Z8'
+      })
       loadData()
     } catch (error) {
       toast.error(`Failed to ${editingDocId ? 'update' : 'create'} document`)
@@ -98,14 +115,21 @@ export default function CandidateDocuments() {
       postOf: doc.data?.postOf || '',
       ilNumber: doc.data?.ilNumber || '',
       interviewDate: doc.data?.interviewDate || '',
-      interviewTime: doc.data?.interviewTime || ''
+      interviewTime: doc.data?.interviewTime || '',
+      chargePercent: doc.data?.chargePercent || '100%',
+      sjpsNumber: doc.data?.sjpsNumber || 'SJPS ',
+      receiptDate: doc.data?.receiptDate || '',
+      towards: doc.data?.towards || 'Placement Registration Charges',
+      paymentMethod: doc.data?.paymentMethod || 'Cash',
+      amount: doc.data?.amount || '450',
+      gstin: doc.data?.gstin || '27BUEPA5163R1Z8'
     })
     setShowCreateModal(true)
   }
 
   const handleDelete = async (docId) => {
     if (!window.confirm('Are you sure you want to delete this document?')) return
-    
+
     setDeletingId(docId)
     try {
       await api.delete(`/cms/candidates/${id}/generated-documents/${docId}`)
@@ -121,7 +145,6 @@ export default function CandidateDocuments() {
   const formatDate = (val) => {
     if (!val) return '-'
     if (typeof val === 'string') {
-      // Split by T to handle both YYYY-MM-DD and ISO strings
       const datePart = val.split('T')[0]
       if (datePart.includes('-') && datePart.length === 10) {
         const [y, m, d] = datePart.split('-')
@@ -140,92 +163,126 @@ export default function CandidateDocuments() {
     return d.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
   }
 
-  const generatePDFBytes = async (doc) => {
-    const existingPdfBytes = await fetch('/templates/interview-letter-template.pdf').then(res => res.arrayBuffer())
-    const pdfDoc = await PDFDocument.load(existingPdfBytes)
-    
-    const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-    const pages = pdfDoc.getPages()
-    const firstPage = pages[0]
+  const generateWordDocument = async (doc) => {
+    const existingBytes = await fetch('/templates/interview-letter-template.docx').then(res => res.arrayBuffer())
 
-    // Helper to draw text perfectly over the blank lines
-    const drawField = (text, x, y, width, size = 12, center = false) => {
-      if (text) {
-        const textStr = String(text)
-        let textX = x + 5
-        if (center) {
-          const textWidth = helveticaFont.widthOfTextAtSize(textStr, size)
-          textX = x + (width / 2) - (textWidth / 2)
-        }
-        firstPage.drawText(textStr, {
-          x: textX,
-          y,
-          size,
-          font: helveticaFont,
-          color: rgb(0, 0, 0),
-        })
-      }
-    }
+    const zip = new PizZip(existingBytes)
+    const docx = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    })
 
     const candData = doc.data || {}
-    
-    const candName = candData.name || candidate?.fullName || ''
-
-    if (candData.ilNumber) {
-      drawField(candData.ilNumber, 98, 591, 110, 11, false)
-    }
+    const rawName = (candData.name || candidate?.fullName || '').trim()
+    const candName = rawName ? (rawName.toLowerCase().startsWith('mr') ? rawName : `Mr. ${rawName}`) : ''
 
     const fmtInterviewDate = formatDate(candData.interviewDate)
-    drawField(fmtInterviewDate, 510, 567, 90, 11, false)
-    drawField(`Mr ${candName}`, 104, 519, 470, 16, false)
-    drawField(candData.contactPerson || '', 126, 470, 440, 12, false)
-    drawField(candData.postOf || '', 285, 444, 130, 12, false)
-    drawField(fmtInterviewDate, 485, 444, 90, 11, false)
-    drawField(candData.interviewTime || '', 40, 429, 150, 11, false)
-    drawField(candData.companyName || '', 140, 383, 430, 12, false)
-    drawField(candData.companyAddress || '', 150, 356, 420, 12, false)
-    drawField(candName, 85, 229, 180, 12, false)
 
-    return await pdfDoc.save()
+    docx.render({
+      ilNumber: candData.ilNumber || '',
+      date: fmtInterviewDate,
+      candName: candName,
+      contactPerson: candData.contactPerson || '',
+      postOf: candData.postOf || '',
+      interviewDate: fmtInterviewDate,
+      interviewTime: candData.interviewTime || '',
+      companyName: candData.companyName || '',
+      companyAddress: candData.companyAddress || '',
+      chargePercent: candData.chargePercent || '100%'
+    })
+
+    const out = docx.getZip().generate({
+      type: 'blob',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    })
+
+    return out
   }
 
   const handlePreviewPDF = async (doc) => {
     try {
-      const toastId = toast.loading('Generating preview...')
-      const pdfBytes = await generatePDFBytes(doc)
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      window.open(url, '_blank')
+      const toastId = toast.loading('Preparing document preview (downloading Word file)...')
+      const blob = await generateWordDocument(doc)
+      const candName = doc.data?.name || candidate?.fullName || ''
+      download(blob, `${candName.replace(/\s+/g, '_')}_Interview_Letter.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
       toast.dismiss(toastId)
     } catch (error) {
       console.error(error)
-      toast.error('Failed to preview PDF')
+      toast.error('Failed to generate document')
     }
   }
 
   const handleDownloadPDF = async (doc) => {
     try {
-      const toastId = toast.loading('Generating PDF...')
-      const pdfBytes = await generatePDFBytes(doc)
+      const toastId = toast.loading('Generating Document...')
+      const blob = await generateWordDocument(doc)
       const candName = doc.data?.name || candidate?.fullName || ''
-      download(pdfBytes, `${candName.replace(/\s+/g, '_')}_Interview_Letter.pdf`, 'application/pdf')
+      download(blob, `${candName.replace(/\s+/g, '_')}_Interview_Letter.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
       toast.dismiss(toastId)
-      toast.success('PDF downloaded!')
+      toast.success('Document downloaded!')
     } catch (error) {
       console.error(error)
-      toast.error('Failed to generate PDF')
+      toast.error('Failed to generate document')
+    }
+  }
+
+  const generateReceiptWordDocument = async (doc) => {
+    const existingBytes = await fetch('/templates/receipt-template.docx').then(res => res.arrayBuffer())
+
+    const zip = new PizZip(existingBytes)
+    const docx = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    })
+
+    const candData = doc.data || {}
+    const rawName = (candData.name || candidate?.fullName || '').trim()
+
+    const fmtReceiptDate = formatDate(candData.receiptDate)
+
+    // Provide the tags the user might use in their receipt template
+    docx.render({
+      sjpsNumber: candData.sjpsNumber || '',
+      date: fmtReceiptDate,
+      candName: rawName,
+      name: rawName,
+      receivedFrom: rawName,
+      towards: candData.towards || 'Placement Registration Charges',
+      paymentMethod: candData.paymentMethod || 'Cash',
+      amount: candData.amount || '',
+      gstin: candData.gstin || ''
+    })
+
+    const out = docx.getZip().generate({
+      type: 'blob',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    })
+
+    return out
+  }
+
+  const handleDownloadReceiptPDF = async (doc) => {
+    const toastId = toast.loading('Generating Receipt Document...')
+    try {
+      const blob = await generateReceiptWordDocument(doc)
+      const candName = doc.data?.name || candidate?.fullName || ''
+      download(blob, `Receipt_${candName.replace(/\\s+/g, '_')}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+      toast.dismiss(toastId)
+      toast.success('Receipt downloaded!')
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to generate Receipt Document')
+      toast.dismiss(toastId)
     }
   }
 
   const handleTypeChange = (e) => {
     const type = e.target.value
     setSelectedType(type)
-    
+
     if (!editingDocId) {
-      // Find the most recent document of this type
       const existingDocs = documents.filter(d => d.documentType === type)
       if (existingDocs.length > 0) {
-        // Sort by createdAt descending to get the latest
         existingDocs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         const latest = existingDocs[0]
         setFormData({
@@ -235,10 +292,19 @@ export default function CandidateDocuments() {
           postOf: latest.data?.postOf || '',
           ilNumber: latest.data?.ilNumber || '',
           interviewDate: latest.data?.interviewDate || '',
-          interviewTime: latest.data?.interviewTime || ''
+          interviewTime: latest.data?.interviewTime || '',
+          sjpsNumber: latest.data?.sjpsNumber || 'SJPS ',
+          receiptDate: latest.data?.receiptDate || '',
+          towards: latest.data?.towards || 'Placement Registration Charges',
+          paymentMethod: latest.data?.paymentMethod || 'Cash',
+          amount: latest.data?.amount || '450',
+          gstin: latest.data?.gstin || '27BUEPA5163R1Z8'
         })
       } else {
-        setFormData({ companyName: '', companyAddress: '', contactPerson: '', postOf: '', ilNumber: '', interviewDate: '', interviewTime: '' })
+        setFormData({
+          companyName: '', companyAddress: '', contactPerson: '', postOf: '', ilNumber: '', interviewDate: '', interviewTime: '',
+          sjpsNumber: 'SJPS ', receiptDate: '', towards: 'Placement Registration Charges', paymentMethod: 'Cash', amount: '450', gstin: '27BUEPA5163R1Z8'
+        })
       }
     }
   }
@@ -248,7 +314,7 @@ export default function CandidateDocuments() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate(`/admin/cms/candidates/${id}`)}
             className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
           >
@@ -267,7 +333,10 @@ export default function CandidateDocuments() {
           onClick={() => {
             setEditingDocId(null)
             setSelectedType('')
-            setFormData({ companyName: '', companyAddress: '', contactPerson: '', postOf: '', ilNumber: '', interviewDate: '', interviewTime: '' })
+            setFormData({
+              companyName: '', companyAddress: '', contactPerson: '', postOf: '', ilNumber: '', interviewDate: '', interviewTime: '',
+              sjpsNumber: 'SJPS ', receiptDate: '', towards: 'Placement Registration Charges', paymentMethod: 'Cash', amount: '450', gstin: '27BUEPA5163R1Z8'
+            })
             setShowCreateModal(true)
           }}
           className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-700"
@@ -296,7 +365,10 @@ export default function CandidateDocuments() {
                   onClick={() => {
                     setEditingDocId(null)
                     setSelectedType('')
-                    setFormData({ companyName: '', companyAddress: '', contactPerson: '', postOf: '', ilNumber: '', interviewDate: '', interviewTime: '' })
+                    setFormData({
+                      companyName: '', companyAddress: '', contactPerson: '', postOf: '', ilNumber: '', interviewDate: '', interviewTime: '',
+                      sjpsNumber: 'SJPS ', receiptDate: '', towards: 'Placement Registration Charges', paymentMethod: 'Cash', amount: '450', gstin: '27BUEPA5163R1Z8'
+                    })
                     setShowCreateModal(true)
                   }}
                   className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50"
@@ -335,7 +407,8 @@ export default function CandidateDocuments() {
                           >
                             <Pencil size={16} />
                           </button>
-                          {doc.documentType === 'Interview Letter' ? (
+
+                          {doc.documentType === 'Interview Letter' && (
                             <>
                               <button
                                 title="Preview PDF"
@@ -352,9 +425,22 @@ export default function CandidateDocuments() {
                                 <Download size={16} />
                               </button>
                             </>
-                          ) : (
+                          )}
+
+                          {doc.documentType === 'Receipt' && (
+                            <button
+                              title="Download Receipt Document"
+                              onClick={() => handleDownloadReceiptPDF(doc)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 transition hover:bg-indigo-100"
+                            >
+                              <Download size={16} />
+                            </button>
+                          )}
+
+                          {doc.documentType !== 'Interview Letter' && doc.documentType !== 'Receipt' && (
                             <span className="text-xs text-amber-600 font-medium px-2 py-1 rounded bg-amber-50">Pending Layout</span>
                           )}
+
                           <button
                             title="Delete"
                             onClick={() => handleDelete(doc._id)}
@@ -380,14 +466,14 @@ export default function CandidateDocuments() {
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
               <h2 className="text-lg font-bold text-slate-900">{editingDocId ? 'Edit Document' : 'Create New Document'}</h2>
-              <button 
+              <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 transition"
               >
                 ✕
               </button>
             </div>
-            
+
             <form onSubmit={handleCreate} className="overflow-y-auto p-6 space-y-5">
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">Document Type</label>
@@ -406,7 +492,7 @@ export default function CandidateDocuments() {
               {selectedType === 'Interview Letter' && (
                 <div className="space-y-4 rounded-xl border border-indigo-100 bg-indigo-50/30 p-4">
                   <h3 className="text-sm font-bold text-indigo-900 border-b border-indigo-100 pb-2">Interview Letter Details</h3>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="mb-1.5 block text-sm font-semibold text-slate-700">IL. Number <span className="text-slate-400 font-normal">(next to IL. NO. - SJP –)</span></label>
@@ -493,17 +579,109 @@ export default function CandidateDocuments() {
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                      Placement Service Charge <span className="text-slate-400 font-normal">(e.g. 100%, 10%, 50%)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 100%"
+                      value={formData.chargePercent}
+                      onChange={e => setFormData({ ...formData, chargePercent: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      required
+                    />
+                    <p className="mt-1 text-xs text-slate-400">This will appear in the letter as: "Placement Service Charge will be <strong>{formData.chargePercent || '100%'}</strong> of One Month CTC Salary..."</p>
+                  </div>
                 </div>
               )}
 
-              {selectedType && selectedType !== 'Interview Letter' && (
+              {selectedType === 'Receipt' && (
+                <div className="space-y-4 rounded-xl border border-indigo-100 bg-indigo-50/30 p-4">
+                  <h3 className="text-sm font-bold text-indigo-900 border-b border-indigo-100 pb-2">Receipt Details</h3>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-semibold text-slate-700">SJPS Number</label>
+                      <input
+                        type="text"
+                        value={formData.sjpsNumber}
+                        onChange={e => setFormData({ ...formData, sjpsNumber: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-sm font-semibold text-slate-700">Date</label>
+                      <input
+                        type="date"
+                        value={formData.receiptDate}
+                        onChange={e => setFormData({ ...formData, receiptDate: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">Towards</label>
+                    <input
+                      type="text"
+                      value={formData.towards}
+                      onChange={e => setFormData({ ...formData, towards: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-semibold text-slate-700">Payment Method</label>
+                      <select
+                        value={formData.paymentMethod}
+                        onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        required
+                      >
+                        <option value="Cash">Cash</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Online">Online</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-sm font-semibold text-slate-700">Amount (Rs)</label>
+                      <input
+                        type="number"
+                        value={formData.amount}
+                        onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">GSTIN (Optional)</label>
+                    <input
+                      type="text"
+                      value={formData.gstin}
+                      onChange={e => setFormData({ ...formData, gstin: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedType && selectedType !== 'Interview Letter' && selectedType !== 'Receipt' && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                   <p className="text-sm font-medium text-amber-800">
                     Layout for <b>{selectedType}</b> will be provided later. For now, it will generate a blank template record.
                   </p>
                 </div>
               )}
-              
+
               <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
                 <button
                   type="button"

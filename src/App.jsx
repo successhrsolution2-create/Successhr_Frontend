@@ -16,6 +16,7 @@ const AdminStudents = lazy(() => import('./pages/admin/Students'))
 const AdminCompanies = lazy(() => import('./pages/admin/Companies'))
 const CompanyManagement = lazy(() => import('./pages/admin/CompanyManagement'))
 const CompanyInterviewInfo = lazy(() => import('./pages/admin/CompanyInterviewInfo'))
+const CompanyVacancies = lazy(() => import('./pages/admin/CompanyVacancies'))
 const AdminCommissionPanel = lazy(() => import('./pages/admin/CommissionPanel'))
 const CrmRoutes = lazy(() => import('./crm/CrmRoutes'))
 const CrmAdminDashboard = lazy(() => import('./pages/admin/Crm/AdminDashboard'))
@@ -461,6 +462,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/admin/company-management"
           element={
@@ -477,6 +479,16 @@ export default function App() {
             <ProtectedRoute roles={['superAdmin']}>
               <AppShell role="superAdmin">
                 <CompanyInterviewInfo />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/company-management/vacancies"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <CompanyVacancies />
               </AppShell>
             </ProtectedRoute>
           }

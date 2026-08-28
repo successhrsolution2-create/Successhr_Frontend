@@ -39,7 +39,7 @@ const baLinks = [
 ]
 
 const businessAdvisorAdminLinks = [
-  { to: '/admin/business-advisors', label: 'Success Advisors', icon: Users, end: true },
+  { to: '/admin/business-advisors', label: 'Advisor Admin', icon: Users, end: true },
   { to: '/admin/students', label: 'Advisor Candidates', icon: UserCircle },
   { to: '/admin/companies', label: 'Advisor Companies', icon: Building2 },
   { to: '/admin/commission', label: 'Earnings', icon: Wallet }
@@ -47,7 +47,6 @@ const businessAdvisorAdminLinks = [
 
 const telecallingCrmLinks = [
   { to: '/admin/crm/dashboard', label: 'CRM Dashboard', icon: LayoutDashboard },
-  { to: '/admin/crm/candidates', label: 'CRM Candidates', icon: UserCheck },
   { to: '/admin/crm/reports', label: 'CRM Reports', icon: Building2 }
 ]
 
@@ -58,7 +57,8 @@ const candidateManagementLinks = [
 
 const companyManagementLinks = [
   { to: '/admin/company-management', label: 'Company Admins', icon: Users, end: true },
-  { to: '/admin/company-management/interview-info', label: 'Interview Info', icon: ClipboardList }
+  { to: '/admin/company-management/interview-info', label: 'Interview Feedback', icon: ClipboardList },
+  { to: '/admin/company-management/vacancies', label: 'Company Vacancies', icon: ClipboardList }
 ]
 
 const employeeManagementLinks = [
@@ -493,8 +493,8 @@ export default function Sidebar({ role, children, hideTopbar = false }) {
                     <span className="flex min-w-0 items-center gap-3">
                       <span className="h-3.5 w-3.5 shrink-0 rounded-full bg-[#10b981]" />
                       <span className="flex flex-col text-left leading-[1.2]">
-                        <span className="text-[15px] font-bold text-white">Success</span>
-                        <span className="text-[13px] font-semibold text-slate-300">Advisor</span>
+                        <span className="text-[15px] font-bold text-white">Advisor</span>
+                        <span className="text-[13px] font-semibold text-slate-300">Admin</span>
                       </span>
                     </span>
                     {baPanelOpen ? <ChevronDown size={16} className="text-white" /> : <ChevronRight size={16} className="text-slate-400" />}

@@ -27,10 +27,11 @@ const defaultFilters = {
 const sourceOptions = ['RC data', 'WRC data', 'College contacts']
 
 const getRecruiterId = (candidate) => {
+  if (candidate?.enteredRecruiterId) return candidate.enteredRecruiterId
   const recruiter = candidate?.recruiterId || candidate?.recruiter
   if (!recruiter) return '-'
   if (typeof recruiter === 'string') return recruiter
-  return recruiter._id || recruiter.id || '-'
+  return recruiter.employeeId || recruiter.name || recruiter.email || recruiter._id || recruiter.id || '-'
 }
 
 const Stat = ({ label, value }) => (
@@ -41,7 +42,6 @@ const Stat = ({ label, value }) => (
 )
 
 const AdminReports = ({ initialView = 'reports' }) => {
-  const [view, setView] = useState(initialView)
   const [filters, setFilters] = useState(defaultFilters)
   const [activeFilters, setActiveFilters] = useState(defaultFilters)
   const [employees, setEmployees] = useState([])
@@ -56,7 +56,7 @@ const AdminReports = ({ initialView = 'reports' }) => {
       buildQueryString({
         ...activeFilters,
         page,
-        limit: 25
+        limit: 20
       }),
     [activeFilters, page]
   )
@@ -167,24 +167,8 @@ const AdminReports = ({ initialView = 'reports' }) => {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-brand-blue-dark">{view === 'reports' ? 'Reports' : 'All Candidates'}</h1>
+          <h1 className="text-3xl font-semibold text-brand-blue-dark">Reports</h1>
           <p className="mt-2 text-sm text-slate-600">Filter CRM activity by caller, date, class, and status.</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className={view === 'reports' ? 'crm-button-primary' : 'crm-button-secondary'}
-            onClick={() => setView('reports')}
-          >
-            Reports
-          </button>
-          <button
-            type="button"
-            className={view === 'candidates' ? 'crm-button-primary' : 'crm-button-secondary'}
-            onClick={() => setView('candidates')}
-          >
-            Candidates
-          </button>
         </div>
       </div>
 
@@ -221,7 +205,7 @@ const AdminReports = ({ initialView = 'reports' }) => {
               <option value="pending">Pending</option>
               <option value="called">Called</option>
               <option value="followup">Follow-up</option>
-              <option value="converted">Converted</option>
+              <option value="sure">Sure</option>
               <option value="rejected">Rejected</option>
             </select>
           </label>
@@ -272,15 +256,13 @@ const AdminReports = ({ initialView = 'reports' }) => {
         </div>
       </form>
 
-      {view === 'reports' && (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <Stat label="Total Candidates" value={reports?.candidates?.total} />
-          <Stat label="Converted" value={reports?.candidates?.converted} />
+          <Stat label="Sure" value={reports?.candidates?.sure} />
           <Stat label="Pending" value={reports?.candidates?.pending} />
           <Stat label="Follow-ups" value={reports?.candidates?.followup} />
           <Stat label="Today's Calls" value={reports?.calls?.today} />
         </section>
-      )}
 
       {loading ? (
         <div className="rounded-lg border border-line bg-white p-6 text-slate-600">Loading CRM records...</div>
@@ -288,7 +270,7 @@ const AdminReports = ({ initialView = 'reports' }) => {
         <Table columns={columns} rows={candidates} emptyMessage="No CRM candidates found" />
       )}
 
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && (
         <div className="flex items-center justify-end gap-2">
           <button className="crm-button-secondary" type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}>
             Previous

@@ -55,6 +55,20 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
     return '/admin/dashboard'
   }
 
+  const getRoleLabel = () => {
+    if (isCrmAdminSession) return 'CRM Super Admin'
+    if (crmRole === 'crm_employee') return 'CRM Admin'
+    
+    switch (displayUser?.role) {
+      case 'superAdmin': return 'Super Admin'
+      case 'manager': return 'Manager'
+      case 'businessAdvisor': return 'Advisor Admin'
+      case 'candidateAdmin': return 'Candidate Admin'
+      case 'crm_employee': return 'CRM Admin'
+      default: return 'Admin'
+    }
+  }
+
   const handleBack = () => {
     if (hasHistoryBack) {
       navigate(-1)
@@ -209,9 +223,14 @@ export default function Topbar({ onMenuClick, showMenuButton = true }) {
           className="flex min-w-0 items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-2 py-1 transition hover:bg-[#F3F4F6] sm:px-3"
         >
           <UserCircle className="h-7 w-7 text-[var(--accent-blue)]" />
-          <span className="hidden max-w-44 truncate text-[13px] font-semibold text-[var(--text-primary)] sm:block">
-            {displayUser?.name}
-          </span>
+          <div className="flex flex-col text-left hidden sm:flex">
+            <span className="max-w-44 truncate text-[13px] font-bold leading-tight text-[var(--text-primary)]">
+              {displayUser?.name || 'User'}
+            </span>
+            <span className="max-w-44 truncate text-[10px] font-medium text-[var(--text-secondary)]">
+              {getRoleLabel()}
+            </span>
+          </div>
           <ChevronDown
             size={16}
             className={`text-[var(--text-secondary)] transition ${open ? 'rotate-180' : ''}`}

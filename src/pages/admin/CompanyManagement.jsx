@@ -29,7 +29,6 @@ export default function CompanyManagement() {
   const [modalMode, setModalMode] = useState(null)
   const [form, setForm] = useState(blankForm)
   const [deleteAdmin, setDeleteAdmin] = useState(null)
-  const [resetAdmin, setResetAdmin] = useState(null)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
@@ -137,6 +136,9 @@ export default function CompanyManagement() {
         await api.post('/company-management/admins', payload)
       } else {
         await api.put(`/company-management/admins/${form._id}`, payload)
+        if (form.password) {
+          await api.put(`/company-management/admins/${form._id}/reset-password`, { newPassword: form.password })
+        }
       }
 
       await load()
@@ -169,18 +171,6 @@ export default function CompanyManagement() {
       setDeleteAdmin(null)
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not remove company admin')
-    }
-  }
-
-  const resetPassword = async (newPassword) => {
-    if (!resetAdmin) return
-
-    try {
-      await api.put(`/company-management/admins/${resetAdmin._id}/reset-password`, { newPassword })
-      toast.success('Company admin password reset')
-      setResetAdmin(null)
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not reset company admin password')
     }
   }
 
@@ -290,9 +280,6 @@ export default function CompanyManagement() {
                       <ActionButton label="Update" onClick={() => openEdit(admin)} color="border-amber-200 text-amber-700 hover:bg-amber-50">
                         <Pencil className="h-3.5 w-3.5" />
                       </ActionButton>
-                      <ActionButton label="Reset" onClick={() => setResetAdmin(admin)} color="border-sky-200 text-sky-700 hover:bg-sky-50">
-                        <KeyRound className="h-3.5 w-3.5" />
-                      </ActionButton>
                       <ActionButton label="Delete" onClick={() => setDeleteAdmin(admin)} color="border-rose-200 text-rose-700 hover:bg-rose-50">
                         <Trash2 className="h-3.5 w-3.5" />
                       </ActionButton>
@@ -339,9 +326,7 @@ export default function CompanyManagement() {
               <ModalField label="Admin Name" required value={form.name} onChange={(value) => updateForm('name', value)} />
               <ModalField label="Email" required type="email" value={form.email} onChange={(value) => updateForm('email', value)} />
               <ModalField label="Mobile No" value={form.mobileNo} onChange={(value) => updateForm('mobileNo', value.replace(/\D/g, '').slice(0, 10))} />
-              {modalMode === 'create' ? (
-                <ModalField label="Temporary Password" required type="password" value={form.password} onChange={(value) => updateForm('password', value)} />
-              ) : null}
+              <ModalField label={modalMode === 'create' ? 'Temporary Password' : 'Reset Password (Optional)'} required={modalMode === 'create'} type="password" value={form.password} onChange={(value) => updateForm('password', value)} />
               <label className="flex min-h-10 items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
                 <input type="checkbox" checked={form.isActive} onChange={(event) => updateForm('isActive', event.target.checked)} className="h-4 w-4 rounded text-sky-600" />
                 Active login
@@ -363,15 +348,6 @@ export default function CompanyManagement() {
         danger
         onCancel={() => setDeleteAdmin(null)}
         onConfirm={remove}
-      />
-      <PromptDialog
-        open={Boolean(resetAdmin)}
-        title="Reset Company Admin Password"
-        message={`Enter a new password for ${resetAdmin?.name || 'this company admin'}. Existing sessions will be signed out.`}
-        placeholder="At least 6 characters"
-        confirmText="Reset Password"
-        onCancel={() => setResetAdmin(null)}
-        onConfirm={resetPassword}
       />
     </div>
   )

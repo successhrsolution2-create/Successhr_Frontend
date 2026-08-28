@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { ArrowLeft, List, X } from 'lucide-react'
+import { ArrowLeft, List, X, LogOut } from 'lucide-react'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import RoleGuard from './components/RoleGuard.jsx'
 import { logout } from './store/authSlice.js'
@@ -11,6 +11,7 @@ import AdminDashboard from './pages/admin/AdminDashboard.jsx'
 import AdminReports from './pages/admin/AdminReports.jsx'
 import CandidateList from './pages/employee/CandidateList.jsx'
 import CandidateForm from './pages/employee/CandidateForm.jsx'
+import EmployeeDashboard from './pages/employee/EmployeeDashboard.jsx'
 
 const adminLinks = [
   { to: `${CRM_BASE_PATH}/dashboard`, label: 'Dashboard', icon: 'grid' },
@@ -19,6 +20,7 @@ const adminLinks = [
 ]
 
 const employeeLinks = [
+  { to: `${CRM_BASE_PATH}/employee/dashboard`, label: 'Dashboard', icon: 'grid' },
   { to: `${CRM_BASE_PATH}/employee/candidates`, label: 'Candidates', icon: 'candidate' },
   { to: `${CRM_BASE_PATH}/employee/candidates/new`, label: 'Add Candidate', icon: 'plus' }
 ]
@@ -203,7 +205,7 @@ const Shell = () => {
       )}
 
       <aside
-        className={`admin-sidebar fixed inset-y-0 left-0 z-50 flex w-[min(224px,86vw)] transform flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--bg-sidebar)] text-[var(--text-primary)] transition-transform duration-300 ease-out lg:static lg:max-w-none ${
+        className={`admin-sidebar fixed inset-y-0 left-0 z-50 flex w-[min(224px,86vw)] transform flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--bg-sidebar)] text-[var(--text-primary)] transition-transform duration-300 ease-out lg:max-w-none ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
         style={{ width: isDesktop ? `${sidebarWidth}px` : 'min(224px, 86vw)' }}
@@ -223,7 +225,9 @@ const Shell = () => {
             <NavLink
               key={link.to}
               to={link.to}
-              onClick={() => setIsSidebarOpen(false)}
+              onClick={() => {
+                if (!isDesktop) setIsSidebarOpen(false)
+              }}
               className={({ isActive }) =>
                 `flex min-h-[46px] items-center gap-3 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-[15px] font-bold transition ${
                   isActive
@@ -237,6 +241,17 @@ const Shell = () => {
             </NavLink>
           ))}
         </nav>
+
+        <div className="admin-sidebar-footer border-t border-white/10 p-3.5">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex min-h-[46px] w-full items-center justify-center gap-2.5 rounded-2xl border border-red-500/30 bg-[#25131b] px-4 py-2.5 text-center text-[15px] font-bold text-red-300 shadow-sm transition hover:border-red-500/60 hover:bg-red-950/60 hover:text-white active:scale-[0.98]"
+          >
+            <LogOut className="h-4.5 w-4.5 shrink-0 text-red-400" />
+            <span className="font-bold">Logout</span>
+          </button>
+        </div>
 
         {isDesktop && isSidebarOpen ? (
           <button
@@ -275,7 +290,7 @@ const Shell = () => {
       <button
         type="button"
         aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-        className="fixed left-3 top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
+        className="fixed left-3 top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200 lg:hidden"
         onClick={() => setIsSidebarOpen((value) => !value)}
       >
         {isSidebarOpen ? <X className="h-4 w-4" /> : <List className="h-4 w-4" />}
@@ -292,16 +307,6 @@ const Shell = () => {
             }`}
           >
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleBack}
-                aria-label="Go back"
-                title="Back"
-                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-brand-blue"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back</span>
-              </button>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-normal text-slate-500">
                   {effectiveRole === 'crm_super_admin' ? 'Super Admin' : 'Employee'}
@@ -327,9 +332,6 @@ const Shell = () => {
                   </NavLink>
                 ))}
               </div>
-              <button type="button" className="crm-button-secondary" onClick={handleLogout}>
-                Logout
-              </button>
             </div>
           </div>
         </header>
@@ -361,10 +363,12 @@ const App = () => (
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="employees" element={<Navigate to={`${CRM_BASE_PATH}/dashboard`} replace />} />
           <Route path="candidates" element={<AdminReports initialView="candidates" />} />
+          <Route path="candidates/new" element={<CandidateForm mode="create" />} />
+          <Route path="candidates/:id" element={<CandidateForm mode="edit" />} />
           <Route path="reports" element={<AdminReports initialView="reports" />} />
         </Route>
         <Route element={<RoleGuard allowedRoles={['crm_employee']} />}>
-          <Route path="employee/dashboard" element={<Navigate to={`${CRM_BASE_PATH}/employee/candidates`} replace />} />
+          <Route path="employee/dashboard" element={<EmployeeDashboard />} />
           <Route path="employee/candidates" element={<CandidateList />} />
           <Route path="employee/candidates/new" element={<CandidateForm mode="create" />} />
           <Route path="employee/candidates/:id" element={<CandidateForm mode="edit" />} />

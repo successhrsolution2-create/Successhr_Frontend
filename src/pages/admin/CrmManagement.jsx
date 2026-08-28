@@ -25,7 +25,7 @@ const statusTone = {
   pending: 'bg-slate-100 text-slate-700',
   called: 'bg-sky-100 text-sky-700',
   followup: 'bg-amber-100 text-amber-800',
-  converted: 'bg-emerald-100 text-emerald-700',
+  sure: 'bg-emerald-100 text-emerald-700',
   rejected: 'bg-rose-100 text-rose-700'
 }
 
@@ -456,7 +456,7 @@ const CrmManagement = ({ initialTab = 'candidates' }) => {
                 <option value="pending">Pending</option>
                 <option value="called">Called</option>
                 <option value="followup">Follow-up</option>
-                <option value="converted">Converted</option>
+                <option value="sure">Sure</option>
                 <option value="rejected">Rejected</option>
               </select>
               <select className="h-10 rounded-md border border-slate-300 px-3 text-sm" value={filters.interested} onChange={(event) => updateFilter('interested', event.target.value)}>

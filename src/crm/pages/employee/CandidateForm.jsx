@@ -27,6 +27,7 @@ const defaultValues = {
   availabilityForInterview: '',
   interviewDate: '',
   interviewTime: '',
+  enteredRecruiterId: '',
   overallCallingRemark: '',
   candidateClass: '1st',
   registrationInfo: 'RC data',
@@ -55,12 +56,13 @@ const candidateSchema = yup.object({
   availabilityForInterview: yup.string().trim().required('Availability for interview is required'),
   interviewDate: yup.string().trim().required('Interview date is required'),
   interviewTime: yup.string().trim().required('Interview time is required'),
+  enteredRecruiterId: yup.string().trim().max(50, 'Entered recruiter ID cannot exceed 50 characters').nullable().default(''),
   overallCallingRemark: yup.string().trim().required('Overall remark is required'),
   candidateClass: yup.string().oneOf(['1st', '2nd', '3rd']).required('Candidate class is required'),
   registrationInfo: yup.string().oneOf(sourceOptions).required('Source is required'),
   callStatus: yup
     .string()
-    .oneOf(['pending', 'called', 'followup', 'converted', 'rejected'])
+    .oneOf(['pending', 'called', 'followup', 'sure', 'rejected'])
     .required('Call status is required')
 })
 
@@ -236,7 +238,8 @@ const CandidateForm = ({ mode = 'create' }) => {
 
           <label className="block">
             <span className="crm-label">Recruiter ID</span>
-            <input className="crm-input mt-1" placeholder="Enter recruiter ID" />
+            <input className="crm-input mt-1" placeholder="Enter recruiter ID" {...register('enteredRecruiterId')} />
+            <FieldError message={errors.enteredRecruiterId?.message} />
           </label>
 
           <label className="block">
@@ -265,7 +268,7 @@ const CandidateForm = ({ mode = 'create' }) => {
               <option value="pending">Pending</option>
               <option value="called">Called</option>
               <option value="followup">Follow-up</option>
-              <option value="converted">Converted</option>
+              <option value="sure">Sure</option>
               <option value="rejected">Rejected</option>
             </select>
             <FieldError message={errors.callStatus?.message} />
