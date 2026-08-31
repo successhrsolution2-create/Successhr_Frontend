@@ -27,13 +27,8 @@ const MAX_IMPORT_ROWS = 500
 const PAGE_LIMIT = 20
 const sourceOptions = ['RC data', 'WRC data', 'College contacts']
 
-const getRecruiterId = (candidate) => {
-  if (candidate?.enteredRecruiterId) return candidate.enteredRecruiterId
-  const recruiter = candidate?.recruiterId || candidate?.recruiter
-  if (!recruiter) return '-'
-  if (typeof recruiter === 'string') return recruiter
-  return recruiter.employeeId || recruiter.name || recruiter.email || recruiter._id || recruiter.id || '-'
-}
+const getRecruiterId = (candidate) => candidate?.enteredRecruiterId || '-'
+
 
 const getTodayInputValue = () => {
   const today = new Date()

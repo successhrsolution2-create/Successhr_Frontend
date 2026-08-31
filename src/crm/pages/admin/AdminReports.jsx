@@ -26,13 +26,7 @@ const defaultFilters = {
 
 const sourceOptions = ['RC data', 'WRC data', 'College contacts']
 
-const getRecruiterId = (candidate) => {
-  if (candidate?.enteredRecruiterId) return candidate.enteredRecruiterId
-  const recruiter = candidate?.recruiterId || candidate?.recruiter
-  if (!recruiter) return '-'
-  if (typeof recruiter === 'string') return recruiter
-  return recruiter.employeeId || recruiter.name || recruiter.email || recruiter._id || recruiter.id || '-'
-}
+const getRecruiterId = (candidate) => candidate?.enteredRecruiterId || '-'
 
 const Stat = ({ label, value }) => (
   <div className="rounded-md border border-line bg-white p-4 shadow-sm">
