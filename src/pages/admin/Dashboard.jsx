@@ -524,7 +524,7 @@ export default function Dashboard() {
       title: 'Candidate Management',
       subtitle: 'Registrations',
       color: '#f97316', // using orange color for Candidate Management
-      route: '/admin/candidates',
+      route: '/admin/cms/candidates',
       stats: [
         { label: 'Total Candidates', value: formatNumber(candidateManagementStats?.totalCandidates) },
         { label: 'Today', value: formatNumber(candidateManagementStats?.todayCandidates) }
