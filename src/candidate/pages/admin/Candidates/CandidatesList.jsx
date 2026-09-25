@@ -428,6 +428,7 @@ export default function CandidatesList() {
   const [candidates, setCandidates] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [atsSearch, setAtsSearch] = useState('')
   const [candidateFilters, setCandidateFilters] = useState(defaultCandidateFilters)
   const [filterOptions, setFilterOptions] = useState(defaultFilterOptions)
   const [deleting, setDeleting] = useState(null)
@@ -456,6 +457,7 @@ export default function CandidatesList() {
           page: targetPage,
           pageSize,
           search: search.trim() || undefined,
+          atsSearch: atsSearch.trim() || undefined,
           candidateId: candidateFilters.candidateId || undefined,
           jobRole: candidateFilters.jobRole || undefined,
           gender: candidateFilters.gender || undefined,
@@ -492,7 +494,7 @@ export default function CandidatesList() {
     } finally {
       setLoading(false)
     }
-  }, [candidateFilters, dateRange, page, pageSize, search, tileFilter, visitDateRange])
+  }, [candidateFilters, dateRange, page, pageSize, search, atsSearch, tileFilter, visitDateRange])
 
   useEffect(() => {
     loadCandidates(page)
@@ -500,7 +502,7 @@ export default function CandidatesList() {
 
   useEffect(() => {
     setPage(1)
-  }, [candidateFilters, search, dateRange, pageSize, tileFilter, visitDateRange])
+  }, [candidateFilters, search, atsSearch, dateRange, pageSize, tileFilter, visitDateRange])
 
   const paginated = candidates
   const visibleCandidateIds = paginated.map((candidate) => candidate.id).filter(Boolean)
@@ -516,6 +518,7 @@ export default function CandidatesList() {
     setDateRange(defaultDateRange)
     setVisitDateRange(defaultDateRange)
     setSearch('')
+    setAtsSearch('')
     setCandidateFilters(defaultCandidateFilters)
     setTileFilter('all')
   }
@@ -796,11 +799,17 @@ export default function CandidatesList() {
       </div>
 
       <form className="rounded-md border border-[#d4dde8] bg-white p-3 shadow-sm" onSubmit={(event) => event.preventDefault()}>
-        <div className="grid gap-2 xl:grid-cols-[minmax(0,1.25fr)_repeat(4,minmax(0,1fr))]">
+        <div className="grid gap-2 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1.25fr)_repeat(4,minmax(0,1fr))]">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search by ID, name, mobile, email, skills"
+            className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-[13px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff]"
+          />
+<input
+            value={atsSearch}
+            onChange={(event) => setAtsSearch(event.target.value)}
+            placeholder="ATS Skill Scan (Deep Resume Search)"
             className="h-9 w-full rounded-md border border-[#d4dde8] bg-white px-3 text-[13px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0b65ac] focus:ring-2 focus:ring-[#d9ecff]"
           />
           <CandidateFilterSelect
