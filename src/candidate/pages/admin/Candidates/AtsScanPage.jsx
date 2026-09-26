@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from "react"
+import { useState, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search, X, ChevronRight, Trophy, Target, AlertCircle, Loader2, Users } from "lucide-react"
 import api from "../../../api/axios"
@@ -155,7 +155,7 @@ export default function AtsScanPage() {
                             {candidate.atsMatchPercent}% matched
                           </span>
                         </div>
-                        <button type="button" onClick={() => navigate(`/candidate/admin/cms/candidates/${candidate._id}`)}
+                        <button type="button" onClick={() => navigate(`/admin/cms/candidates/${candidate._id}`)}
                           className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-700">
                           View Profile <ChevronRight className="h-3.5 w-3.5" />
                         </button>
