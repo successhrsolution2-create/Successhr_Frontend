@@ -492,7 +492,7 @@ export default function CandidatesList() {
     } finally {
       setLoading(false)
     }
-  }, [candidateFilters, dateRange, page, pageSize, search, atsSearch, tileFilter, visitDateRange])
+  }, [candidateFilters, dateRange, page, pageSize, search, tileFilter, visitDateRange])
 
   useEffect(() => {
     loadCandidates(page)
@@ -500,7 +500,7 @@ export default function CandidatesList() {
 
   useEffect(() => {
     setPage(1)
-  }, [candidateFilters, search, atsSearch, dateRange, pageSize, tileFilter, visitDateRange])
+  }, [candidateFilters, search, dateRange, pageSize, tileFilter, visitDateRange])
 
   const paginated = candidates
   const visibleCandidateIds = paginated.map((candidate) => candidate.id).filter(Boolean)
@@ -516,7 +516,6 @@ export default function CandidatesList() {
     setDateRange(defaultDateRange)
     setVisitDateRange(defaultDateRange)
     setSearch('')
-    setAtsSearch('')
     setCandidateFilters(defaultCandidateFilters)
     setTileFilter('all')
   }
