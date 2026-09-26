@@ -372,7 +372,7 @@ function CandidateGlobalSearch({ value, results, onChange, onSelect }) {
           setOpen(true)
         }}
         placeholder="Search any field, value, document, or interview..."
-        className="h-11 w-full rounded-lg border border-slate-300 bg-white py-2 pl-11 pr-10 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+        className="h-11 w-full rounded-lg border border-slate-300 bg-white py-2 !pl-11 pr-10 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
       />
       {value ? (
         <button
