@@ -44,6 +44,7 @@ const CmsCompanyForm = lazy(() => import('./candidate/pages/admin/Candidates/Com
 const CmsProcessPanel = lazy(() => import('./candidate/pages/admin/CommissionProcessPanel'))
 const CmsInterviewList = lazy(() => import('./candidate/pages/admin/Interviews/InterviewList'))
 const CmsInterviewDetails = lazy(() => import('./candidate/pages/admin/Interviews/InterviewDetails'))
+const CmsAtsScan = lazy(() => import('./candidate/pages/admin/Candidates/AtsScanPage'))
 const EMSDashboard = lazy(() => import('./modules/ems/pages/EMSDashboard'))
 const EMSEmployeeList = lazy(() => import('./modules/ems/pages/employees/EmployeeList'))
 const EMSEmployeeAdd = lazy(() => import('./modules/ems/pages/employees/EmployeeAdd'))
@@ -264,6 +265,16 @@ export default function App() {
             <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
               <CandidateManagementShell>
                 <CmsCandidatesList />
+              </CandidateManagementShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/cms/ats-scan"
+          element={
+            <ProtectedRoute roles={cmsRoles} managerAccess="candidateManagement">
+              <CandidateManagementShell>
+                <CmsAtsScan />
               </CandidateManagementShell>
             </ProtectedRoute>
           }

@@ -52,6 +52,7 @@ const telecallingCrmLinks = [
 
 const candidateManagementLinks = [
   { to: '/admin/cms/candidates', label: 'Candidates', icon: UserCheck },
+  { to: '/admin/cms/ats-scan', label: '🎯 ATS Scan', icon: UserCheck },
   { to: '/admin/cms/interviews', label: 'Interviews', icon: PanelsTopLeft }
 ]
 

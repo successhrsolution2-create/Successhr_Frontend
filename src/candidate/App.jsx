@@ -13,6 +13,7 @@ const CandidateDetails = lazy(() => import('./pages/admin/Candidates/CandidateDe
 const CmsCompaniesList = lazy(() => import('./pages/admin/Candidates/CompaniesList'))
 const CmsCompanyForm = lazy(() => import('./pages/admin/Candidates/CompanyForm'))
 const AdminCommissionProcessPanel = lazy(() => import('./pages/admin/CommissionProcessPanel'))
+const AtsScanPage = lazy(() => import('./pages/admin/Candidates/AtsScanPage'))
 
 function HomeRedirect() {
   const { token, user, checking } = useSelector((state) => state.auth)
@@ -105,6 +106,16 @@ export default function App() {
             <ProtectedRoute roles={['superAdmin']}>
               <AppShell role="superAdmin">
                 <CandidateForm />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/candidate/admin/cms/ats-scan"
+          element={
+            <ProtectedRoute roles={['superAdmin']}>
+              <AppShell role="superAdmin">
+                <AtsScanPage />
               </AppShell>
             </ProtectedRoute>
           }

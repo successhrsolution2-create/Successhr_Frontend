@@ -137,6 +137,18 @@ export default function Sidebar({ role, children }) {
                   <span>Companies</span>
                 </NavLink>
                 <NavLink
+                  to="/candidate/admin/cms/ats-scan"
+                  className={({ isActive }) =>
+                    `flex min-h-[46px] items-center gap-3 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-[15px] font-bold transition ${
+                      isActive
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-[0_8px_24px_-4px_rgba(16,185,129,0.5)]'
+                        : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                    }`
+                  }
+                >
+                  <span>🎯 ATS Scan</span>
+                </NavLink>
+                <NavLink
                   to="/candidate/admin/process-panel"
                   className={({ isActive }) =>
                     `flex min-h-[46px] items-center gap-3 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-[15px] font-bold transition ${
