@@ -189,7 +189,6 @@ const toLegacyShape = (item, index = 0, total = 0) => ({
   candidateVisits: candidateVisitsFromItem(item),
   interviews: Array.isArray(item.interviews) ? item.interviews.map(toLegacyInterviewShape) : [],
   interviewCount: Number(item.interviewCount || item.interviews?.length || 0),
-  atsScore: typeof item.score === 'number' ? item.score : null,
   createdAt: item.createdAt
 })
 
@@ -448,41 +447,17 @@ export default function CandidatesList() {
   const [stats, setStats] = useState({ total: 0, newToday: 0, selected: 0, activeInterviews: 0 })
   const [selectedCandidateIds, setSelectedCandidateIds] = useState([])
   const [showExportModal, setShowExportModal] = useState(false)
-  const [atsMode, setAtsMode] = useState(false)
 
   const loadCandidates = useCallback(async (targetPage = page) => {
     try {
       setLoading(true)
-
-      // ── ATS Scan mode: dedicated scoring endpoint ──
-      if (atsSearch.trim()) {
-        const { data } = await api.get('/cms/candidates/ats-scan', {
-          params: { keywords: atsSearch.trim() }
-        })
-        const results = Array.isArray(data?.results) ? data.results : []
-        const total = results.length
-        // Map ATS results to legacy shape, preserving atsScore
-        setCandidates(results.map((item, index) => ({
-          ...toLegacyShape(item, index, total),
-          atsScore: item.atsScore,
-          atsMatchPercent: item.atsMatchPercent,
-          atsMatchedKeywords: item.atsMatchedKeywords || [],
-          atsMissedKeywords: item.atsMissedKeywords || []
-        })))
-        setTotalCandidates(total)
-        setStats((prev) => ({ ...prev }))
-        setAtsMode(true)
-        return
-      }
-
-      // ── Normal paginated list ──
-      setAtsMode(false)
       const { data } = await api.get('/cms/candidates', {
         params: {
           paginated: 'true',
           page: targetPage,
           pageSize,
           search: search.trim() || undefined,
+          atsSearch: atsSearch.trim() || undefined,
           candidateId: candidateFilters.candidateId || undefined,
           jobRole: candidateFilters.jobRole || undefined,
           gender: candidateFilters.gender || undefined,
@@ -928,40 +903,19 @@ export default function CandidatesList() {
       </form>
 
       <section className="space-y-3">
-        {atsMode ? (
-          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <span className="text-sm font-bold text-emerald-800">🎯 ATS Scan Results</span>
-            <span className="text-sm text-emerald-700">
-              <strong>{candidates.length}</strong> matched from scan
-            </span>
-            <div className="flex flex-wrap gap-1 ml-2">
-              {atsSearch.trim().split(/[,;\n]+/).map((k) => k.trim()).filter(Boolean).map((kw) => (
-                <span key={kw} className="rounded-full bg-white border border-emerald-300 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">{kw}</span>
-              ))}
-            </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-lg font-bold text-[#00427d]">Active Candidates</h2>
+          {selectedVisibleCandidateIds.length > 0 ? (
             <button
               type="button"
-              onClick={() => setAtsSearch('')}
-              className="ml-auto rounded-lg border border-emerald-300 bg-white px-3 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
+              onClick={requestBulkDelete}
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 sm:w-auto"
             >
-              ✕ Clear ATS
+              <Trash2 size={16} />
+              Delete Selected ({selectedVisibleCandidateIds.length})
             </button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-bold text-[#00427d]">Active Candidates</h2>
-            {selectedVisibleCandidateIds.length > 0 ? (
-              <button
-                type="button"
-                onClick={requestBulkDelete}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 sm:w-auto"
-              >
-                <Trash2 size={16} />
-                Delete Selected ({selectedVisibleCandidateIds.length})
-              </button>
-            ) : null}
-          </div>
-        )}
+          ) : null}
+        </div>
 
         <div className="overflow-hidden rounded-md border border-[#d4dde8] bg-white">
         {loading ? (
@@ -993,9 +947,6 @@ export default function CandidatesList() {
                 </th>
                 <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">ID</th>
                 <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">Registration</th>
-                {atsMode && (
-                  <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap bg-emerald-50 text-emerald-700">🎯 ATS Rank</th>
-                )}
                 <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">Name</th>
                 <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">Education</th>
                 <th className="border-r border-[#d4dde8] px-3 py-3 whitespace-nowrap">Job Role/Department</th>
@@ -1028,35 +979,6 @@ export default function CandidatesList() {
                       )
                     })()}
                   </td>
-                  {atsMode && (
-                    <td className="border-r border-[#d4dde8] px-3 py-2 bg-emerald-50/40">
-                      <div className="flex flex-col gap-1 min-w-[120px]">
-                        <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-slate-800 text-white text-[10px] font-extrabold flex-shrink-0">
-                            #{paginated.indexOf(candidate) + 1}
-                          </span>
-                          <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
-                            ★ {candidate.atsScore != null ? candidate.atsScore.toFixed(1) : '—'}
-                          </span>
-                          <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                            (candidate.atsMatchPercent || 0) >= 80 ? 'bg-emerald-100 text-emerald-800' :
-                            (candidate.atsMatchPercent || 0) >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {candidate.atsMatchPercent || 0}%
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-0.5">
-                          {(candidate.atsMatchedKeywords || []).map((kw) => (
-                            <span key={kw} className="rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-semibold text-emerald-800">✓{kw}</span>
-                          ))}
-                          {(candidate.atsMissedKeywords || []).map((kw) => (
-                            <span key={kw} className="rounded bg-red-50 px-1 py-0.5 text-[9px] font-semibold text-red-500 line-through">✗{kw}</span>
-                          ))}
-                        </div>
-                      </div>
-                    </td>
-                  )}
                   <td className="border-r border-[#d4dde8] px-3 py-3">
                     <div className="flex items-center gap-2">
                       <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${avatarPalette[candidate.fullName.length % avatarPalette.length]}`}>
