@@ -1,6 +1,9 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
-import { Search, X, ChevronRight, Trophy, Target, AlertCircle, Loader2, Users } from "lucide-react"
+import {
+  Search, X, ChevronRight, Trophy, Target, AlertCircle, Loader2,
+  Users, Upload, FileText, CheckCircle, AlertTriangle, Trash2, FilePlus2
+} from "lucide-react"
 import api from "../../../api/axios"
 
 const RANK_COLORS = [
@@ -26,14 +29,29 @@ function KeywordBadge({ text, matched }) {
   )
 }
 
+function ImportResultBadge({ status }) {
+  if (status === "created") return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700"><CheckCircle className="h-3 w-3" />Added to CMS</span>
+  if (status === "duplicate") return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700"><AlertTriangle className="h-3 w-3" />Duplicate</span>
+  return <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700"><AlertCircle className="h-3 w-3" />Error</span>
+}
+
 export default function AtsScanPage() {
   const navigate = useNavigate()
   const textareaRef = useRef(null)
+  const fileInputRef = useRef(null)
+
   const [keywordsInput, setKeywordsInput] = useState("")
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // PDF Import state
+  const [selectedFiles, setSelectedFiles] = useState([])  // File[]
+  const [importResults, setImportResults] = useState(null) // after upload
+  const [importing, setImporting] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
+
+  // ─── Scan CMS Candidates ───────────────────────────────────────────────────
   const handleScan = async () => {
     const trimmed = keywordsInput.trim()
     if (!trimmed) { setError("Enter at least one keyword"); return }
@@ -48,21 +66,73 @@ export default function AtsScanPage() {
     }
   }
 
+  // ─── Import PDFs + Run ATS ─────────────────────────────────────────────────
+  const handleImportAndScan = async () => {
+    if (!selectedFiles.length) return
+    const trimmed = keywordsInput.trim()
+    if (!trimmed) { setError("Enter keywords before importing (they will be used to rank imported resumes)"); return }
+
+    setError(""); setImporting(true); setImportResults(null); setResults(null)
+    try {
+      const formData = new FormData()
+      formData.append("keywords", trimmed)
+      selectedFiles.forEach((f) => formData.append("resumes", f))
+
+      const { data } = await api.post("/cms/candidates/ats-import-pdf", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      })
+
+      setImportResults(data.importResults || [])
+      if (data.atsResults) setResults(data.atsResults)
+    } catch (err) {
+      setError(err.response?.data?.message || "Import failed. Please try again.")
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  // ─── File Handling ─────────────────────────────────────────────────────────
+  const addFiles = useCallback((fileList) => {
+    const pdfs = Array.from(fileList).filter((f) => f.type === "application/pdf")
+    if (!pdfs.length) return
+    setSelectedFiles((prev) => {
+      const existing = new Set(prev.map((f) => f.name + f.size))
+      const fresh = pdfs.filter((f) => !existing.has(f.name + f.size))
+      return [...prev, ...fresh].slice(0, 20) // max 20
+    })
+  }, [])
+
+  const removeFile = (idx) => setSelectedFiles((prev) => prev.filter((_, i) => i !== idx))
+
+  const handleDrop = (e) => {
+    e.preventDefault(); setIsDragOver(false)
+    addFiles(e.dataTransfer.files)
+  }
+
   const handleKeyDown = (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleScan() }
-  const clearAll = () => { setKeywordsInput(""); setResults(null); setError(""); textareaRef.current?.focus() }
+
+  const clearAll = () => {
+    setKeywordsInput(""); setResults(null); setError("")
+    setSelectedFiles([]); setImportResults(null)
+    textareaRef.current?.focus()
+  }
+
+  const formatBytes = (bytes) => bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-2 py-4">
+      {/* Header */}
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30">
           <Target className="h-6 w-6 text-white" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-slate-900">ATS Resume Scanner</h1>
-          <p className="text-sm text-slate-500">Enter skills / keywords — candidates ranked by ATS match score, best first</p>
+          <p className="text-sm text-slate-500">Scan CMS candidates <span className="font-semibold text-slate-600">or import PDF resumes</span> — ranked by ATS match score</p>
         </div>
       </div>
 
+      {/* Keywords + Scan */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <label className="mb-2 block text-[13px] font-semibold text-slate-600">Keywords / Skills — comma or newline separated</label>
         <textarea
@@ -75,21 +145,106 @@ export default function AtsScanPage() {
           className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 placeholder:text-slate-400"
         />
         {error && <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-red-600"><AlertCircle className="h-3.5 w-3.5" /> {error}</p>}
-        <div className="mt-3 flex items-center gap-2">
-          <button type="button" onClick={handleScan} disabled={loading}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button type="button" onClick={handleScan} disabled={loading || importing}
             className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-6 text-sm font-bold text-white shadow-md shadow-emerald-500/30 transition hover:from-emerald-600 hover:to-teal-700 disabled:opacity-60">
             {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Scanning...</> : <><Search className="h-4 w-4" /> Scan All Candidates</>}
           </button>
-          {(keywordsInput || results) && (
+          {(keywordsInput || results || selectedFiles.length || importResults) && (
             <button type="button" onClick={clearAll}
               className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-              <X className="h-4 w-4" /> Clear
+              <X className="h-4 w-4" /> Clear All
             </button>
           )}
           <span className="ml-auto text-[11px] text-slate-400">Ctrl+Enter to scan</span>
         </div>
       </div>
 
+      {/* ─── PDF Import Section ─────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <FilePlus2 className="h-5 w-5 text-violet-500" />
+          <h2 className="text-[13px] font-bold text-slate-700">Import PDF Resumes</h2>
+          <span className="ml-auto rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-600">up to 20 PDFs</span>
+        </div>
+
+        {/* Drop zone */}
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+          onDragLeave={() => setIsDragOver(false)}
+          onClick={() => fileInputRef.current?.click()}
+          className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 transition ${isDragOver ? "border-violet-400 bg-violet-50" : "border-slate-200 bg-slate-50 hover:border-violet-300 hover:bg-violet-50/50"}`}
+        >
+          <Upload className={`h-8 w-8 ${isDragOver ? "text-violet-500" : "text-slate-300"}`} />
+          <div className="text-center">
+            <p className="text-sm font-semibold text-slate-600">Drag & drop PDF resumes here</p>
+            <p className="mt-0.5 text-xs text-slate-400">or click to browse — max 20 PDFs, 20 MB each</p>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            multiple
+            className="hidden"
+            onChange={(e) => addFiles(e.target.files)}
+          />
+        </div>
+
+        {/* Selected files list */}
+        {selectedFiles.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <p className="text-[12px] font-semibold text-slate-500">{selectedFiles.length} file{selectedFiles.length !== 1 ? "s" : ""} selected</p>
+            <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+              {selectedFiles.map((f, idx) => (
+                <div key={idx} className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                  <FileText className="h-4 w-4 shrink-0 text-violet-400" />
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-slate-700">{f.name}</span>
+                  <span className="shrink-0 text-[11px] text-slate-400">{formatBytes(f.size)}</span>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); removeFile(idx) }}
+                    className="shrink-0 rounded p-0.5 text-slate-400 transition hover:bg-red-50 hover:text-red-500">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button type="button" onClick={handleImportAndScan} disabled={importing || loading}
+              className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-sm font-bold text-white shadow-md shadow-violet-500/30 transition hover:from-violet-600 hover:to-purple-700 disabled:opacity-60">
+              {importing
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Importing & Scanning...</>
+                : <><Upload className="h-4 w-4" /> Import PDFs & Run ATS Scan</>}
+            </button>
+            <p className="text-[11px] text-slate-400 text-center">Imported resumes will be added to CMS. Duplicates (same mobile) will be skipped.</p>
+          </div>
+        )}
+
+        {/* Import Results */}
+        {importResults && (
+          <div className="mt-4 space-y-2">
+            <p className="text-[13px] font-bold text-slate-600">Import Summary</p>
+            <div className="space-y-1.5">
+              {importResults.map((r, idx) => (
+                <div key={idx} className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                  <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-slate-700">{r.fileName}</span>
+                  {r.candidateName && <span className="text-[11px] text-slate-500 hidden sm:block">{r.candidateName}</span>}
+                  <ImportResultBadge status={r.status} />
+                  {r.error && <span className="text-[11px] text-red-500">{r.error}</span>}
+                  {r.candidateId && r.status !== 'error' && (
+                    <button type="button" onClick={() => navigate(`/admin/cms/candidates/${r.candidateId}`)}
+                      className="shrink-0 rounded-lg border border-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-100">
+                      View
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Results ─────────────────────────────────────────────────────────── */}
       {results && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
@@ -119,7 +274,7 @@ export default function AtsScanPage() {
                 const style = getRankStyle(index)
                 const rank = index + 1
                 return (
-                  <div key={candidate._id} className={`relative rounded-2xl border-2 ${style.border} ${style.bg} p-5 shadow-sm transition hover:shadow-md`}>
+                  <div key={String(candidate._id)} className={`relative rounded-2xl border-2 ${style.border} ${style.bg} p-5 shadow-sm transition hover:shadow-md`}>
                     <span className={`absolute -left-3 -top-3 flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold shadow-md ${style.badge}`}>#{rank}</span>
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
