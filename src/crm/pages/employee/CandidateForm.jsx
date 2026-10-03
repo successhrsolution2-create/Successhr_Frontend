@@ -2,7 +2,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import * as yup from 'yup'
 import api from '../../api/axiosInstance.js'
 import { CRM_BASE_PATH, formatDisplayText, getErrorMessage } from '../../utils/helpers.js'
@@ -71,8 +71,12 @@ const FieldError = ({ message }) => (message ? <span className="mt-1 block text-
 const CandidateForm = ({ mode = 'create' }) => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const isEdit = mode === 'edit'
   const [loading, setLoading] = useState(isEdit)
+
+  // Pre-fill values passed from CMS "Send to CRM" button
+  const prefill = !isEdit ? (location.state?.cmsPrefill || null) : null
 
   const {
     register,
@@ -82,7 +86,9 @@ const CandidateForm = ({ mode = 'create' }) => {
     formState: { errors, isSubmitting }
   } = useForm({
     resolver: yupResolver(candidateSchema),
-    defaultValues
+    defaultValues: prefill
+      ? { ...defaultValues, candidateName: prefill.candidateName || '', mobileNumber: prefill.mobileNumber || '', education: prefill.education || '' }
+      : defaultValues
   })
 
   const interestedStatus = useWatch({ control, name: 'interested.status' })

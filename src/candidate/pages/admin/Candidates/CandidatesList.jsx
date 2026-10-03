@@ -1001,6 +1001,15 @@ export default function CandidatesList() {
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
+                        title="Send to CRM"
+                        onClick={() => navigate('/admin/crm/candidates/new', { state: { cmsPrefill: { candidateName: candidate.fullName || '', mobileNumber: candidate.mobileNumber || '', education: candidate.education || '' } } })}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-600 hover:shadow-emerald-500/40"
+                        aria-label="Send to CRM"
+                      >
+                        <UserRoundPlus className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
                         title="Generate Document"
                         onClick={() => navigate(`/admin/cms/candidates/${candidate.id}/documents`)}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-600 hover:shadow-indigo-500/40"
