@@ -5,7 +5,7 @@ import api from '../../api/axiosInstance.js'
 import Badge from '../../components/ui/Badge.jsx'
 import { getErrorMessage, CRM_BASE_PATH } from '../../utils/helpers.js'
 import { UserCheck, PhoneCall, FileText, PlusCircle, Users } from 'lucide-react'
-import SendToCrmModal from '../../../candidate/pages/admin/Candidates/SendToCrmModal.jsx'
+import SendToCrmModal from './SendToCrmModal.jsx'
 import {
   BarChart,
   Bar,

@@ -522,15 +522,44 @@ function ReadOnlyTextArea({ value, rows = 4, onEditHint }) {
 
 // ─── PDF / Document Viewer Modal ─────────────────────────────────────────────
 function DocViewerModal({ url, label, onClose }) {
-  const isPdf = /\.pdf$/i.test(url) || url.includes('application/pdf')
+  const [blobUrl, setBlobUrl] = useState(null)
+  const [fetchError, setFetchError] = useState(false)
+  const [fetching, setFetching] = useState(true)
+
+  useEffect(() => {
+    if (!url) { setFetchError(true); setFetching(false); return }
+    let revoked = false
+
+    const load = async () => {
+      try {
+        // CMS uses cookie-based auth — credentials: 'include' handles the session
+        const res = await fetch(url, { credentials: 'include' })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const blob = await res.blob()
+        if (!revoked) {
+          setBlobUrl(URL.createObjectURL(blob))
+          setFetching(false)
+        }
+      } catch {
+        if (!revoked) { setFetchError(true); setFetching(false) }
+      }
+    }
+
+    load()
+    return () => {
+      revoked = true
+      setBlobUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null })
+    }
+  }, [url])
+
+  const isPdf = /\.pdf$/i.test(url) || blobUrl?.startsWith('blob:')
   const isImage = /\.(jpe?g|png|gif|webp|svg)$/i.test(url)
 
   const handleDownload = () => {
     const a = document.createElement('a')
-    a.href = url
+    a.href = blobUrl || url
     a.download = label || 'document'
-    a.target = '_blank'
-    a.rel = 'noopener noreferrer'
+    if (!blobUrl) { a.target = '_blank'; a.rel = 'noopener noreferrer' }
     a.click()
   }
 
@@ -544,14 +573,16 @@ function DocViewerModal({ url, label, onClose }) {
         <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3">
           <p className="truncate text-sm font-bold text-slate-800">{label}</p>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white shadow transition hover:bg-indigo-700"
-            >
-              <FileDown className="h-3.5 w-3.5" />
-              Download
-            </button>
+            {(blobUrl || url) && (
+              <button
+                type="button"
+                onClick={handleDownload}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white shadow transition hover:bg-indigo-700"
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                Download
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -563,26 +594,38 @@ function DocViewerModal({ url, label, onClose }) {
         </div>
         {/* Viewer body */}
         <div className="flex-1 overflow-auto bg-slate-100">
-          {isPdf ? (
+          {fetching ? (
+            <div className="flex h-full items-center justify-center gap-3 text-slate-500">
+              <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+              <span className="text-sm font-semibold">Loading document...</span>
+            </div>
+          ) : fetchError || !blobUrl ? (
+            <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+              <FileImage className="h-16 w-16 text-slate-300" />
+              <p className="font-semibold text-slate-600">
+                {!url ? 'No file available for this document.' : 'Preview could not be loaded.'}
+              </p>
+              {url && (
+                <button type="button" onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-600 px-6 text-sm font-bold text-white shadow transition hover:bg-indigo-700">
+                  <FileDown className="h-4 w-4" /> Open in New Tab
+                </button>
+              )}
+            </div>
+          ) : isImage ? (
+            <div className="flex h-full items-center justify-center p-4">
+              <img src={blobUrl} alt={label} className="max-h-full max-w-full rounded-lg object-contain shadow" />
+            </div>
+          ) : (
             <iframe
-              src={`${url}#toolbar=0`}
+              src={blobUrl}
               title={label}
               className="h-full w-full"
               style={{ minHeight: '75vh' }}
             />
-          ) : isImage ? (
-            <div className="flex h-full items-center justify-center p-4">
-              <img src={url} alt={label} className="max-h-full max-w-full rounded-lg object-contain shadow" />
-            </div>
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-              <FileImage className="h-16 w-16 text-slate-300" />
-              <p className="font-semibold text-slate-600">Preview not available for this file type.</p>
-              <button type="button" onClick={handleDownload}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-600 px-6 text-sm font-bold text-white shadow transition hover:bg-indigo-700">
-                <FileDown className="h-4 w-4" /> Download File
-              </button>
-            </div>
           )}
         </div>
       </div>
