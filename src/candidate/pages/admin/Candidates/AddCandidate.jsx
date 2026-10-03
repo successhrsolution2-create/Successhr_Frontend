@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import toast from 'react-hot-toast'
@@ -5535,6 +5535,30 @@ export default function AddCandidate() {
     const docId = String(doc?._id || '')
     if (!isMongoId(targetInterviewId) || !docId) return
 
+    const getAssetUrl = (url) => {
+      if (!url) return ''
+      if (url.startsWith('http')) return url
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+      const API_ROOT = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : `http://${host}:5000`)
+      let cleanUrl = url.startsWith('/api') ? url.slice(4) : url
+      if (!cleanUrl.startsWith('/')) cleanUrl = '/' + cleanUrl
+      return `${API_ROOT}/api${cleanUrl}`
+    }
+
+    if (!doc.fileUrl) {
+      toast.error('The physical file for this document is not available.')
+      return
+    }
+
+    if (doc.fileUrl) {
+      setPreviewDocument({
+        url: getAssetUrl(doc.fileUrl),
+        name: doc?.documentLabel || doc?.fileName || 'Interview document',
+        isPdf: !isImageDocLike(doc)
+      })
+      return
+    }
+
     try {
       const { data } = await api.get(`/cms/interviews/${targetInterviewId}/documents/${docId}/view`, { responseType: 'blob' })
       const objectUrl = URL.createObjectURL(data)
@@ -5552,6 +5576,11 @@ export default function AddCandidate() {
     const docId = String(doc?._id || '')
     if (!isMongoId(targetInterviewId) || !docId) return
 
+    if (!doc.fileUrl) {
+      toast.error('The physical file for this document is not available.')
+      return
+    }
+
     try {
       const { data } = await api.get(`/cms/interviews/${targetInterviewId}/documents/${docId}/view`, { responseType: 'blob' })
       const objectUrl = URL.createObjectURL(data)
@@ -5561,7 +5590,7 @@ export default function AddCandidate() {
       document.body.appendChild(link)
       link.click()
       link.remove()
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+      setTimeout(() => { if (objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl) }, 1000)
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not download interview document')
     }
@@ -5893,6 +5922,11 @@ export default function AddCandidate() {
       return `${API_ROOT}/api${cleanUrl}`
     }
 
+    if (!doc.fileUrl) {
+      toast.error('The physical file for this document is not available. It may have been imported via ATS text extraction only.')
+      return
+    }
+
     if (doc.fileUrl) {
       setPreviewDocument({
         url: getAssetUrl(doc.fileUrl),
@@ -5960,6 +5994,11 @@ export default function AddCandidate() {
 
     const docId = String(doc?._id || '')
     if (!isEdit || !id || !docId) return
+
+    if (!doc.fileUrl) {
+      toast.error('The physical file for this document is not available. It may have been imported via ATS text extraction only.')
+      return
+    }
 
     try {
       const { data } = await api.get(`/cms/candidates/${id}/documents/${docId}/view`, { responseType: 'blob' })
