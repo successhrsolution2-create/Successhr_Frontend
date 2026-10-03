@@ -7,6 +7,7 @@ import Pagination from '../../../components/Pagination'
 import api from '../../../api/axios'
 import { createCandidateBlankTemplatePdf, downloadBlob } from './AddCandidate'
 import ExportCandidateModal from './ExportCandidateModal'
+import SendToCrmModal from './SendToCrmModal'
 
 const isChecked = (value) => Boolean(value?.checked ?? value)
 
@@ -446,6 +447,7 @@ export default function CandidatesList() {
   const [stats, setStats] = useState({ total: 0, newToday: 0, selected: 0, activeInterviews: 0 })
   const [selectedCandidateIds, setSelectedCandidateIds] = useState([])
   const [showExportModal, setShowExportModal] = useState(false)
+  const [crmCandidate, setCrmCandidate] = useState(null)
 
   const loadCandidates = useCallback(async (targetPage = page) => {
     try {
@@ -1002,7 +1004,7 @@ export default function CandidatesList() {
                       <button
                         type="button"
                         title="Send to CRM"
-                        onClick={() => navigate('/admin/crm/candidates/new', { state: { cmsPrefill: { candidateName: candidate.fullName || '', mobileNumber: candidate.mobileNumber || '', education: candidate.education || '' } } })}
+                        onClick={() => setCrmCandidate(candidate)}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-600 hover:shadow-emerald-500/40"
                         aria-label="Send to CRM"
                       >
@@ -1105,6 +1107,12 @@ export default function CandidatesList() {
         isOpen={showExportModal} 
         onClose={() => setShowExportModal(false)} 
       />
+      {crmCandidate && (
+        <SendToCrmModal
+          candidate={crmCandidate}
+          onClose={() => setCrmCandidate(null)}
+        />
+      )}
     </div>
   )
 }
