@@ -5883,6 +5883,25 @@ export default function AddCandidate() {
     const docId = String(doc?._id || '')
     if (!isEdit || !id || !docId) return
 
+    const getAssetUrl = (url) => {
+      if (!url) return ''
+      if (url.startsWith('http')) return url
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+      const API_ROOT = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : `http://${host}:5000`)
+      let cleanUrl = url.startsWith('/api') ? url.slice(4) : url
+      if (!cleanUrl.startsWith('/')) cleanUrl = '/' + cleanUrl
+      return `${API_ROOT}/api${cleanUrl}`
+    }
+
+    if (doc.fileUrl) {
+      setPreviewDocument({
+        url: getAssetUrl(doc.fileUrl),
+        name: doc?.documentLabel || doc?.fileName || 'Document',
+        isPdf: !isImageDocLike(doc)
+      })
+      return
+    }
+
     try {
       const { data } = await api.get(`/cms/candidates/${id}/documents/${docId}/view`, { responseType: 'blob' })
       const objectUrl = URL.createObjectURL(data)
@@ -6511,7 +6530,7 @@ export default function AddCandidate() {
 
       {previewDocument ? (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => {
-          URL.revokeObjectURL(previewDocument.url)
+          if (previewDocument.url.startsWith('blob:')) URL.revokeObjectURL(previewDocument.url)
           setPreviewDocument(null)
         }}>
           <div className="flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
@@ -6522,7 +6541,7 @@ export default function AddCandidate() {
                   <Download className="h-3.5 w-3.5" />
                   Download
                 </a>
-                <button type="button" onClick={() => { URL.revokeObjectURL(previewDocument.url); setPreviewDocument(null) }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200 hover:text-slate-700" aria-label="Close preview">
+                <button type="button" onClick={() => { if (previewDocument.url.startsWith('blob:')) URL.revokeObjectURL(previewDocument.url); setPreviewDocument(null) }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200 hover:text-slate-700" aria-label="Close preview">
                   <X className="h-4 w-4" />
                 </button>
               </div>
