@@ -191,7 +191,8 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold text-brand-blue-dark">CRM Admin Dashboard</h1>
         <p className="mt-2 text-sm text-slate-600">Overview of CRM operations, call logs, and candidate management.</p>
@@ -283,12 +284,13 @@ const AdminDashboard = () => {
         </section>
       </div>
     </div>
-    {showAddModal && (
-      <SendToCrmModal
-        candidate={null}
-        onClose={() => setShowAddModal(false)}
-      />
-    )}
+      {showAddModal && (
+        <SendToCrmModal
+          candidate={null}
+          onClose={() => setShowAddModal(false)}
+        />
+      )}
+    </>
   )
 }
 
