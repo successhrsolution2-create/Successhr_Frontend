@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import toast from 'react-hot-toast'
@@ -3431,17 +3431,6 @@ function CandidateDocumentUploadCard({
             <Eye className="h-3.5 w-3.5" />
             View
           </button>
-          <button
-            type="button"
-            disabled={!hasDocuments || (uploadedDocs.length === 1 && !firstDocId) || isDeletingFirstDoc}
-            onClick={handleDelete}
-            className={`inline-flex h-8 items-center justify-center gap-1 rounded-md border px-2.5 text-xs font-bold ${
-              hasDocuments ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-            }`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {isDeletingFirstDoc ? 'Deleting...' : 'Delete'}
-          </button>
           <label
             htmlFor={inputId}
             className={`inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-slate-300 px-2.5 text-xs font-bold ${
@@ -5549,16 +5538,11 @@ export default function AddCandidate() {
     try {
       const { data } = await api.get(`/cms/interviews/${targetInterviewId}/documents/${docId}/view`, { responseType: 'blob' })
       const objectUrl = URL.createObjectURL(data)
-      if (isImageDocLike(doc)) {
-        setPreviewDocument({
-          url: objectUrl,
-          name: doc?.documentLabel || doc?.fileName || 'Interview document'
-        })
-        return
-      }
-
-      window.open(objectUrl, '_blank', 'noopener,noreferrer')
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000)
+      setPreviewDocument({
+        url: objectUrl,
+        name: doc?.documentLabel || doc?.fileName || 'Interview document',
+        isPdf: !isImageDocLike(doc)
+      })
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not open interview document')
     }
@@ -5888,16 +5872,11 @@ export default function AddCandidate() {
   const viewDocument = async (doc) => {
     if (isPendingCandidateDocument(doc) && doc?.file) {
       const objectUrl = URL.createObjectURL(doc.file)
-      if (isImageDocLike(doc)) {
-        setPreviewDocument({
-          url: objectUrl,
-          name: doc?.documentLabel || doc?.fileName || 'Document'
-        })
-        return
-      }
-
-      window.open(objectUrl, '_blank', 'noopener,noreferrer')
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000)
+      setPreviewDocument({
+        url: objectUrl,
+        name: doc?.documentLabel || doc?.fileName || 'Document',
+        isPdf: !isImageDocLike(doc)
+      })
       return
     }
 
@@ -5907,16 +5886,11 @@ export default function AddCandidate() {
     try {
       const { data } = await api.get(`/cms/candidates/${id}/documents/${docId}/view`, { responseType: 'blob' })
       const objectUrl = URL.createObjectURL(data)
-      if (isImageDocLike(doc)) {
-        setPreviewDocument({
-          url: objectUrl,
-          name: doc?.documentLabel || doc?.fileName || 'Document'
-        })
-        return
-      }
-
-      window.open(objectUrl, '_blank', 'noopener,noreferrer')
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000)
+      setPreviewDocument({
+        url: objectUrl,
+        name: doc?.documentLabel || doc?.fileName || 'Document',
+        isPdf: !isImageDocLike(doc)
+      })
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not open document')
     }
@@ -6536,27 +6510,31 @@ export default function AddCandidate() {
       </div>
 
       {previewDocument ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4" onClick={() => {
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => {
           URL.revokeObjectURL(previewDocument.url)
           setPreviewDocument(null)
         }}>
-          <div className="relative w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <p className="truncate text-sm font-bold text-slate-900">{previewDocument.name}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  URL.revokeObjectURL(previewDocument.url)
-                  setPreviewDocument(null)
-                }}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
-                aria-label="Close preview"
-              >
-                <X className="h-4 w-4" />
-              </button>
+          <div className="flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3">
+              <p className="truncate text-sm font-bold text-slate-800">{previewDocument.name}</p>
+              <div className="flex items-center gap-2">
+                <a href={previewDocument.url} download={previewDocument.name} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white shadow transition hover:bg-indigo-700">
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                </a>
+                <button type="button" onClick={() => { URL.revokeObjectURL(previewDocument.url); setPreviewDocument(null) }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200 hover:text-slate-700" aria-label="Close preview">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            <div className="max-h-[80vh] overflow-auto bg-slate-100 p-3">
-              <img src={previewDocument.url} alt={previewDocument.name} className="mx-auto h-auto max-h-[75vh] w-auto rounded-lg object-contain" />
+            <div className="flex-1 overflow-auto bg-slate-100">
+              {previewDocument.isPdf ? (
+                <iframe src={previewDocument.url} title={previewDocument.name} className="h-full w-full" style={{ minHeight: '78vh' }} />
+              ) : (
+                <div className="flex h-full items-center justify-center p-4">
+                  <img src={previewDocument.url} alt={previewDocument.name} className="max-h-full max-w-full rounded-lg object-contain shadow" />
+                </div>
+              )}
             </div>
           </div>
         </div>
