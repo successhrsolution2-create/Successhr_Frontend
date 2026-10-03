@@ -5,6 +5,7 @@ import api from '../../api/axiosInstance.js'
 import Badge from '../../components/ui/Badge.jsx'
 import { getErrorMessage, CRM_BASE_PATH } from '../../utils/helpers.js'
 import { UserCheck, PhoneCall, FileText, PlusCircle, Users } from 'lucide-react'
+import SendToCrmModal from '../../../candidate/pages/admin/Candidates/SendToCrmModal.jsx'
 import {
   BarChart,
   Bar,
@@ -24,26 +25,42 @@ const colorAlpha = (hex, opacity) => {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`
 }
 
-function ModuleCard({ code, title, subtitle, color, route, icon: Icon }) {
+function ModuleCard({ code, title, subtitle, color, route, onClick, icon: Icon }) {
+  const inner = (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex min-w-0 items-center gap-3.5">
+        <span
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-sm font-black"
+          style={{ color, backgroundColor: colorAlpha(color, 0.1) }}
+        >
+          {Icon ? <Icon size={20} /> : code}
+        </span>
+        <div className="min-w-0">
+          <h2 className="truncate text-base font-extrabold leading-tight text-slate-900">{title}</h2>
+          <p className="mt-1 truncate text-xs font-semibold text-slate-500">{subtitle}</p>
+        </div>
+      </div>
+    </div>
+  )
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="group block w-full min-h-[120px] rounded-[7px] border border-[#e7e9ee] bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.08)] text-left transition hover:-translate-y-0.5 hover:border-slate-300"
+      >
+        {inner}
+      </button>
+    )
+  }
+
   return (
     <Link
       to={route}
       className="group block min-h-[120px] rounded-[7px] border border-[#e7e9ee] bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.08)] transition hover:-translate-y-0.5 hover:border-slate-300"
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3.5">
-          <span
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-sm font-black"
-            style={{ color, backgroundColor: colorAlpha(color, 0.1) }}
-          >
-            {Icon ? <Icon size={20} /> : code}
-          </span>
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-extrabold leading-tight text-slate-900">{title}</h2>
-            <p className="mt-1 truncate text-xs font-semibold text-slate-500">{subtitle}</p>
-          </div>
-        </div>
-      </div>
+      {inner}
     </Link>
   )
 }
@@ -129,6 +146,7 @@ const AdminDashboard = () => {
   const [reports, setReports] = useState(null)
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -186,7 +204,7 @@ const AdminDashboard = () => {
           subtitle="Create new candidate record"
           color="#10b981"
           icon={PlusCircle}
-          route={`${CRM_BASE_PATH}/candidates/new`}
+          onClick={() => setShowAddModal(true)}
         />
         <ModuleCard
           title="View Reports"
@@ -265,6 +283,12 @@ const AdminDashboard = () => {
         </section>
       </div>
     </div>
+    {showAddModal && (
+      <SendToCrmModal
+        candidate={null}
+        onClose={() => setShowAddModal(false)}
+      />
+    )}
   )
 }
 

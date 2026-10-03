@@ -114,7 +114,10 @@ const SendToCrmModal = ({ candidate, onClose }) => {
         <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-4">
           <div>
             <h2 className="text-xl font-bold text-slate-800">Add to CRM — Telecalling</h2>
-            <p className="mt-0.5 text-sm text-slate-500">Pre-filled from CMS: <span className="font-semibold text-slate-700">{candidate?.fullName}</span></p>
+            {candidate?.fullName
+              ? <p className="mt-0.5 text-sm text-slate-500">Pre-filled from CMS: <span className="font-semibold text-slate-700">{candidate.fullName}</span></p>
+              : <p className="mt-0.5 text-sm text-slate-500">New CRM candidate record</p>
+            }
           </div>
           <button
             type="button"
