@@ -17,8 +17,8 @@ export default function AssignCandidatesModal({ onClose, onAssignSuccess }) {
   const [interviewDate, setInterviewDate] = useState('')
 
   useEffect(() => {
-    api.get('/cms/candidates')
-      .then((res) => setCandidates(res.data.candidates || []))
+    api.get('/cms/candidates?all=true')
+      .then((res) => setCandidates(res.data || []))
       .catch(() => toast.error('Failed to load CMS candidates'))
       .finally(() => setLoadingCandidates(false))
 
