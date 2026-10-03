@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { FileText, Download, Trash2, ArrowLeft, Plus, Pencil, Eye } from 'lucide-react'
+import { FileText, Download, Trash2, ArrowLeft, Plus, Pencil, Eye, Printer, X } from 'lucide-react'
+import { renderAsync } from 'docx-preview'
 import api from '../../../api/axios'
 import PizZip from 'pizzip'
 import Docxtemplater from 'docxtemplater'
@@ -11,6 +12,97 @@ import { toJpeg } from 'html-to-image'
 import { jsPDF } from 'jspdf'
 import { createRoot } from 'react-dom/client'
 import ReceiptTemplate from '../../../../components/ReceiptTemplate'
+
+function DocxViewerModal({ blob, name, onClose, autoPrint }) {
+  const containerRef = React.useRef(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!blob || !containerRef.current) return
+    setLoading(true)
+    renderAsync(blob, containerRef.current, null, {
+      className: 'docx-viewer-content',
+      inWrapper: true,
+      ignoreWidth: false,
+      ignoreHeight: false
+    })
+      .then(() => {
+        setLoading(false)
+        if (autoPrint) {
+          setTimeout(() => handlePrint(), 100)
+        }
+      })
+      .catch((err) => {
+        console.error(err)
+        setLoading(false)
+      })
+  }, [blob])
+
+  const handlePrint = () => {
+    if (!containerRef.current) return
+    const printWindow = window.open('', '_blank')
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${name}</title>
+          <style>
+            body { margin: 0; padding: 20px; }
+            .docx-wrapper { background: white !important; padding: 0 !important; }
+            .docx-wrapper > section.docx { box-shadow: none !important; margin: 0 auto !important; }
+            @page { size: auto; margin: 20mm; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          ${containerRef.current.innerHTML}
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.focus()
+    setTimeout(() => {
+      printWindow.print()
+      printWindow.close()
+    }, 250)
+  }
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="flex h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3">
+          <p className="truncate text-sm font-bold text-slate-800">{name}</p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white shadow transition hover:bg-indigo-700"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Print
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-auto bg-slate-100 p-4 relative">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
+              <p className="font-semibold text-slate-500 animate-pulse">Rendering Document...</p>
+            </div>
+          )}
+          <div ref={containerRef} className="w-full" />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function CandidateDocuments() {
   const { id } = useParams()
@@ -21,6 +113,9 @@ export default function CandidateDocuments() {
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedType, setSelectedType] = useState('')
+  const [previewDocx, setPreviewDocx] = useState(null)
+  const [autoPrint, setAutoPrint] = useState(false)
+
   const [formData, setFormData] = useState({
     companyName: '',
     companyAddress: '',
@@ -313,6 +408,17 @@ export default function CandidateDocuments() {
 
   return (
     <div className="flex h-full flex-col bg-slate-50">
+      {previewDocx && (
+        <DocxViewerModal
+          blob={previewDocx.blob}
+          name={previewDocx.name}
+          autoPrint={autoPrint}
+          onClose={() => {
+            setPreviewDocx(null)
+            setAutoPrint(false)
+          }}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
         <div className="flex items-center gap-4">
@@ -413,30 +519,39 @@ export default function CandidateDocuments() {
                           {doc.documentType === 'Interview Letter' && (
                             <>
                               <button
-                                title="Preview PDF"
-                                onClick={() => handlePreviewPDF(doc)}
+                                title="View Document"
+                                onClick={() => handlePreviewPDF(doc, false)}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                               >
                                 <Eye size={16} />
                               </button>
                               <button
-                                title="Download/Print PDF"
-                                onClick={() => handleDownloadPDF(doc)}
+                                title="Print Document"
+                                onClick={() => handlePreviewPDF(doc, true)}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 transition hover:bg-indigo-100"
                               >
-                                <Download size={16} />
+                                <Printer size={16} />
                               </button>
                             </>
                           )}
 
                           {doc.documentType === 'Receipt' && (
-                            <button
-                              title="Download Receipt Document"
-                              onClick={() => handleDownloadReceiptPDF(doc)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 transition hover:bg-indigo-100"
-                            >
-                              <Download size={16} />
-                            </button>
+                            <>
+                              <button
+                                title="View Receipt"
+                                onClick={() => handlePreviewReceiptPDF(doc, false)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                              >
+                                <Eye size={16} />
+                              </button>
+                              <button
+                                title="Print Receipt"
+                                onClick={() => handlePreviewReceiptPDF(doc, true)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 transition hover:bg-indigo-100"
+                              >
+                                <Printer size={16} />
+                              </button>
+                            </>
                           )}
 
                           {doc.documentType !== 'Interview Letter' && doc.documentType !== 'Receipt' && (
@@ -472,7 +587,7 @@ export default function CandidateDocuments() {
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 transition"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -497,7 +612,7 @@ export default function CandidateDocuments() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="mb-1.5 block text-sm font-semibold text-slate-700">IL. Number <span className="text-slate-400 font-normal">(next to IL. NO. - SJP –)</span></label>
+                      <label className="mb-1.5 block text-sm font-semibold text-slate-700">IL. Number <span className="text-slate-400 font-normal">(next to IL. NO. - SJP â€“)</span></label>
                       <input
                         type="text"
                         placeholder="e.g. 11553"

@@ -53,6 +53,7 @@
     "@tailwindcss/vite": "^4.2.4",
     "axios": "^1.16.0",
     "date-fns": "^4.1.0",
+    "docx-preview": "^0.4.1",
     "docxtemplater": "^3.69.3",
     "downloadjs": "^1.4.7",
     "file-saver": "^2.0.5",
