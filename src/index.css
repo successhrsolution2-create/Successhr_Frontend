@@ -289,6 +289,17 @@ body {
   transition: all 0.2s ease;
 }
 
+.admin-shell main input[type="search"] {
+  padding-left: 2.25rem !important;
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+}
+
 .admin-shell main input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
 .admin-shell main select:focus,
 .admin-shell main textarea:focus {

@@ -21,6 +21,8 @@ const AdminCommissionPanel = lazy(() => import('./pages/admin/CommissionPanel'))
 const CrmRoutes = lazy(() => import('./crm/CrmRoutes'))
 const CrmAdminDashboard = lazy(() => import('./pages/admin/Crm/AdminDashboard'))
 const CrmAdminReports = lazy(() => import('./pages/admin/Crm/AdminReports'))
+const CrmEmployeeCandidateList = lazy(() => import('./crm/pages/employee/CandidateList'))
+const CrmEmployeeDashboard = lazy(() => import('./crm/pages/employee/EmployeeDashboard'))
 const AdminSettings = lazy(() => import('./pages/admin/Settings'))
 const UsersPanel = lazy(() => import('./pages/admin/UsersPanel'))
 const BADashboard = lazy(() => import('./pages/ba/Dashboard'))
@@ -75,10 +77,11 @@ const crmAdminRoles = ['superAdmin', 'crm_super_admin', 'manager']
 const employeeManagementRoles = ['superAdmin', 'manager']
 const adminSettingsRoles = ['superAdmin', 'candidateAdmin', 'manager']
 
+
 const managerDefaultPath = (user = {}) => {
   const access = Array.isArray(user.managerAccess) ? user.managerAccess : []
-  if (access.includes('candidateManagement')) return '/admin/cms/candidates'
   if (access.includes('crmManagement')) return '/admin/crm/dashboard'
+  if (access.includes('candidateManagement')) return '/admin/cms/candidates'
   if (access.includes('employeeManagement')) return '/ems'
   return '/admin/settings'
 }
@@ -87,6 +90,22 @@ const crmDefaultPath = (role) => {
   if (role === 'crm_super_admin') return '/admin/crm/dashboard'
   if (role === 'crm_employee') return '/admin/crm/employee/candidates'
   return '/login'
+}
+
+const RoleBasedCrmDashboard = () => {
+  const role = useSelector((state) => state.auth.user?.role)
+  if (role === 'manager') {
+    return <CrmEmployeeDashboard />
+  }
+  return <CrmAdminDashboard />
+}
+
+const RoleBasedCrmCandidates = () => {
+  const role = useSelector((state) => state.auth.user?.role)
+  if (role === 'manager') {
+    return <CrmEmployeeCandidateList />
+  }
+  return <CrmAdminReports initialView="candidates" />
 }
 
 function HomeRedirect() {
@@ -418,7 +437,7 @@ export default function App() {
           element={
             <ProtectedRoute roles={crmAdminRoles} managerAccess="crmManagement">
               <CrmAdminShell>
-                <CrmAdminDashboard />
+                <RoleBasedCrmDashboard />
               </CrmAdminShell>
             </ProtectedRoute>
           }

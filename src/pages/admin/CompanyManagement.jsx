@@ -55,7 +55,7 @@ export default function CompanyManagement() {
         setSummary(summaryResponse.data)
       })
       .catch((error) => {
-        if (active) toast.error(error.response?.data?.message || 'Could not load company admins')
+        if (active) toast.error(error.response?.data?.message || 'Could not load companies')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -143,9 +143,9 @@ export default function CompanyManagement() {
 
       await load()
       closeModal()
-      toast.success(modalMode === 'create' ? 'Company admin created' : 'Company admin updated')
+      toast.success(modalMode === 'create' ? 'Company created' : 'Company updated')
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not save company admin')
+      toast.error(error.response?.data?.message || 'Could not save company')
     } finally {
       setSaving(false)
     }
@@ -155,9 +155,9 @@ export default function CompanyManagement() {
     try {
       await api.put(`/company-management/admins/${admin._id}`, { isActive: !admin.isActive })
       await load()
-      toast.success(`Company admin ${admin.isActive ? 'deactivated' : 'activated'}`)
+      toast.success(`Company ${admin.isActive ? 'deactivated' : 'activated'}`)
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not update company admin')
+      toast.error(error.response?.data?.message || 'Could not update company')
     }
   }
 
@@ -167,17 +167,17 @@ export default function CompanyManagement() {
     try {
       await api.delete(`/company-management/admins/${deleteAdmin._id}`)
       await load()
-      toast.success('Company admin removed')
+      toast.success('Company removed')
       setDeleteAdmin(null)
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not remove company admin')
+      toast.error(error.response?.data?.message || 'Could not remove company')
     }
   }
 
   if (loading) return <Skeleton rows={8} />
 
   const cards = [
-    { label: 'Company Admins', value: summary.totalAdmins, icon: Users },
+    { label: 'Companies', value: summary.totalAdmins, icon: Users },
     { label: 'Active Accounts', value: summary.activeAdmins, icon: CheckCircle2 },
     { label: 'Candidate Forms Submitted', value: summary.submittedInterviewInfo, icon: ClipboardList }
   ]
@@ -195,7 +195,7 @@ export default function CompanyManagement() {
           className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
         >
           <Plus className="h-4 w-4" />
-          Create Company Admin
+          Create Company
         </button>
       </div>
 
@@ -289,7 +289,7 @@ export default function CompanyManagement() {
               ))}
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-5 py-10 text-center text-slate-500">No company admins found.</td>
+                  <td colSpan="8" className="px-5 py-10 text-center text-slate-500">No companies found.</td>
                 </tr>
               ) : null}
             </tbody>
@@ -299,7 +299,7 @@ export default function CompanyManagement() {
           page={page}
           pageSize={pageSize}
           total={filtered.length}
-          itemLabel="company admins"
+          itemLabel="companies"
           onPageChange={setPage}
           onPageSizeChange={(value) => {
             setPage(1)
@@ -313,7 +313,7 @@ export default function CompanyManagement() {
           <form onSubmit={save} className="w-full max-w-xl rounded-xl bg-white p-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl font-bold text-slate-950">{modalMode === 'create' ? 'Create Company Admin' : 'Update Company Admin'}</h2>
+                <h2 className="text-xl font-bold text-slate-950">{modalMode === 'create' ? 'Create Company' : 'Update Company'}</h2>
                 <p className="mt-1 text-sm text-slate-500">Enter simple login details for the company representative.</p>
               </div>
               <button type="button" onClick={closeModal} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Close">
@@ -334,7 +334,7 @@ export default function CompanyManagement() {
             </div>
 
             <button type="submit" disabled={saving} className="mt-5 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70">
-              {saving ? 'Saving...' : modalMode === 'create' ? 'Create Company Admin' : 'Save Changes'}
+              {saving ? 'Saving...' : modalMode === 'create' ? 'Create Company' : 'Save Changes'}
             </button>
           </form>
         </div>
@@ -342,8 +342,8 @@ export default function CompanyManagement() {
 
       <ConfirmDialog
         open={Boolean(deleteAdmin)}
-        title="Remove Company Admin"
-        message={`Remove ${deleteAdmin?.name || 'this company admin'}? Submitted interview information must be preserved, so accounts with records can only be deactivated.`}
+        title="Remove Company"
+        message={`Remove ${deleteAdmin?.name || 'this company'}? Submitted interview information must be preserved, so accounts with records can only be deactivated.`}
         confirmText="Remove"
         danger
         onCancel={() => setDeleteAdmin(null)}

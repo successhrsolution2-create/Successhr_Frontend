@@ -367,7 +367,7 @@ const App = () => (
           <Route path="candidates/:id" element={<CandidateForm mode="edit" />} />
           <Route path="reports" element={<AdminReports initialView="reports" />} />
         </Route>
-        <Route element={<RoleGuard allowedRoles={['crm_employee']} />}>
+        <Route element={<RoleGuard allowedRoles={['crm_employee', 'crm_super_admin']} />}>
           <Route path="employee/dashboard" element={<EmployeeDashboard />} />
           <Route path="employee/candidates" element={<CandidateList />} />
           <Route path="employee/candidates/new" element={<CandidateForm mode="create" />} />

@@ -37,13 +37,6 @@ export default function CompanyAdminDashboard() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link
-            to="/company-admin/interview-info?action=create"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 hover:bg-sky-100"
-          >
-            <Plus className="h-4 w-4" />
-            New Candidate Form
-          </Link>
-          <Link
             to="/company-admin/vacancies?action=create"
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
           >

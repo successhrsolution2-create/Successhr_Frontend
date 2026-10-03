@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Eye, FileText, Save, Search, X } from 'lucide-react'
+import { Eye, FileText, Save, Search, X, UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../../api/axios'
 import Pagination from '../../components/Pagination'
 import Skeleton from '../../components/Skeleton'
+import AssignCandidatesModal from './AssignCandidatesModal'
 
 const defaultHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
 const API_ROOT = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : `http://${defaultHost}:5000`)
@@ -27,25 +28,23 @@ export default function CompanyInterviewInfo() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [showAssignModal, setShowAssignModal] = useState(false)
 
-  useEffect(() => {
-    let active = true
-
+  const loadData = () => {
     api.get('/company-management/interview-info')
       .then((interviewResult) => {
-        if (!active) return
         setRecords(interviewResult.data.interviewInfo || [])
       })
       .catch((error) => {
-        if (active) toast.error(error.response?.data?.message || 'Could not load candidate interview information')
+        toast.error(error.response?.data?.message || 'Could not load candidate interview information')
       })
       .finally(() => {
-        if (active) setLoading(false)
+        setLoading(false)
       })
+  }
 
-    return () => {
-      active = false
-    }
+  useEffect(() => {
+    loadData()
   }, [])
 
   const filtered = useMemo(() => {
@@ -87,9 +86,18 @@ export default function CompanyInterviewInfo() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Interview Feedback</h1>
-        <p className="mt-1 text-sm text-slate-500">Review candidate interview forms submitted by company admins.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Assigned Candidates</h1>
+          <p className="mt-1 text-sm text-slate-500">Review candidate interview forms submitted by company admins.</p>
+        </div>
+        <button 
+          onClick={() => setShowAssignModal(true)}
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
+        >
+          <UserPlus className="h-4 w-4" />
+          Assign Candidates
+        </button>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -173,6 +181,14 @@ export default function CompanyInterviewInfo() {
 
 
       {selected ? <InfoModal record={selected} onClose={() => setSelected(null)} onUpdate={updateRecord} /> : null}
+      <AssignModalWrapper 
+        show={showAssignModal} 
+        onClose={() => setShowAssignModal(false)} 
+        onSuccess={() => {
+          setShowAssignModal(false)
+          loadData()
+        }} 
+      />
     </div>
   )
 }
@@ -318,6 +334,11 @@ function InfoSection({ title, items }) {
       </div>
     </section>
   )
+}
+
+function AssignModalWrapper({ show, onClose, onSuccess }) {
+  if (!show) return null;
+  return <AssignCandidatesModal onClose={onClose} onAssignSuccess={onSuccess} />
 }
 
 function FileLink({ file }) {

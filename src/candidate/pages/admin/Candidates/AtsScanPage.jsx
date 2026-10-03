@@ -98,7 +98,7 @@ export default function AtsScanPage() {
     setSelectedFiles((prev) => {
       const existing = new Set(prev.map((f) => f.name + f.size))
       const fresh = pdfs.filter((f) => !existing.has(f.name + f.size))
-      return [...prev, ...fresh].slice(0, 20) // max 20
+      return [...prev, ...fresh]
     })
   }, [])
 
@@ -165,7 +165,7 @@ export default function AtsScanPage() {
         <div className="mb-4 flex items-center gap-2">
           <FilePlus2 className="h-5 w-5 text-violet-500" />
           <h2 className="text-[13px] font-bold text-slate-700">Import PDF Resumes</h2>
-          <span className="ml-auto rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-600">up to 20 PDFs</span>
+          <span className="ml-auto rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-600">Multiple PDFs</span>
         </div>
 
         {/* Drop zone */}
@@ -179,7 +179,7 @@ export default function AtsScanPage() {
           <Upload className={`h-8 w-8 ${isDragOver ? "text-violet-500" : "text-slate-300"}`} />
           <div className="text-center">
             <p className="text-sm font-semibold text-slate-600">Drag & drop PDF resumes here</p>
-            <p className="mt-0.5 text-xs text-slate-400">or click to browse — max 20 PDFs, 20 MB each</p>
+            <p className="mt-0.5 text-xs text-slate-400">or click to browse — 20 MB each</p>
           </div>
           <input
             ref={fileInputRef}

@@ -57,8 +57,8 @@ const candidateManagementLinks = [
 ]
 
 const companyManagementLinks = [
-  { to: '/admin/company-management', label: 'Company Admins', icon: Users, end: true },
-  { to: '/admin/company-management/interview-info', label: 'Interview Feedback', icon: ClipboardList },
+  { to: '/admin/company-management', label: 'Companies', icon: Users, end: true },
+  { to: '/admin/company-management/interview-info', label: 'Assigned Candidates', icon: ClipboardList },
   { to: '/admin/company-management/vacancies', label: 'Company Vacancies', icon: ClipboardList }
 ]
 

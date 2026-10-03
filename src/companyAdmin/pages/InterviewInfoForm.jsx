@@ -121,7 +121,7 @@ export default function InterviewInfoForm() {
   const [form, setForm] = useState(() => emptyForm(companyAdmin.companyName))
   const [files, setFiles] = useState({})
   const [editing, setEditing] = useState(null)
-  const [showForm, setShowForm] = useState(() => searchParams.get('action') === 'create')
+  const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -172,12 +172,7 @@ export default function InterviewInfoForm() {
     setFiles({})
   }
 
-  const openCreateForm = () => {
-    resetForm()
-    setShowForm(true)
-    setSearchParams({ action: 'create' })
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+
 
   const closeForm = () => {
     resetForm()
@@ -246,14 +241,7 @@ export default function InterviewInfoForm() {
           <p className="mt-1 text-sm text-slate-500">Maintain candidate-wise interview information separately from company vacancies.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={openCreateForm}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 hover:bg-sky-100"
-          >
-            <Plus className="h-4 w-4" />
-            Add New Candidate
-          </button>
+
           <Link
             to="/company-admin/vacancies?action=create"
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
@@ -268,13 +256,13 @@ export default function InterviewInfoForm() {
         <form onSubmit={submit} className="space-y-5">
           <div className="grid gap-5">
             <FormSection title={editing ? 'Update Candidate Interview Information' : 'Candidate Interview Information'}>
-              <Input label="Company Name" value={form.companyName} onChange={(event) => update('companyName', event.target.value)} />
-              <FileInput label="Attach Resume" file={files.resume} existing={selectedCandidate.resume} onChange={(file) => setFiles((current) => ({ ...current, resume: file }))} />
-              <Input label="Candidate Name" required value={form.candidateName} onChange={(event) => update('candidateName', event.target.value)} />
-              <Select label="Gender" value={form.gender} options={genderOptions} onChange={(value) => update('gender', value)} />
-              <Input label="Education" value={form.education} onChange={(event) => update('education', event.target.value)} />
-              <Input label="Department" value={form.candidateDepartment} onChange={(event) => update('candidateDepartment', event.target.value)} />
-              <Input label="Interview Date and Time" type="datetime-local" value={form.interviewDateTime} onChange={(event) => update('interviewDateTime', event.target.value)} />
+              <Input label="Company Name" disabled value={form.companyName} onChange={(event) => update('companyName', event.target.value)} />
+              <FileInput label="Attach Resume" disabled file={files.resume} existing={selectedCandidate.resume} onChange={(file) => setFiles((current) => ({ ...current, resume: file }))} />
+              <Input label="Candidate Name" disabled required value={form.candidateName} onChange={(event) => update('candidateName', event.target.value)} />
+              <Select label="Gender" disabled value={form.gender} options={genderOptions} onChange={(value) => update('gender', value)} />
+              <Input label="Education" disabled value={form.education} onChange={(event) => update('education', event.target.value)} />
+              <Input label="Department" disabled value={form.candidateDepartment} onChange={(event) => update('candidateDepartment', event.target.value)} />
+              <Input label="Interview Date and Time" disabled type="datetime-local" value={form.interviewDateTime} onChange={(event) => update('interviewDateTime', event.target.value)} />
               <Select label="Attend Interview" value={form.attendedInterview} options={yesNoOptions} onChange={(value) => update('attendedInterview', value)} />
               <Select label="Interested For Join" value={form.interestedForJoin} options={yesNoOptions} onChange={(value) => update('interestedForJoin', value)} />
               {form.interestedForJoin === 'No' ? (
@@ -360,7 +348,7 @@ const Input = forwardRef(function Input({ label, required, ...props }, ref) {
   return (
     <label className="block text-sm font-semibold text-slate-700">
       {label} {required ? <span className="text-rose-500">*</span> : null}
-      <input ref={ref} required={required} {...props} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100" />
+      <input ref={ref} required={required} {...props} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100 disabled:bg-slate-100 disabled:text-slate-500" />
     </label>
   )
 })
@@ -390,14 +378,14 @@ const Textarea = forwardRef(function Textarea({ label, className = '', ...props 
   )
 })
 
-function FileInput({ label, file, existing, onChange }) {
+function FileInput({ label, file, existing, onChange, disabled }) {
   return (
-    <label className="block text-sm font-semibold text-slate-700">
+    <label className={lock text-sm font-semibold text-slate-700 }>
       {label}
       <span className="mt-1 flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600 hover:border-sky-300 hover:bg-sky-50">
         <Upload className="h-4 w-4 text-sky-700" />
         <span className="min-w-0 flex-1 truncate">{file?.name || fileLabel(existing) || 'Choose file'}</span>
-        <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={(event) => onChange(event.target.files?.[0] || null)} />
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" disabled={disabled} onChange={(event) => onChange(event.target.files?.[0] || null)} />
       </span>
       {existing?.fileUrl ? <FileLink file={existing} className="mt-2" /> : null}
     </label>
