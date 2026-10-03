@@ -380,7 +380,7 @@ const Textarea = forwardRef(function Textarea({ label, className = '', ...props 
 
 function FileInput({ label, file, existing, onChange, disabled }) {
   return (
-    <label className={lock text-sm font-semibold text-slate-700 }>
+    <label className="block text-sm font-semibold text-slate-700">
       {label}
       <span className="mt-1 flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600 hover:border-sky-300 hover:bg-sky-50">
         <Upload className="h-4 w-4 text-sky-700" />
