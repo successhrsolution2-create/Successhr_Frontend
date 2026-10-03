@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -6,7 +6,7 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { X } from 'lucide-react'
 
-// ─── CRM API setup (mirrors crm/api/axiosInstance.js) ────────────────────────
+// â”€â”€â”€ CRM API setup (mirrors crm/api/axiosInstance.js) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const trimSlash = (v = '') => v.replace(/\/+$/, '')
 const defaultHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
 const DEFAULT_ROOT = import.meta.env.PROD ? '' : `http://${defaultHost}:5000`
@@ -20,7 +20,7 @@ crmApi.interceptors.request.use((cfg) => {
   return cfg
 })
 
-// ─── Form config ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Form config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const sourceOptions = ['RC data', 'WRC data', 'College contacts']
 
 const schema = yup.object({
@@ -47,7 +47,7 @@ const schema = yup.object({
 
 const Err = ({ msg }) => msg ? <span className="mt-1 block text-xs text-rose-500">{msg}</span> : null
 
-// ─── Modal component ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Modal component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SendToCrmModal = ({ candidate, onClose }) => {
   const overlayRef = useRef(null)
   const [done, setDone] = useState(false)
@@ -113,7 +113,7 @@ const SendToCrmModal = ({ candidate, onClose }) => {
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Add to CRM — Telecalling</h2>
+            <h2 className="text-xl font-bold text-slate-800">Add to CRM â€” Telecalling</h2>
             {candidate?.fullName
               ? <p className="mt-0.5 text-sm text-slate-500">Pre-filled from CMS: <span className="font-semibold text-slate-700">{candidate.fullName}</span></p>
               : <p className="mt-0.5 text-sm text-slate-500">New CRM candidate record</p>
@@ -132,7 +132,7 @@ const SendToCrmModal = ({ candidate, onClose }) => {
         <div className="overflow-y-auto p-6">
           {done ? (
             <div className="flex flex-col items-center gap-4 py-10 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-4xl">✅</div>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-4xl">âœ…</div>
               <h3 className="text-xl font-bold text-slate-800">Candidate Added to CRM!</h3>
               <p className="text-sm text-slate-500">The candidate has been successfully added to the Telecalling CRM.</p>
               <div className="flex gap-3">
@@ -208,7 +208,11 @@ const SendToCrmModal = ({ candidate, onClose }) => {
 
                 <label className="block">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Availability for Interview</span>
-                  <input className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200" {...register('availabilityForInterview')} />
+                  <select className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200" {...register('availabilityForInterview')}>
+                    <option value="">Select availability</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
                   <Err msg={errors.availabilityForInterview?.message} />
                 </label>
 
