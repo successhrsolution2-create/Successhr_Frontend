@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { ArrowLeft, BriefcaseBusiness, ClipboardList, Download, ExternalLink, Eye, FileImage, MapPin, Pencil, Search, Trash2, Upload, UserRound, Users, X } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, ClipboardList, Download, ExternalLink, Eye, FileDown, FileImage, MapPin, Pencil, Search, Trash2, Upload, UserRound, Users, X } from 'lucide-react'
 import api, { assetUrl } from '../../../api/axios'
 import { ConfirmDialog } from '../../../components/ActionDialogs'
 import {
@@ -520,44 +520,106 @@ function ReadOnlyTextArea({ value, rows = 4, onEditHint }) {
   return <textarea className={`${textAreaClass} cursor-pointer`} rows={rows} value={fieldValue(value)} readOnly onClick={onEditHint} />
 }
 
+// ─── PDF / Document Viewer Modal ─────────────────────────────────────────────
+function DocViewerModal({ url, label, onClose }) {
+  const isPdf = /\.pdf$/i.test(url) || url.includes('application/pdf')
+  const isImage = /\.(jpe?g|png|gif|webp|svg)$/i.test(url)
+
+  const handleDownload = () => {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = label || 'document'
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    a.click()
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3">
+          <p className="truncate text-sm font-bold text-slate-800">{label}</p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white shadow transition hover:bg-indigo-700"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              Download
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        {/* Viewer body */}
+        <div className="flex-1 overflow-auto bg-slate-100">
+          {isPdf ? (
+            <iframe
+              src={`${url}#toolbar=0`}
+              title={label}
+              className="h-full w-full"
+              style={{ minHeight: '75vh' }}
+            />
+          ) : isImage ? (
+            <div className="flex h-full items-center justify-center p-4">
+              <img src={url} alt={label} className="max-h-full max-w-full rounded-lg object-contain shadow" />
+            </div>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+              <FileImage className="h-16 w-16 text-slate-300" />
+              <p className="font-semibold text-slate-600">Preview not available for this file type.</p>
+              <button type="button" onClick={handleDownload}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-600 px-6 text-sm font-bold text-white shadow transition hover:bg-indigo-700">
+                <FileDown className="h-4 w-4" /> Download File
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function DocumentCard({ doc, searchKey = '' }) {
   const url = assetUrl(doc.fileUrl)
   const uploadedAt = formatDocumentDate(doc.uploadedAt)
-  const canPreview = isImageDocument(doc) && Boolean(url)
+  const label = doc.documentLabel || doc.fileName || 'Uploaded document'
+
+  const handleClick = () => {
+    if (!url) return
+    window.dispatchEvent(new CustomEvent('candidate-doc-view', { detail: { url, label } }))
+  }
 
   return (
     <button
       type="button"
       data-global-field={searchKey || undefined}
-      onClick={() => {
-        if (canPreview) {
-          const event = new CustomEvent('candidate-doc-preview', {
-            detail: {
-              url,
-              label: doc.documentLabel || doc.fileName || 'Uploaded document'
-            }
-          })
-          window.dispatchEvent(event)
-          return
-        }
-
-        window.open(url, '_blank', 'noopener,noreferrer')
-      }}
+      onClick={handleClick}
       className="group flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 transition hover:border-indigo-200 hover:bg-indigo-50"
     >
       <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-50 ring-1 ring-slate-200">
         {isImageDocument(doc) && url ? (
-          <img src={url} alt={doc.documentLabel || doc.fileName || 'Uploaded document'} className="h-full w-full object-cover" />
+          <img src={url} alt={label} className="h-full w-full object-cover" />
         ) : (
           <FileImage className="h-6 w-6 text-slate-400" />
         )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-bold text-slate-900">{doc.documentLabel || 'Document'}</p>
-          <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 group-hover:text-indigo-600" />
+          <p className="truncate text-sm font-bold text-slate-900">{label}</p>
+          <Eye className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 group-hover:text-indigo-600" />
         </div>
-        <p className="mt-1 truncate text-xs font-semibold text-slate-600">{doc.fileName || 'Uploaded image'}</p>
+        <p className="mt-1 truncate text-xs font-semibold text-slate-600">{doc.fileName || 'Uploaded file'}</p>
         {uploadedAt ? <p className="mt-1 text-xs text-slate-500">Uploaded {uploadedAt}</p> : null}
       </div>
     </button>
@@ -1236,6 +1298,7 @@ export default function CandidateDetail() {
   const [candidateDetailsStep, setCandidateDetailsStep] = useState(0)
   const [globalSearchTerm, setGlobalSearchTerm] = useState('')
   const [previewDoc, setPreviewDoc] = useState(null)
+  const [docViewer, setDocViewer] = useState(null)
   const viewOnly = searchParams.get('viewOnly') === '1'
 
   useEffect(() => {
@@ -1304,9 +1367,16 @@ export default function CandidateDetail() {
     const handlePreview = (event) => {
       setPreviewDoc(event.detail || null)
     }
+    const handleDocView = (event) => {
+      setDocViewer(event.detail || null)
+    }
 
     window.addEventListener('candidate-doc-preview', handlePreview)
-    return () => window.removeEventListener('candidate-doc-preview', handlePreview)
+    window.addEventListener('candidate-doc-view', handleDocView)
+    return () => {
+      window.removeEventListener('candidate-doc-preview', handlePreview)
+      window.removeEventListener('candidate-doc-view', handleDocView)
+    }
   }, [])
 
   const visibleInterviews = useMemo(() => (candidate?.interviews || []).filter(interviewHasContent), [candidate])
@@ -2144,6 +2214,14 @@ export default function CandidateDetail() {
         onCancel={() => setDeletingInterview(null)}
         onConfirm={handleDeleteInterview}
       />
+
+      {docViewer && (
+        <DocViewerModal
+          url={docViewer.url}
+          label={docViewer.label}
+          onClose={() => setDocViewer(null)}
+        />
+      )}
 
       {previewDoc ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4" onClick={() => setPreviewDoc(null)}>
