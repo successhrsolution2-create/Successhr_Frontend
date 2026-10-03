@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+﻿import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { CalendarDays, Download, Eye, Filter, Pencil, Plus, RotateCcw, Search, ShieldCheck, Trash2, Upload, UserRoundPlus, Users, FileSpreadsheet, FileText } from 'lucide-react'
@@ -8,6 +8,16 @@ import api from '../../../api/axios'
 import { createCandidateBlankTemplatePdf, downloadBlob } from './AddCandidate'
 import ExportCandidateModal from './ExportCandidateModal'
 import SendToCrmModal from './SendToCrmModal'
+
+
+const getInitialState = (key, defaultVal) => {
+  try {
+    const stored = sessionStorage.getItem(cms_candidates_ + key)
+    return stored ? JSON.parse(stored) : defaultVal
+  } catch {
+    return defaultVal
+  }
+}
 
 const isChecked = (value) => Boolean(value?.checked ?? value)
 
@@ -775,25 +785,25 @@ export default function CandidatesList() {
           <div className="mb-4 inline-flex rounded-full bg-violet-100 p-4 text-violet-600"><Users className="h-5 w-5" /></div>
           <p className="text-[13px] font-medium text-slate-500">Total Candidates</p>
           <p className="mt-1 text-[30px] font-bold leading-none text-slate-900">{stats.total}</p>
-          <p className="mt-1 text-sm text-emerald-600">↑ 12.5% from last month</p>
+          <p className="mt-1 text-sm text-emerald-600">â†‘ 12.5% from last month</p>
         </div>
         <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
           <div className="mb-4 inline-flex rounded-full bg-blue-100 p-4 text-blue-600"><CalendarDays className="h-5 w-5" /></div>
           <p className="text-[13px] font-medium text-slate-500">New Today</p>
           <p className="mt-1 text-[30px] font-bold leading-none text-slate-900">{stats.newToday}</p>
-          <p className="mt-1 text-sm text-emerald-600">↑ 8.4% from last month</p>
+          <p className="mt-1 text-sm text-emerald-600">â†‘ 8.4% from last month</p>
         </div>
         <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
           <div className="mb-4 inline-flex rounded-full bg-emerald-100 p-4 text-emerald-600"><ShieldCheck className="h-5 w-5" /></div>
           <p className="text-[13px] font-medium text-slate-500">Selected</p>
           <p className="mt-1 text-[30px] font-bold leading-none text-slate-900">{stats.selected}</p>
-          <p className="mt-1 text-sm text-emerald-600">↑ 15.7% from last month</p>
+          <p className="mt-1 text-sm text-emerald-600">â†‘ 15.7% from last month</p>
         </div>
         <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
           <div className="mb-4 inline-flex rounded-full bg-orange-100 p-4 text-orange-600"><UserRoundPlus className="h-5 w-5" /></div>
           <p className="text-[13px] font-medium text-slate-500">Active Interviews</p>
           <p className="mt-1 text-[30px] font-bold leading-none text-slate-900">{stats.activeInterviews}</p>
-          <p className="mt-1 text-sm text-emerald-600">↑ 10.2% from last month</p>
+          <p className="mt-1 text-sm text-emerald-600">â†‘ 10.2% from last month</p>
         </div>
       </div>
 

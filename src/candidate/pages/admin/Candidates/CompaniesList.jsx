@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
@@ -9,6 +9,15 @@ import Pagination from '../../../components/Pagination'
 
 export default function CompaniesList() {
   const navigate = useNavigate()
+  const getInitialState = (key, defaultVal) => {
+  try {
+    const stored = sessionStorage.getItem(cms_companies_ + key)
+    return stored ? JSON.parse(stored) : defaultVal
+  } catch {
+    return defaultVal
+  }
+}
+
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
